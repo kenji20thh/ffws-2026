@@ -1,0 +1,3 @@
+import { PageHero, SearchFilters, SectionHeader, Shell, EmptyState } from '@/components/site'
+import { teams } from '@/data/site'
+export default function TeamsPage() { return <Shell><PageHero eyebrow="Competition / Teams" title="The contenders." description="Explore every squad heading to the global stage. Official team announcements will populate this directory."/><section className="content-section"><SearchFilters placeholder="Search teams"/><SectionHeader eyebrow="Directory" title="Participating teams"/><div className="card-grid">{teams.length ? teams.map(team => <div key={team.slug}/>) : <EmptyState title="Team announcements are coming soon." message="Participating teams will appear here once officially confirmed."/>}</div></section></Shell> }
