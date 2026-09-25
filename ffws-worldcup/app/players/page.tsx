@@ -1,0 +1,2 @@
+import { players } from "@/data/players"; import { teams } from "@/data/teams"; import PageHero from "@/components/PageHero"; import PlayersBrowser from "@/components/PlayersBrowser";
+export default function Players() { return (<><PageHero title="PLAYERS">Player profiles (demo data until official rosters).</PageHero><div className="mx-auto max-w-7xl px-4 pt-10"><PlayersBrowser players={players} teams={teams} /></div></>); }

@@ -1,2 +1,0 @@
-import { PageHero, SectionHeader, Shell, EmptyState } from '@/components/site'
-export default function MatchesPage() { return <Shell><PageHero eyebrow="Competition / Matches" title="Every match, one place." description="Track the schedule, rooms, placements, and player performances when the World Cup goes live."/><section className="content-section"><SectionHeader eyebrow="Upcoming matches" title="The schedule"/><EmptyState title="The schedule is not available yet." message="Match schedule will appear here once event details are announced." icon="◷"/></section></Shell> }
