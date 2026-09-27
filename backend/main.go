@@ -6,6 +6,7 @@ import (
 	"ffws/internal/config"
 	"ffws/internal/db"
 	"ffws/internal/handlers"
+	"ffws/internal/models"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,10 @@ func main() {
 	cfg := config.Load()
 
 	database := db.Connect(cfg)
+
+	if err := database.AutoMigrate(&models.Subscriber{}); err != nil {
+		log.Fatal("failed to migrate database: %v", err)
+	}
 	_ = database // will be passed into repositories starting Day 2
 
 	router := gin.Default()
