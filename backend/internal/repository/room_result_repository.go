@@ -112,3 +112,62 @@ type TeamRoomSummary struct {
 	KillPoints      int    `json:"kill_points"`
 	TotalPoints     int    `json:"total_points"`
 }
+
+// GetTournamentStandings aggregates every team's points across all rooms in a tournament,
+// sorted by total points descending (highest first).
+func (r *RoomResultRepository) GetTournamentStandings(tournamentID uint) ([]TeamStandingSummary, error) {
+	var teams []models.Team
+	if err := r.db.Where("tournament_id = ?", tournamentID).Find(&teams).Error; err != nil {
+		return nil, err
+	}
+
+	var standings []TeamStandingSummary
+	for _, team := range teams {
+		var results []models.RoomTeamResult
+		r.db.Where("team_id = ?", team.ID).Find(&results)
+
+		totalPlacementPoints := 0
+		totalKillPoints := 0
+		roomsPlayed := len(results)
+
+		for _, res := range results {
+			var kills int64
+			r.db.Model(&models.PlayerRoomStat{}).
+				Where("room_id = ? AND team_id = ?", res.RoomID, team.ID).
+				Select("COALESCE(SUM(kills), 0)").
+				Scan(&kills)
+
+			totalPlacementPoints += service.PlacementPoints(res.Placement)
+			totalKillPoints += service.KillPoints(int(kills))
+		}
+
+		standings = append(standings, TeamStandingSummary{
+			TeamID:          team.ID,
+			TeamName:        team.Name,
+			RoomsPlayed:     roomsPlayed,
+			PlacementPoints: totalPlacementPoints,
+			KillPoints:      totalKillPoints,
+			TotalPoints:     totalPlacementPoints + totalKillPoints,
+		})
+	}
+
+	// sort descending by total points
+	for i := 0; i < len(standings); i++ {
+		for j := i + 1; j < len(standings); j++ {
+			if standings[j].TotalPoints > standings[i].TotalPoints {
+				standings[i], standings[j] = standings[j], standings[i]
+			}
+		}
+	}
+
+	return standings, nil
+}
+
+type TeamStandingSummary struct {
+	TeamID          uint   `json:"team_id"`
+	TeamName        string `json:"team_name"`
+	RoomsPlayed     int    `json:"rooms_played"`
+	PlacementPoints int    `json:"placement_points"`
+	KillPoints      int    `json:"kill_points"`
+	TotalPoints     int    `json:"total_points"`
+}
