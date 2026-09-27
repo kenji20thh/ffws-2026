@@ -88,3 +88,24 @@ func (h *RoomResultHandler) GetSummary(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": summary})
 }
+
+func (h *RoomResultHandler) GetStandings(c *gin.Context) {
+	tournamentIDStr := c.Query("tournament_id")
+	if tournamentIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
+		return
+	}
+	tournamentID, err := strconv.ParseUint(tournamentIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tournament_id"})
+		return
+	}
+
+	standings, err := h.repo.GetTournamentStandings(uint(tournamentID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch standings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": standings})
+}
