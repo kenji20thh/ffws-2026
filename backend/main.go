@@ -54,8 +54,8 @@ func main() {
 		api.POST("/subscribe", subscriberHandler.Subscribe)
 
 		api.POST("/tournaments", tournamentHandler.Create)
-		api.POST("/tournaments", tournamentHandler.List)
-		api.POST("/tournaments", tournamentHandler.GetBySlug)
+		api.GET("/tournaments", tournamentHandler.List)
+		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
