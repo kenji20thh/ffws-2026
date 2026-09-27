@@ -70,10 +70,10 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
-		api.POST("/auth/register", authHandler.Register)
-		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/register", middleware.RateLimit(1, 3), authHandler.Register)
+		api.POST("/auth/login", middleware.RateLimit(1, 5), authHandler.Login)
 
-		api.POST("/subscribe", subscriberHandler.Subscribe)
+		api.POST("/subscribe", middleware.RateLimit(1, 5), subscriberHandler.Subscribe)
 
 		api.GET("/tournaments", tournamentHandler.List)
 		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
