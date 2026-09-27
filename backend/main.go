@@ -107,6 +107,13 @@ func main() {
 			protected.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
 			protected.POST("/rooms", roomHandler.Create)
 			protected.POST("/rooms/:id/results", roomResultHandler.Submit)
+
+			protected.PUT("/teams/:id", teamHandler.Update)
+			protected.DELETE("/teams/:id", teamHandler.Delete)
+			protected.PUT("/players/:id", playerHandler.Update)
+			protected.DELETE("/players/:id", playerHandler.Delete)
+			protected.PUT("/rooms/:id", roomHandler.Update)
+			protected.DELETE("/rooms/:id", roomHandler.Delete)
 		}
 	}
 
