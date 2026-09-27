@@ -28,6 +28,15 @@ type createTeamRequest struct {
 	SlotNumber   int    `json:"slot_number"`
 }
 
+type updateTeamRequest struct {
+	Name       string `json:"name"`
+	Tag        string `json:"tag"`
+	LogoURL    string `json:"logo_url"`
+	Region     string `json:"region"`
+	Country    string `json:"country"`
+	SlotNumber int    `json:"slot_number"`
+}
+
 func (h *TeamHandler) Create(c *gin.Context) {
 	var req createTeamRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -90,4 +99,67 @@ func (h *TeamHandler) GetByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": team})
+}
+
+func (h *TeamHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid team id"})
+		return
+	}
+
+	team, err := h.repo.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "team not found"})
+		return
+	}
+
+	var req updateTeamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Name != "" {
+		team.Name = req.Name
+	}
+	if req.Tag != "" {
+		team.Tag = req.Tag
+	}
+	if req.LogoURL != "" {
+		team.LogoURL = req.LogoURL
+	}
+	if req.Region != "" {
+		team.Region = req.Region
+	}
+	if req.Country != "" {
+		team.Country = req.Country
+	}
+	if req.SlotNumber != 0 {
+		team.SlotNumber = req.SlotNumber
+	}
+
+	if err := h.repo.Update(team); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update team"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": team})
+}
+
+func (h *TeamHandler) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid team id"})
+		return
+	}
+
+	if err := h.repo.Delete(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete team"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "team deleted successfully"})
 }

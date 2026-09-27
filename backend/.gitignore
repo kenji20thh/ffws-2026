@@ -2,4 +2,5 @@
 /bin
 *.log
 *.exe
+*.token
 tmp/
