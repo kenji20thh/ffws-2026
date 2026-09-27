@@ -19,13 +19,13 @@ func NewRoomResultHandler(repo *repository.RoomResultRepository) *RoomResultHand
 
 type submitPlayerResult struct {
 	PlayerID uint `json:"player_id" binding:"required"`
-	Kills    int  `json:"kills"`
+	Kills    int  `json:"kills" binding:"gte=0"`
 }
 
 type submitTeamResult struct {
 	TeamID    uint                 `json:"team_id" binding:"required"`
-	Placement int                  `json:"placement" binding:"required"`
-	Players   []submitPlayerResult `json:"players" binding:"required"`
+	Placement int                  `json:"placement" binding:"required,gte=1,lte=12"`
+	Players   []submitPlayerResult `json:"players" binding:"required,min=1"`
 }
 
 type submitRoomResultsRequest struct {
