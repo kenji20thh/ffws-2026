@@ -21,3 +21,7 @@ func PlacementPoints(placement int) int {
 	}
 	return 0
 }
+
+func KillPoints(kills int) int {
+	return kills
+}
