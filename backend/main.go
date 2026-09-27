@@ -18,7 +18,17 @@ func main() {
 
 	database := db.Connect(cfg)
 
-	if err := database.AutoMigrate(&models.Subscriber{}); err != nil {
+	if err := database.AutoMigrate(
+		&models.Subscriber{},
+		&models.Tournament{},
+		&models.Team{},
+		&models.Player{},
+		&models.TournamentDay{},
+		&models.TournamentDayTeam{},
+		&models.Room{},
+		&models.RoomTeamResult{},
+		&models.PlayerRoomStat{},
+	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
