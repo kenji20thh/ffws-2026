@@ -36,6 +36,13 @@ type updatePlayerRequest struct {
 	Country  string `json:"country"`
 }
 
+type updateRoomRequest struct {
+	RoomNumber  int    `json:"room_number"`
+	MapName     string `json:"map_name"`
+	ScheduledAt string `json:"scheduled_at"`
+	Status      string `json:"status"`
+}
+
 func (h *RoomHandler) Create(c *gin.Context) {
 	var req createRoomRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
