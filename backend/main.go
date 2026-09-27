@@ -7,6 +7,7 @@ import (
 	"ffws/internal/db"
 	"ffws/internal/handlers"
 	"ffws/internal/models"
+	"ffws/internal/repository"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -33,9 +34,12 @@ func main() {
 
 	router.GET("/health", handlers.HealthCheck)
 
+	subscriberRepo := repository.NewSubscriberRepository(database)
+	subscriberHandler := handlers.NewSubscriberHandler(subscriberRepo)
+
 	api := router.Group("/api/v1")
 	{
-		api.POST("/subscribe", handlers.HealthCheck) // placeholder, we'll build this next
+		api.POST("/subscribe", subscriberHandler.Subscribe)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
