@@ -93,6 +93,7 @@ func main() {
 
 		api.POST("/rooms/:id/results", roomResultHandler.Submit)
 		api.GET("/rooms/:id/results", roomResultHandler.GetSummary)
+		api.GET("/standings", roomResultHandler.GetStandings)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
