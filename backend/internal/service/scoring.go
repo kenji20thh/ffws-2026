@@ -1,4 +1,4 @@
-package handlers
+package service
 
 var placementPointsTable = map[int]int{
 	1:  12,
