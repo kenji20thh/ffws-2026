@@ -55,6 +55,13 @@ func main() {
 	playerRepo := repository.NewPlayerRepository(database)
 	playerHandler := handlers.NewPlayerHandler(playerRepo)
 
+	tournamentDayRepo := repository.NewTournamentDayRepository(database)
+	dayTeamRepo := repository.NewTournamentDayTeamRepository(database)
+	tournamentDayHandler := handlers.NewTournamentDayHandler(tournamentDayRepo, dayTeamRepo)
+
+	roomRepo := repository.NewRoomRepository(database)
+	roomHandler := handlers.NewRoomHandler(roomRepo)
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/subscribe", subscriberHandler.Subscribe)
@@ -70,6 +77,16 @@ func main() {
 		api.POST("/players", playerHandler.Create)
 		api.GET("/players", playerHandler.List)
 		api.GET("/players/:id", playerHandler.GetByID)
+
+		api.POST("/tournament-days", tournamentDayHandler.Create)
+		api.GET("/tournament-days", tournamentDayHandler.List)
+		api.GET("/tournament-days/:id", tournamentDayHandler.GetByID)
+		api.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
+		api.GET("/tournament-days/:id/teams", tournamentDayHandler.GetTeams)
+
+		api.POST("/rooms", roomHandler.Create)
+		api.GET("/rooms", roomHandler.List)
+		api.GET("/rooms/:id", roomHandler.GetByID)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
