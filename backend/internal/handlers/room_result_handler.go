@@ -25,11 +25,11 @@ type submitPlayerResult struct {
 type submitTeamResult struct {
 	TeamID    uint                 `json:"team_id" binding:"required"`
 	Placement int                  `json:"placement" binding:"required,gte=1,lte=12"`
-	Players   []submitPlayerResult `json:"players" binding:"required,min=1"`
+	Players   []submitPlayerResult `json:"players" binding:"required,min=1,dive"`
 }
 
 type submitRoomResultsRequest struct {
-	Teams []submitTeamResult `json:"teams" binding:"required"`
+	Teams []submitTeamResult `json:"teams" binding:"required,min=1,dive"`
 }
 
 // Submit accepts one team or many teams in the same request body.
