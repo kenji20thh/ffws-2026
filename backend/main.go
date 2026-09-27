@@ -19,14 +19,13 @@ func main() {
 	database := db.Connect(cfg)
 
 	if err := database.AutoMigrate(&models.Subscriber{}); err != nil {
-		log.Fatal("failed to migrate database: %v", err)
+		log.Fatalf("failed to migrate database: %v", err)
 	}
-	_ = database // will be passed into repositories starting Day 2
 
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // tighten this before launch
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
