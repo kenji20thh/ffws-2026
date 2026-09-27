@@ -34,3 +34,11 @@ func (r *RoomRepository) FindByID(id uint) (*models.Room, error) {
 	}
 	return &room, nil
 }
+
+func (r *RoomRepository) Update(room *models.Room) error {
+	return r.db.Save(room).Error
+}
+
+func (r *RoomRepository) Delete(id uint) error {
+	return r.db.Delete(&models.Room{}, id).Error
+}
