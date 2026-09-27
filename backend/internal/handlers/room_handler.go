@@ -171,3 +171,62 @@ func (h *PlayerHandler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "player deleted successfully"})
 }
+
+func (h *RoomHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid room id"})
+		return
+	}
+
+	room, err := h.repo.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "room not found"})
+		return
+	}
+
+	var req updateRoomRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.RoomNumber != 0 {
+		room.RoomNumber = req.RoomNumber
+	}
+	if req.MapName != "" {
+		room.MapName = req.MapName
+	}
+	if req.Status != "" {
+		room.Status = req.Status
+	}
+	if req.ScheduledAt != "" {
+		if t, err := time.Parse(time.RFC3339, req.ScheduledAt); err == nil {
+			room.ScheduledAt = t
+		}
+	}
+
+	if err := h.repo.Update(room); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update room"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": room})
+}
+
+func (h *RoomHandler) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid room id"})
+		return
+	}
+
+	if err := h.repo.Delete(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete room"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "room deleted successfully"})
+}
