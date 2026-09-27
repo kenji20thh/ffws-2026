@@ -14,3 +14,10 @@ var placementPointsTable = map[int]int{
 	11: 0,
 	12: 0,
 }
+
+func PlacementPoints(placement int) int {
+	if pts, ok := placementPointsTable[placement]; ok {
+		return pts
+	}
+	return 0
+}
