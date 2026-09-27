@@ -6,6 +6,7 @@ import (
 	"ffws/internal/config"
 	"ffws/internal/db"
 	"ffws/internal/handlers"
+	"ffws/internal/middleware"
 	"ffws/internal/models"
 	"ffws/internal/repository"
 
@@ -15,7 +16,6 @@ import (
 
 func main() {
 	cfg := config.Load()
-
 	database := db.Connect(cfg)
 
 	if err := database.AutoMigrate(
@@ -28,12 +28,12 @@ func main() {
 		&models.Room{},
 		&models.RoomTeamResult{},
 		&models.PlayerRoomStat{},
+		&models.User{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
 	router := gin.Default()
-
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
@@ -65,35 +65,49 @@ func main() {
 	roomResultRepo := repository.NewRoomResultRepository(database)
 	roomResultHandler := handlers.NewRoomResultHandler(roomResultRepo)
 
+	userRepo := repository.NewUserRepository(database)
+	authHandler := handlers.NewAuthHandler(userRepo, cfg)
+
 	api := router.Group("/api/v1")
 	{
+		api.POST("/auth/register", authHandler.Register)
+		api.POST("/auth/login", authHandler.Login)
+
 		api.POST("/subscribe", subscriberHandler.Subscribe)
 
-		api.POST("/tournaments", tournamentHandler.Create)
 		api.GET("/tournaments", tournamentHandler.List)
 		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
-
-		api.POST("/teams", teamHandler.Create)
 		api.GET("/teams", teamHandler.List)
 		api.GET("/teams/:id", teamHandler.GetByID)
-
-		api.POST("/players", playerHandler.Create)
 		api.GET("/players", playerHandler.List)
 		api.GET("/players/:id", playerHandler.GetByID)
-
-		api.POST("/tournament-days", tournamentDayHandler.Create)
 		api.GET("/tournament-days", tournamentDayHandler.List)
 		api.GET("/tournament-days/:id", tournamentDayHandler.GetByID)
-		api.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
 		api.GET("/tournament-days/:id/teams", tournamentDayHandler.GetTeams)
-
-		api.POST("/rooms", roomHandler.Create)
 		api.GET("/rooms", roomHandler.List)
 		api.GET("/rooms/:id", roomHandler.GetByID)
-
-		api.POST("/rooms/:id/results", roomResultHandler.Submit)
 		api.GET("/rooms/:id/results", roomResultHandler.GetSummary)
 		api.GET("/standings", roomResultHandler.GetStandings)
+
+		protected := api.Group("/")
+		protected.Use(middleware.RequireAuth(cfg))
+		{
+			adminOnly := protected.Group("/")
+			adminOnly.Use(middleware.RequireAdmin())
+			{
+				adminOnly.POST("/auth/accounts", authHandler.CreateAccount)
+				adminOnly.GET("/auth/accounts", authHandler.ListAccounts)
+				adminOnly.POST("/auth/accounts/:id/grant-admin", authHandler.GrantAdmin)
+			}
+
+			protected.POST("/tournaments", tournamentHandler.Create)
+			protected.POST("/teams", teamHandler.Create)
+			protected.POST("/players", playerHandler.Create)
+			protected.POST("/tournament-days", tournamentDayHandler.Create)
+			protected.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
+			protected.POST("/rooms", roomHandler.Create)
+			protected.POST("/rooms/:id/results", roomResultHandler.Submit)
+		}
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
