@@ -62,6 +62,9 @@ func main() {
 	roomRepo := repository.NewRoomRepository(database)
 	roomHandler := handlers.NewRoomHandler(roomRepo)
 
+	roomResultRepo := repository.NewRoomResultRepository(database)
+	roomResultHandler := handlers.NewRoomResultHandler(roomResultRepo)
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/subscribe", subscriberHandler.Subscribe)
@@ -87,6 +90,9 @@ func main() {
 		api.POST("/rooms", roomHandler.Create)
 		api.GET("/rooms", roomHandler.List)
 		api.GET("/rooms/:id", roomHandler.GetByID)
+
+		api.POST("/rooms/:id/results", roomResultHandler.Submit)
+		api.GET("/rooms/:id/results", roomResultHandler.GetSummary)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
