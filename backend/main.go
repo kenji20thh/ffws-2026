@@ -52,6 +52,9 @@ func main() {
 	teamRepo := repository.NewTeamRepository(database)
 	teamHandler := handlers.NewTeamHandler(teamRepo)
 
+	playerRepo := repository.NewPlayerRepository(database)
+	playerHandler := handlers.NewPlayerHandler(playerRepo)
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/subscribe", subscriberHandler.Subscribe)
@@ -63,6 +66,10 @@ func main() {
 		api.POST("/teams", teamHandler.Create)
 		api.GET("/teams", teamHandler.List)
 		api.GET("/teams/:id", teamHandler.GetByID)
+
+		api.POST("/players", playerHandler.Create)
+		api.GET("/players", playerHandler.List)
+		api.GET("/players/:id", playerHandler.GetByID)
 	}
 
 	log.Printf("starting server on port %s", cfg.Port)
