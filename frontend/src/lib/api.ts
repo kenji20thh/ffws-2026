@@ -1,0 +1,95 @@
+import type {
+  DayTeam,
+  LoginResponse,
+  Player,
+  PlayerLeaderboardEntry,
+  Room,
+  RoomTeamSummary,
+  SubmitTeamResult,
+  Team,
+  TeamStanding,
+  Tournament,
+  TournamentDay,
+} from "@/types";
+import { getToken } from "./auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}, auth = false): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (auth) {
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: { ...headers, ...(options.headers as Record<string, string>) },
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError("Cannot reach the server", 0);
+  }
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(body.error ?? "Something went wrong", res.status);
+  }
+  return body as T;
+}
+
+// Go can return null for empty lists, so normalise to [].
+async function list<T>(path: string): Promise<T[]> {
+  const res = await request<{ data: T[] | null }>(path);
+  return res.data ?? [];
+}
+
+async function one<T>(path: string): Promise<T> {
+  const res = await request<{ data: T }>(path);
+  return res.data;
+}
+
+/* ---------- public ---------- */
+export const getTournament = (slug: string) => one<Tournament>(`/tournaments/${slug}`);
+export const getTeams = (tournamentId: number) => list<Team>(`/teams?tournament_id=${tournamentId}`);
+export const getTeam = (id: number) => one<Team>(`/teams/${id}`);
+export const getPlayers = (teamId: number) => list<Player>(`/players?team_id=${teamId}`);
+export const getDays = (tournamentId: number) =>
+  list<TournamentDay>(`/tournament-days?tournament_id=${tournamentId}`);
+export const getDay = (id: number) => one<TournamentDay>(`/tournament-days/${id}`);
+export const getDayTeams = (dayId: number) => list<DayTeam>(`/tournament-days/${dayId}/teams`);
+export const getRooms = (dayId: number) => list<Room>(`/rooms?tournament_day_id=${dayId}`);
+export const getRoomResults = (roomId: number) => list<RoomTeamSummary>(`/rooms/${roomId}/results`);
+export const getStandings = (tournamentId: number) =>
+  list<TeamStanding>(`/standings?tournament_id=${tournamentId}`);
+export const getPlayerLeaderboard = (tournamentId: number) =>
+  list<PlayerLeaderboardEntry>(`/player-leaderboard?tournament_id=${tournamentId}`);
+
+export const subscribe = (email: string) =>
+  request<{ message: string }>("/subscribe", { method: "POST", body: JSON.stringify({ email }) });
+
+/* ---------- auth ---------- */
+// login is NOT wrapped in { data }
+export const login = (username: string, password: string) =>
+  request<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+
+/* ---------- admin ---------- */
+export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
+  request<{ message: string }>(
+    `/rooms/${roomId}/results`,
+    { method: "POST", body: JSON.stringify({ teams }) },
+    true
+  );
