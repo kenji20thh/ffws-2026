@@ -18,18 +18,27 @@ export default function Monogram({ label, imageUrl, size = 64 }: Props) {
   const hex = "polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)";
 
   if (imageUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+      }}
+      className="flex items-center justify-center"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={imageUrl}
         alt={label}
-        width={size}
-        height={size}
-        style={{ width: size, height: size, clipPath: hex }}
-        className="object-cover"
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+        className="object-contain"
       />
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div
