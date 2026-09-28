@@ -3,6 +3,7 @@ import type {
   LoginResponse,
   Player,
   PlayerLeaderboardEntry,
+  PlayerProfile,
   Room,
   RoomTeamSummary,
   SubmitTeamResult,
@@ -74,6 +75,8 @@ export const getStandings = (tournamentId: number) =>
   list<TeamStanding>(`/standings?tournament_id=${tournamentId}`);
 export const getPlayerLeaderboard = (tournamentId: number) =>
   list<PlayerLeaderboardEntry>(`/player-leaderboard?tournament_id=${tournamentId}`);
+export const getPlayerProfile = (playerId: number) =>
+  one<PlayerProfile>(`/players/${playerId}`);
 
 export const subscribe = (email: string) =>
   request<{ message: string }>("/subscribe", { method: "POST", body: JSON.stringify({ email }) });
