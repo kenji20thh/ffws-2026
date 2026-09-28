@@ -18,8 +18,9 @@ func NewRoomResultHandler(repo *repository.RoomResultRepository) *RoomResultHand
 }
 
 type submitPlayerResult struct {
-	PlayerID uint `json:"player_id" binding:"required"`
-	Kills    int  `json:"kills" binding:"gte=0"`
+	PlayerID   uint `json:"player_id" binding:"required"`
+	Kills      int  `json:"kills" binding:"gte=0"`
+	FirstBlood bool `json:"first_blood"`
 }
 
 type submitTeamResult struct {
@@ -52,10 +53,11 @@ func (h *RoomResultHandler) Submit(c *gin.Context) {
 	for _, t := range req.Teams {
 		var players []repository.PlayerKillInput
 		for _, p := range t.Players {
-			players = append(players, repository.PlayerKillInput{
-				PlayerID: p.PlayerID,
-				Kills:    p.Kills,
-			})
+			type submitPlayerResult struct {
+				PlayerID   uint `json:"player_id" binding:"required"`
+				Kills      int  `json:"kills" binding:"gte=0"`
+				FirstBlood bool `json:"first_blood"`
+			}
 		}
 		teams = append(teams, repository.TeamResultInput{
 			TeamID:    t.TeamID,

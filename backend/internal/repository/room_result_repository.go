@@ -22,8 +22,9 @@ type TeamResultInput struct {
 }
 
 type PlayerKillInput struct {
-	PlayerID uint
-	Kills    int
+	PlayerID   uint
+	Kills      int
+	FirstBlood bool
 }
 
 // SubmitTeamResult saves or updates one team's placement and player kills for a room.
@@ -51,10 +52,11 @@ func (r *RoomResultRepository) SubmitTeamResult(roomID uint, team TeamResultInpu
 
 		for _, p := range team.Players {
 			stat := models.PlayerRoomStat{
-				RoomID:   roomID,
-				PlayerID: p.PlayerID,
-				TeamID:   team.TeamID,
-				Kills:    p.Kills,
+				RoomID:     roomID,
+				PlayerID:   p.PlayerID,
+				TeamID:     team.TeamID,
+				Kills:      p.Kills,
+				FirstBlood: p.FirstBlood,
 			}
 			if err := tx.Create(&stat).Error; err != nil {
 				return err
