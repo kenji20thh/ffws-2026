@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Player, Team } from "@/types";
 
@@ -133,9 +134,10 @@ export default function PlayersDirectory({ players, teams }: Props) {
           const flag = countryFlags[player.country];
 
           return (
-            <div
+            <Link
               key={player.id}
-              className="group chamfer border border-bone/10 bg-char-2 transition-colors hover:border-ember"
+              href={`/players/${player.id}`}
+              className="group block chamfer border border-bone/10 bg-char-2 transition-colors hover:border-ember"
             >
               <div className="flex min-h-[88px] items-center gap-4 px-4 py-3 md:px-6">
                 {/* Rank */}
@@ -212,7 +214,7 @@ export default function PlayersDirectory({ players, teams }: Props) {
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

@@ -40,23 +40,34 @@ export default function PlayerOverallStats({
 
   return (
     <section className="relative overflow-hidden bg-[#111111] text-white">
-      {/* Subtle background texture */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.025]">
+      {/* Background geometry */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Fine grid */}
         <div
-          className="h-full w-full"
+          className="absolute inset-0 opacity-[0.018]"
           style={{
             backgroundImage:
-              "linear-gradient(135deg, transparent 0%, transparent 49%, white 50%, transparent 51%, transparent 100%)",
-            backgroundSize: "24px 24px",
+              "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
           }}
         />
+
+        {/* Yellow diagonal lines */}
+        <div className="absolute -right-20 top-0 h-[140%] w-px rotate-[28deg] bg-[#f5c542]/20" />
+        <div className="absolute right-[12%] -top-20 h-[130%] w-px rotate-[28deg] bg-[#f5c542]/10" />
+        <div className="absolute right-[25%] -top-32 h-[120%] w-px rotate-[28deg] bg-[#f5c542]/[0.06]" />
+
+        {/* Thin horizontal accent */}
+        <div className="absolute right-0 top-[30%] h-px w-[32%] bg-[#f5c542]/15" />
+        <div className="absolute right-0 top-[30%] h-px w-[14%] bg-[#f5c542]/25" />
       </div>
 
       <div className="relative mx-auto max-w-[1440px] px-5 py-14 md:px-10 md:py-16 lg:px-16 lg:py-20">
         {/* Header */}
         <div className="mb-8 flex items-end justify-between border-b border-white/[0.08] pb-5">
           <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
+            <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
+              <span className="h-[2px] w-5 bg-[#f5c542]/60" />
               Player Performance
             </p>
 
@@ -76,15 +87,18 @@ export default function PlayerOverallStats({
           </div>
         </div>
 
-        {/* Main statistics */}
+        {/* Statistics */}
         <div className="grid grid-cols-2 border-l border-t border-white/[0.08] md:grid-cols-3 lg:grid-cols-6">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className={`relative border-b border-r border-white/[0.08] px-5 py-6 md:px-6 md:py-7 ${
-                index === 0 ? "bg-white/[0.025]" : ""
-              }`}
+              className="relative border-b border-r border-white/[0.08] px-5 py-6 md:px-6 md:py-7"
             >
+              {/* Small yellow corner */}
+              {index === 0 && (
+                <div className="absolute left-0 top-0 h-px w-8 bg-[#f5c542]/60" />
+              )}
+
               <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">
                 {stat.label}
               </p>
@@ -103,7 +117,10 @@ export default function PlayerOverallStats({
         </div>
 
         {/* Kill participation */}
-        <div className="mt-3 border border-white/[0.08] bg-white/[0.025] px-5 py-6 md:px-7 md:py-7">
+        <div className="relative mt-3 border border-white/[0.08] px-5 py-6 md:px-7 md:py-7">
+          {/* Yellow accent */}
+          <div className="absolute left-0 top-0 h-px w-16 bg-[#f5c542]/60" />
+
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">
@@ -132,9 +149,9 @@ export default function PlayerOverallStats({
                 </span>
               </div>
 
-              <div className="h-[3px] w-full bg-white/[0.08]">
+              <div className="relative h-[3px] w-full bg-white/[0.08]">
                 <div
-                  className="h-full bg-white/60 transition-all"
+                  className="h-full bg-[#f5c542]/60 transition-all"
                   style={{
                     width: `${Math.min(
                       Math.max(overall.kill_participation, 0),
