@@ -53,7 +53,8 @@ func main() {
 	teamHandler := handlers.NewTeamHandler(teamRepo)
 
 	playerRepo := repository.NewPlayerRepository(database)
-	playerHandler := handlers.NewPlayerHandler(playerRepo)
+	playerStatsRepo := repository.NewPlayerStatsRepository(database)
+	playerHandler := handlers.NewPlayerHandler(playerRepo, playerStatsRepo)
 
 	tournamentDayRepo := repository.NewTournamentDayRepository(database)
 	dayTeamRepo := repository.NewTournamentDayTeamRepository(database)
@@ -68,7 +69,6 @@ func main() {
 	userRepo := repository.NewUserRepository(database)
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
 
-	playerStatsRepo := repository.NewPlayerStatsRepository(database)
 	playerStatsHandler := handlers.NewPlayerStatsHandler(playerStatsRepo)
 
 	api := router.Group("/api/v1")
