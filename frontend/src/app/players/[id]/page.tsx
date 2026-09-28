@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import PlayerProfile from "@/components/players/PlayerProfile";
 import PlayerOverallStats from "@/components/players/PlayerOverallStats";
+import PlayerDayStats from "@/components/players/PlayerDayStats";
 import { getPlayerProfile } from "@/lib/api";
 
 type PlayerPageProps = {
@@ -9,7 +10,9 @@ type PlayerPageProps = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PlayerPage({ params }: PlayerPageProps) {
+export default async function PlayerPage({
+  params,
+}: PlayerPageProps) {
   const { id } = await params;
 
   const playerId = Number(id);
@@ -29,6 +32,8 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
         />
 
         <PlayerOverallStats overall={profile.overall} />
+
+        <PlayerDayStats days={profile.days} />
       </main>
     );
   } catch {
