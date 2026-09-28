@@ -4,9 +4,7 @@ import type { Team } from "@/types";
 
 const countryFlags: Record<string, string> = {
   Morocco: "🇲🇦",
-  Algeria: "🇩🇿",
-  Tunisia: "🇹🇳",
-  Egypt: "🇪🇬",
+  Mexico: "🇲🇽",
   Indonesia: "🇮🇩",
   Vietnam: "🇻🇳",
   Thailand: "🇹🇭",
@@ -15,8 +13,6 @@ const countryFlags: Record<string, string> = {
   Philippines: "🇵🇭",
   India: "🇮🇳",
   Brazil: "🇧🇷",
-  Turkey: "🇹🇷",
-  France: "🇫🇷",
   Pakistan: "🇵🇰",
   Bangladesh: "🇧🇩",
   Nepal: "🇳🇵",
