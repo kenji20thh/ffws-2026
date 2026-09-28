@@ -94,3 +94,65 @@ export interface LoginResponse {
   token: string;
   role: "user" | "admin";
 }
+
+export interface PlayerProfilePlayer {
+  id: number;
+  ign: string;
+  real_name: string;
+  role: string;
+  photo_url: string;
+  region: string;
+  country: string;
+}
+
+export interface PlayerProfileTeam {
+  id: number;
+  name: string;
+  tag: string;
+  logo_url: string;
+  region: string;
+  country: string;
+}
+
+export interface PlayerOverallStats {
+  total_kills: number;
+  rooms_played: number;
+  kills_per_room: number;
+  placement_points_per_room: number;
+  average_placement: number;
+  booyahs: number;
+  first_bloods: number;
+  kill_participation: number;
+}
+
+export interface PlayerRoomStats {
+  room_id: number;
+  room_number: number;
+  map_name: string;
+  placement: number;
+  placement_points: number;
+  kills: number;
+  first_blood: boolean;
+  team_kills: number;
+  kill_participation: number;
+}
+
+export interface PlayerDayStats {
+  day_id: number;
+  day_name: string;
+  day_order: number;
+  date: string;
+  total_kills: number;
+  placement_points: number;
+  first_bloods: number;
+  booyahs: number;
+  rooms_played: number;
+  rooms: PlayerRoomStats[];
+}
+
+export interface PlayerProfile {
+  player: PlayerProfilePlayer;
+  team: PlayerProfileTeam;
+  overall: PlayerOverallStats;
+  days: PlayerDayStats[];
+}
