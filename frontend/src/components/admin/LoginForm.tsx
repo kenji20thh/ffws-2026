@@ -19,12 +19,9 @@ export default function LoginForm() {
     setError("");
     try {
       const res = await login(username, password);
-      if (res.role !== "admin") {
-        setError("Admin access required.");
-        return;
-      }
-      saveSession(res.token, res.role);
-      router.replace("/admin");
+      saveSession(res.token, res.role, username);
+      router.replace(res.role === "admin" ? "/admin" : "/");
+      router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) setError("Too many attempts. Wait a few seconds.");
       else setError(err instanceof Error ? err.message : "Login failed");
@@ -38,8 +35,8 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="chamfer w-full max-w-sm space-y-4 border border-bone/10 bg-char-2 p-6">
-      <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Ops console</p>
-      <h1 className="font-display text-5xl font-black uppercase leading-none">Admin login</h1>
+      <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Welcome back</p>
+      <h1 className="font-display text-5xl font-black uppercase leading-none">Login</h1>
       <div>
         <label htmlFor="u" className="sr-only">Username</label>
         <input id="u" className={input} placeholder="Username" autoComplete="username"
