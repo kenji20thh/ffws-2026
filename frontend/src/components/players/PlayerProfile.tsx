@@ -31,6 +31,8 @@ const countryFlags: Record<string, string> = {
   Pakistan: "🇵🇰",
   Bangladesh: "🇧🇩",
   Nepal: "🇳🇵",
+  Chile: "🇨🇱",
+  Argentina: "🇦🇷",
 };
 
 export default function PlayerProfile({
