@@ -1,5 +1,7 @@
 import { getTournament } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const t = await getTournament("ffws-2026");
 
