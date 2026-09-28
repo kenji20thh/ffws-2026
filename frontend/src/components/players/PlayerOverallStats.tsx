@@ -13,9 +13,8 @@ export default function PlayerOverallStats({
 }: PlayerOverallStatsProps) {
   const stats = [
     {
-      label: "Total Kills",
+      label: "Kills",
       value: overall.total_kills.toString(),
-      large: true,
     },
     {
       label: "Kills / Room",
@@ -40,13 +39,25 @@ export default function PlayerOverallStats({
   ];
 
   return (
-    <section className="bg-[#f2f2f0] text-[#151515]">
-      <div className="mx-auto max-w-[1440px] px-5 py-14 md:px-10 md:py-18 lg:px-16 lg:py-20">
+    <section className="relative overflow-hidden bg-[#111111] text-white">
+      {/* Subtle background texture */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.025]">
+        <div
+          className="h-full w-full"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, transparent 0%, transparent 49%, white 50%, transparent 51%, transparent 100%)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto max-w-[1440px] px-5 py-14 md:px-10 md:py-16 lg:px-16 lg:py-20">
         {/* Header */}
-        <div className="mb-8 flex items-end justify-between gap-6 border-b border-black/10 pb-5">
+        <div className="mb-8 flex items-end justify-between border-b border-white/[0.08] pb-5">
           <div>
-            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-black/40">
-              Performance
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
+              Player Performance
             </p>
 
             <h2 className="text-3xl font-black uppercase tracking-[-0.04em] md:text-4xl">
@@ -54,33 +65,35 @@ export default function PlayerOverallStats({
             </h2>
           </div>
 
-          <div className="hidden text-right sm:block">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/35">
+          <div className="text-right">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
               Rooms Played
             </p>
 
-            <p className="mt-1 text-2xl font-black">
+            <p className="mt-1 text-2xl font-black text-white/80">
               {overall.rooms_played}
             </p>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 border-l border-t border-black/10 md:grid-cols-3 lg:grid-cols-6">
-          {stats.map((stat) => (
+        {/* Main statistics */}
+        <div className="grid grid-cols-2 border-l border-t border-white/[0.08] md:grid-cols-3 lg:grid-cols-6">
+          {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className="border-b border-r border-black/10 p-5 md:p-6"
+              className={`relative border-b border-r border-white/[0.08] px-5 py-6 md:px-6 md:py-7 ${
+                index === 0 ? "bg-white/[0.025]" : ""
+              }`}
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-black/40">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">
                 {stat.label}
               </p>
 
               <p
                 className={`mt-3 font-black leading-none tracking-[-0.05em] ${
-                  stat.large
-                    ? "text-4xl md:text-5xl"
-                    : "text-3xl md:text-4xl"
+                  index === 0
+                    ? "text-4xl text-white md:text-5xl"
+                    : "text-3xl text-white/85 md:text-4xl"
                 }`}
               >
                 {stat.value}
@@ -89,30 +102,39 @@ export default function PlayerOverallStats({
           ))}
         </div>
 
-        {/* Kill Participation */}
-        <div className="mt-4 border border-black/10 bg-[#e8e8e5] p-6 md:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        {/* Kill participation */}
+        <div className="mt-3 border border-white/[0.08] bg-white/[0.025] px-5 py-6 md:px-7 md:py-7">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">
                 Kill Participation
               </p>
 
-              <p className="mt-2 text-5xl font-black tracking-[-0.06em] md:text-6xl">
-                {formatNumber(overall.kill_participation, 1)}%
-              </p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-4xl font-black tracking-[-0.05em] md:text-5xl">
+                  {formatNumber(overall.kill_participation, 1)}%
+                </span>
+
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
+                  of team kills
+                </span>
+              </div>
             </div>
 
-            <div className="w-full md:max-w-md">
-              <div className="mb-2 flex justify-between text-[10px] font-black uppercase tracking-[0.15em] text-black/35">
-                <span>Team Kill Share</span>
-                <span>
+            <div className="w-full md:max-w-[420px]">
+              <div className="mb-2 flex justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
+                  Participation
+                </span>
+
+                <span className="text-[9px] font-bold text-white/35">
                   {formatNumber(overall.kill_participation, 1)}%
                 </span>
               </div>
 
-              <div className="h-2 w-full bg-black/10">
+              <div className="h-[3px] w-full bg-white/[0.08]">
                 <div
-                  className="h-full bg-[#151515] transition-all"
+                  className="h-full bg-white/60 transition-all"
                   style={{
                     width: `${Math.min(
                       Math.max(overall.kill_participation, 0),
