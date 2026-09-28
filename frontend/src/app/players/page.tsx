@@ -1,30 +1,75 @@
 import PageHeader from "@/components/layout/PageHeader";
-import KillLeaderboard from "@/components/players/KillLeaderboard";
+import PlayersDirectory from "@/components/players/PlayersDirectory";
 import ErrorState from "@/components/ui/ErrorState";
-import { getPlayerLeaderboard, getTournament } from "@/lib/api";
-import type { PlayerLeaderboardEntry } from "@/types";
+import { getPlayerLeaderboard, getPlayers, getTeams, getTournament } from "@/lib/api";
+import type { PlayerLeaderboardEntry, Team } from "@/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Players · FFWS 2026" };
+
+export const metadata = {
+  title: "Players · FFWS 2026",
+};
 
 export default async function PlayersPage() {
-  let rows: PlayerLeaderboardEntry[] = [];
-  let error: string | null = null;
   try {
-    const t = await getTournament("ffws-2026");
-    rows = await getPlayerLeaderboard(t.id);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to load players";
-  }
+    const tournament = await getTournament("ffws-2026");
 
-  return (
-    <>
-      <PageHeader eyebrow="Kill leaders" title="Players">
-        The deadliest hands in the lobby.
-      </PageHeader>
-      <div className="mx-auto max-w-5xl px-5 py-10">
-        {error ? <ErrorState message={error} /> : <KillLeaderboard rows={rows} />}
-      </div>
-    </>
-  );
+    const [teams, leaderboard] = await Promise.all([
+      getTeams(tournament.id),
+      getPlayerLeaderboard(tournament.id),
+    ]);
+
+    const playersByTeam = await Promise.all(
+      teams.map(async (team) => {
+        const players = await getPlayers(team.id);
+
+        return {
+          team,
+          players,
+        };
+      }),
+    );
+
+    const players = playersByTeam.flatMap(({ team, players }) =>
+      players.map((player) => {
+        const stats = leaderboard.find(
+          (entry) => entry.player_id === player.id,
+        );
+
+        return {
+          ...player,
+          team,
+          total_kills: stats?.total_kills ?? 0,
+          rooms_played: stats?.rooms_played ?? 0,
+        };
+      }),
+    );
+
+    return (
+      <>
+        <PageHeader eyebrow="World stage" title="Players">
+          Meet the players competing at the FFWS World Cup.
+        </PageHeader>
+
+        <PlayersDirectory
+          players={players}
+          teams={teams}
+        />
+      </>
+    );
+  } catch (e) {
+    return (
+      <>
+        <PageHeader eyebrow="World stage" title="Players">
+          Meet the players competing at the FFWS World Cup.
+        </PageHeader>
+
+        <div className="mx-auto max-w-6xl px-5 py-10">
+          <ErrorState
+            message={e instanceof Error ? e.message : "Failed to load players"}
+          />
+        </div>
+      </>
+    );
+  }
 }
