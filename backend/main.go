@@ -68,6 +68,9 @@ func main() {
 	userRepo := repository.NewUserRepository(database)
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
 
+	playerStatsRepo := repository.NewPlayerStatsRepository(database)
+	playerStatsHandler := handlers.NewPlayerStatsHandler(playerStatsRepo)
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/auth/register", middleware.RateLimit(1, 3), authHandler.Register)
@@ -88,6 +91,8 @@ func main() {
 		api.GET("/rooms/:id", roomHandler.GetByID)
 		api.GET("/rooms/:id/results", roomResultHandler.GetSummary)
 		api.GET("/standings", roomResultHandler.GetStandings)
+
+		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
 
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
