@@ -1,19 +1,17 @@
 import { notFound } from "next/navigation";
 import PlayerProfile from "@/components/players/PlayerProfile";
+import PlayerOverallStats from "@/components/players/PlayerOverallStats";
 import { getPlayerProfile } from "@/lib/api";
 
 type PlayerPageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function PlayerPage({
-  params,
-}: PlayerPageProps) {
+export default async function PlayerPage({ params }: PlayerPageProps) {
   const { id } = await params;
+
   const playerId = Number(id);
 
   if (!Number.isInteger(playerId) || playerId <= 0) {
@@ -29,6 +27,8 @@ export default async function PlayerPage({
           player={profile.player}
           team={profile.team}
         />
+
+        <PlayerOverallStats overall={profile.overall} />
       </main>
     );
   } catch {
