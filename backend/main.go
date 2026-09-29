@@ -103,22 +103,22 @@ func main() {
 				adminOnly.POST("/auth/accounts", authHandler.CreateAccount)
 				adminOnly.GET("/auth/accounts", authHandler.ListAccounts)
 				adminOnly.POST("/auth/accounts/:id/grant-admin", authHandler.GrantAdmin)
+
+				adminOnly.POST("/tournaments", tournamentHandler.Create)
+				adminOnly.POST("/teams", teamHandler.Create)
+				adminOnly.POST("/players", playerHandler.Create)
+				adminOnly.POST("/tournament-days", tournamentDayHandler.Create)
+				adminOnly.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
+				adminOnly.POST("/rooms", roomHandler.Create)
+				adminOnly.POST("/rooms/:id/results", roomResultHandler.Submit)
+
+				adminOnly.PUT("/teams/:id", teamHandler.Update)
+				adminOnly.DELETE("/teams/:id", teamHandler.Delete)
+				adminOnly.PUT("/players/:id", playerHandler.Update)
+				adminOnly.DELETE("/players/:id", playerHandler.Delete)
+				adminOnly.PUT("/rooms/:id", roomHandler.Update)
+				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)
 			}
-
-			protected.POST("/tournaments", tournamentHandler.Create)
-			protected.POST("/teams", teamHandler.Create)
-			protected.POST("/players", playerHandler.Create)
-			protected.POST("/tournament-days", tournamentDayHandler.Create)
-			protected.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
-			protected.POST("/rooms", roomHandler.Create)
-			protected.POST("/rooms/:id/results", roomResultHandler.Submit)
-
-			protected.PUT("/teams/:id", teamHandler.Update)
-			protected.DELETE("/teams/:id", teamHandler.Delete)
-			protected.PUT("/players/:id", playerHandler.Update)
-			protected.DELETE("/players/:id", playerHandler.Delete)
-			protected.PUT("/rooms/:id", roomHandler.Update)
-			protected.DELETE("/rooms/:id", roomHandler.Delete)
 		}
 	}
 
