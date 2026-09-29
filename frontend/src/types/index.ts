@@ -87,7 +87,7 @@ export interface PlayerLeaderboardEntry {
 export interface SubmitTeamResult {
   team_id: number;
   placement: number;
-  players: { player_id: number; kills: number }[];
+  players: { player_id: number; kills: number, first_blood: boolean }[];
 }
 
 export interface LoginResponse {
