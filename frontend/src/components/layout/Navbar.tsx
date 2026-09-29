@@ -159,13 +159,23 @@ export default function Navbar() {
                 Log out ({session.name})
               </button>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="block py-3 font-display text-2xl font-extrabold uppercase text-bone"
-              >
-                Login
-              </Link>
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="block py-3 font-display text-2xl font-extrabold uppercase text-bone"
+                >
+                  Login
+                </Link>
+
+                <Link
+                  href="/register"
+                  onClick={() => setOpen(false)}
+                  className="block py-3 font-display text-2xl font-extrabold uppercase text-bone"
+                >
+                  Register
+                </Link>
+              </>
             )}
           </li>
         </ul>
