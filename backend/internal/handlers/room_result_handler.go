@@ -54,8 +54,9 @@ func (h *RoomResultHandler) Submit(c *gin.Context) {
 		var players []repository.PlayerKillInput
 		for _, p := range t.Players {
 			players = append(players, repository.PlayerKillInput{
-				PlayerID: p.PlayerID,
-				Kills:    p.Kills,
+				PlayerID:   p.PlayerID,
+				Kills:      p.Kills,
+				FirstBlood: p.FirstBlood,
 			})
 		}
 		teams = append(teams, repository.TeamResultInput{
