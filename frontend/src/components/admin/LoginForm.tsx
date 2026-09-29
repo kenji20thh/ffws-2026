@@ -1,5 +1,6 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Button from "@/components/ui/Button";
@@ -17,15 +18,18 @@ export default function LoginForm() {
     e.preventDefault();
     setBusy(true);
     setError("");
+
     try {
       const res = await login(username, password);
       saveSession(res.token, res.role, username);
       router.replace(res.role === "admin" ? "/admin" : "/");
       router.refresh();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429)
+      if (err instanceof ApiError && err.status === 429) {
         setError("Too many attempts. Wait a few seconds.");
-      else setError(err instanceof Error ? err.message : "Login failed");
+      } else {
+        setError(err instanceof Error ? err.message : "Login failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -42,9 +46,11 @@ export default function LoginForm() {
       <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
         Welcome back
       </p>
+
       <h1 className="font-display text-5xl font-black uppercase leading-none">
         Login
       </h1>
+
       <div>
         <label htmlFor="u" className="sr-only">
           Username
@@ -59,6 +65,7 @@ export default function LoginForm() {
           required
         />
       </div>
+
       <div>
         <label htmlFor="p" className="sr-only">
           Password
@@ -74,9 +81,14 @@ export default function LoginForm() {
           required
         />
       </div>
-      <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">
+
+      <p
+        aria-live="polite"
+        className="min-h-5 font-stat text-xs text-danger"
+      >
         {error}
       </p>
+
       <Button type="submit" disabled={busy} className="w-full">
         {busy ? "Checking…" : "Enter"}
       </Button>
