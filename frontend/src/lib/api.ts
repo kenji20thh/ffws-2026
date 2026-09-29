@@ -89,6 +89,12 @@ export const login = (username: string, password: string) =>
     body: JSON.stringify({ username, password }),
   });
 
+ export const register = (username: string, password: string) =>
+  request<{ message: string; id: number }>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  }); 
+
 /* ---------- admin ---------- */
 export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
   request<{ message: string }>(
