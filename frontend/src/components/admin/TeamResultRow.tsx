@@ -8,9 +8,10 @@ import PointsPreview from "./PointsPreview";
 export interface Draft {
   placement: string;
   kills: Record<number, string>;
+  firstBloodPlayerId: number | null;
 }
 
-export const emptyDraft: Draft = { placement: "", kills: {} };
+export const emptyDraft: Draft = { placement: "", kills: {}, firstBloodPlayerId: null };
 
 export function draftError(team: Team, d: Draft): string | null {
   const players = team.players ?? [];

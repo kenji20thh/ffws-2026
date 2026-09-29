@@ -44,7 +44,7 @@ export default function AdminConsole() {
     (e: unknown) => {
       if (e instanceof ApiError && e.status === 401) {
         clearSession();
-        router.replace("/admin/login");
+        router.replace("/login");
         return;
       }
       const text =
@@ -59,7 +59,7 @@ export default function AdminConsole() {
   // auth guard + initial days
   useEffect(() => {
     if (!isAdmin()) {
-      router.replace("/admin/login");
+      router.replace("/login");
       return;
     }
     setReady(true);
@@ -138,7 +138,7 @@ export default function AdminConsole() {
           <Button type="button" disabled={fillable.length === 0 || busy.length > 0} onClick={() => save(fillable)}>
             Submit all filled ({fillable.length})
           </Button>
-          <Button type="button" variant="ghost" onClick={() => { clearSession(); router.replace("/admin/login"); }}>
+          <Button type="button" variant="ghost" onClick={() => { clearSession(); router.replace("/login"); }}>
             Log out
           </Button>
         </div>
