@@ -21,6 +21,7 @@ function toPayload(team: Team, d: Draft): SubmitTeamResult {
     players: (team.players ?? []).map((p) => ({
       player_id: p.id,
       kills: d.kills[p.id] === undefined || d.kills[p.id] === "" ? 0 : Number(d.kills[p.id]),
+      first_blood: d.firstBloodPlayerId === p.id,
     })),
   };
 }
