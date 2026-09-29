@@ -3,17 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Player, Team } from "@/types";
-
-const roleIcons: Record<string, string> = {
-  Rusher:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_rusher_role_player.png",
-  Bomber:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_bomber_role_player.png",
-  Support:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_support_role_player.png",
-  Sniper:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_sniper_role_player.png",
-};
+import { roleIcon, roleLabel } from "@/lib/roles";
 
 const countryFlags: Record<string, string> = {
   Morocco: "🇲🇦",
@@ -130,7 +120,7 @@ export default function PlayersDirectory({ players, teams }: Props) {
       {/* Players */}
       <div className="space-y-2">
         {filteredPlayers.map((player, index) => {
-          const roleIcon = roleIcons[player.role];
+          const icon = roleIcon(player.role);
           const flag = countryFlags[player.country];
 
           return (
@@ -181,17 +171,17 @@ export default function PlayersDirectory({ players, teams }: Props) {
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {/* Role */}
                     <div className="flex items-center gap-1.5">
-                      {roleIcon && (
+                      {icon && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={roleIcon}
+                          src={icon}
                           alt=""
                           className="h-5 w-5 object-contain"
                         />
                       )}
 
                       <span className="font-stat text-[10px] uppercase tracking-widest text-ember">
-                        {player.role || "PLAYER"}
+                        {roleLabel(player.role)}
                       </span>
                     </div>
 

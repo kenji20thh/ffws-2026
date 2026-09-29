@@ -1,20 +1,11 @@
 import Image from "next/image";
 import type { PlayerProfile as PlayerProfileData } from "@/types";
+import { roleIcon, roleLabel } from "@/lib/roles";
+
 
 type PlayerProfileProps = {
   player: PlayerProfileData["player"];
   team: PlayerProfileData["team"];
-};
-
-const roleIcons: Record<string, string> = {
-  Rusher:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_rusher_role_player.png",
-  Bomber:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_bomber_role_player.png",
-  Support:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_support_role_player.png",
-  Sniper:
-    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_sniper_role_player.png",
 };
 
 const countryFlags: Record<string, string> = {
@@ -39,7 +30,7 @@ export default function PlayerProfile({
   player,
   team,
 }: PlayerProfileProps) {
-  const roleIcon = roleIcons[player.role];
+ const icon = roleIcon(player.role);
   const countryFlag = countryFlags[player.country] ?? "🌐";
 
   return (
@@ -110,9 +101,9 @@ export default function PlayerProfile({
 
           {/* Role */}
           <div className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-white/50">
-            {roleIcon && (
+            {icon && (
               <Image
-                src={roleIcon}
+                src={icon}
                 alt=""
                 width={25}
                 height={25}
@@ -121,7 +112,7 @@ export default function PlayerProfile({
               />
             )}
 
-            <span>{player.role || "Player"}</span>
+            <span>{roleLabel(player.role)}</span>
           </div>
 
           {/* IGN */}
