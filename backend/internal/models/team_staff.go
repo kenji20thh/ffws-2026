@@ -1,5 +1,4 @@
 package models
-package models
 
 type TeamStaff struct {
 	ID       uint   `gorm:"primaryKey" json:"id"`
