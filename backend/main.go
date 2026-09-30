@@ -23,6 +23,7 @@ func main() {
 		&models.Tournament{},
 		&models.Team{},
 		&models.Player{},
+		&models.TeamStaff{},
 		&models.TournamentDay{},
 		&models.TournamentDayTeam{},
 		&models.Room{},
