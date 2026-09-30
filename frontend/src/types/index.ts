@@ -156,3 +156,44 @@ export interface PlayerProfile {
   overall: PlayerOverallStats;
   days: PlayerDayStats[];
 }
+
+export interface TeamStaff {
+  id: number;
+  team_id: number;
+  name: string;
+  role: string;
+  photo_url: string;
+  country: string;
+}
+
+export interface TeamProfileTeam {
+  id: number; name: string; tag: string; logo_url: string; region: string; country: string;
+}
+
+export interface TeamOverallStats {
+  total_kills: number; rooms_played: number; kills_per_room: number;
+  average_placement: number; booyahs: number;
+}
+
+export interface TeamPlayerStats {
+  player_id: number; ign: string; role: string; photo_url: string; country: string;
+  total_kills: number; rooms_played: number; kill_participation: number;
+}
+
+export interface TeamRoomHistory {
+  room_id: number; room_number: number; map_name: string; day_name: string;
+  placement: number; team_kills: number; placement_points: number; total_points: number;
+}
+
+export interface TeamMapStats {
+  map_name: string; rooms_played: number; total_kills: number;
+  average_placement: number; booyahs: number;
+}
+
+export interface TeamProfile {
+  team: TeamProfileTeam;
+  overall: TeamOverallStats;
+  players: TeamPlayerStats[];
+  rooms: TeamRoomHistory[];
+  maps: TeamMapStats[];
+}
