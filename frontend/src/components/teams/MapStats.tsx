@@ -1,8 +1,8 @@
 import { FFWS_MAPS } from "@/lib/maps";
 import type { TeamMapStats } from "@/types";
 
-export default function MapStats({ maps }: { maps: TeamMapStats[] }) {
-  const byName = new Map(maps.map((m) => [m.map_name, m]));
+export default function MapStats({ maps }: { maps: TeamMapStats[] | null }) {
+  const byName = new Map((maps ?? []).map((m) => [m.map_name, m]));
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {FFWS_MAPS.map((name) => {
