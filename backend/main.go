@@ -69,6 +69,12 @@ func main() {
 	userRepo := repository.NewUserRepository(database)
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
 
+	teamStaffRepo := repository.NewTeamStaffRepository(database)
+	teamStaffHandler := handlers.NewTeamStaffHandler(teamStaffRepo)
+
+	teamStatsRepo := repository.NewTeamStatsRepository(database)
+	teamStatsHandler := handlers.NewTeamStatsHandler(teamStatsRepo)
+
 	playerStatsHandler := handlers.NewPlayerStatsHandler(playerStatsRepo)
 
 	api := router.Group("/api/v1")
@@ -77,6 +83,9 @@ func main() {
 		api.POST("/auth/login", middleware.RateLimit(1, 5), authHandler.Login)
 
 		api.POST("/subscribe", middleware.RateLimit(1, 5), subscriberHandler.Subscribe)
+
+		api.GET("/teams/:id/stats", teamStatsHandler.GetProfile)
+		api.GET("/teams/:id/staff", teamStaffHandler.List)
 
 		api.GET("/tournaments", tournamentHandler.List)
 		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
@@ -112,6 +121,8 @@ func main() {
 				adminOnly.POST("/rooms", roomHandler.Create)
 				adminOnly.POST("/rooms/:id/results", roomResultHandler.Submit)
 
+				adminOnly.POST("/teams/:id/staff", teamStaffHandler.Create)
+				adminOnly.DELETE("/staff/:id", teamStaffHandler.Delete)
 				adminOnly.PUT("/teams/:id", teamHandler.Update)
 				adminOnly.DELETE("/teams/:id", teamHandler.Delete)
 				adminOnly.PUT("/players/:id", playerHandler.Update)
