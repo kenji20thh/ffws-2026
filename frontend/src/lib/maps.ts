@@ -1,0 +1,1 @@
+export const FFWS_MAPS = ["Bermuda", "Kalahari", "NexTerra", "Purgatory", "Solara"] as const;
