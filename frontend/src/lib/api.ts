@@ -8,6 +8,8 @@ import type {
   RoomTeamSummary,
   SubmitTeamResult,
   Team,
+  TeamProfile,
+  TeamStaff,
   TeamStanding,
   Tournament,
   TournamentDay,
@@ -102,3 +104,5 @@ export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
     { method: "POST", body: JSON.stringify({ teams }) },
     true
   );
+export const getTeamProfile = (teamId: number) => one<TeamProfile>(`/teams/${teamId}/stats`);
+export const getTeamStaff = (teamId: number) => list<TeamStaff>(`/teams/${teamId}/staff`);
