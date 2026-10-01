@@ -1,75 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import PageHeader from "@/components/layout/PageHeader";
-import FantasyTeamViewer from "@/components/fantasy/FantasyTeamViewer";
-import ErrorState from "@/components/ui/ErrorState";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getFantasyTeamProfile, getTournament } from "@/lib/api";
-import type { Tournament } from "@/types";
+import { getDays, getFantasyTeamProfile, getMyFantasyTeam } from "@/lib/api";
+import { getToken } from "@/lib/auth";
+import type { FantasyTeamProfile, TournamentDay } from "@/types";
+import DayScoreCard from "./DayScoreCard";
+import ReadOnlySelection from "./ReadOnlySelection";
 
-export default function FantasyTeamPage() {
-  const params = useParams();
-  const fantasyTeamId = Number(params.id);
+function defaultDay(days: TournamentDay[]): TournamentDay | null {
+  if (days.length === 0) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...days].sort((a, b) => a.day_order - b.day_order);
+  return [...sorted].reverse().find((d) => d.date.slice(0, 10) <= today) ?? sorted[0];
+}
 
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [teamName, setTeamName] = useState("");
+export default function FantasyTeamViewer({
+  tournamentId,
+  fantasyTeamId,
+  teamName,
+}: {
+  tournamentId: number;
+  fantasyTeamId: number;
+  teamName: string;
+}) {
+  const [isMine, setIsMine] = useState(false);
+  const [days, setDays] = useState<TournamentDay[]>([]);
+  const [dayId, setDayId] = useState<number | null>(null);
+  const [profile, setProfile] = useState<FantasyTeamProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!Number.isInteger(fantasyTeamId) || fantasyTeamId <= 0) {
-      setError("Invalid fantasy team.");
-      setLoading(false);
-      return;
-    }
+    getDays(tournamentId).then((d) => {
+      setDays(d);
+      setDayId(defaultDay(d)?.id ?? null);
+    });
 
-    Promise.all([
-      getTournament("ffws-2026"),
-      getFantasyTeamProfile(fantasyTeamId),
-    ])
-      .then(([tournamentData, profile]) => {
-        setTournament(tournamentData);
-        setTeamName(profile.team.team_name);
-      })
-      .catch((e) => {
-        if (e instanceof ApiError && e.status === 404) {
-          setError("Fantasy team not found.");
-        } else {
-          setError(e instanceof Error ? e.message : "Something went wrong.");
-        }
-      })
+    if (!getToken()) return;
+    getMyFantasyTeam(tournamentId)
+      .then((mine) => setIsMine(mine.id === fantasyTeamId))
+      .catch(() => setIsMine(false));
+  }, [tournamentId, fantasyTeamId]);
+
+  const loadProfile = useCallback(() => {
+    if (!dayId) return;
+    setLoading(true);
+    getFantasyTeamProfile(fantasyTeamId, dayId)
+      .then(setProfile)
       .finally(() => setLoading(false));
-  }, [fantasyTeamId]);
+  }, [fantasyTeamId, dayId]);
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl px-5 py-10">
-        <Skeleton className="h-40" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    loadProfile();
+  }, [dayId, loadProfile]);
 
-  if (error || !tournament) {
-    return (
-      <div className="mx-auto max-w-3xl px-5 py-24">
-        <ErrorState message={error ?? undefined} />
-      </div>
-    );
-  }
+  const selectedDay = days.find((d) => d.id === dayId) ?? null;
+  const dayIsFuture = selectedDay
+    ? selectedDay.date.slice(0, 10) >= new Date().toISOString().slice(0, 10)
+    : false;
 
   return (
-    <>
-      <PageHeader eyebrow="Fantasy squad" title={teamName}>
-        FFWS World Cup 2026
-      </PageHeader>
+    <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
+      <div className="chamfer flex flex-wrap items-center justify-between gap-4 border border-bone/10 bg-char-2 p-6">
+        <div>
+          <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
+            {isMine ? "Your fantasy team" : "Viewing"}
+          </p>
+          <p className="font-display text-3xl font-black uppercase">{teamName}</p>
+        </div>
+        {isMine && dayIsFuture && (
+          <Link href="/fantasy/pick-team" className="font-stat text-xs uppercase tracking-widest text-ember hover:underline">
+            Edit this pick →
+          </Link>
+        )}
+      </div>
 
-      <FantasyTeamViewer
-        tournamentId={tournament.id}
-        fantasyTeamId={fantasyTeamId}
-        teamName={teamName}
-      />
-    </>
+      {days.length > 0 && (
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Day">
+          {days.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => setDayId(d.id)}
+              className={`chamfer-sm px-5 py-2 font-display text-lg font-bold uppercase tracking-wider transition-colors ${
+                dayId === d.id ? "bg-ember text-char" : "border border-bone/20 text-bone/70 hover:text-ember"
+              }`}
+            >
+              {d.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <Skeleton className="h-64" />
+      ) : profile ? (
+        <>
+          {profile.breakdown && profile.breakdown.length > 0 && (
+            <DayScoreCard breakdown={profile.breakdown} total={profile.total_points ?? 0} />
+          )}
+          <ReadOnlySelection selections={profile.selections ?? []} />
+        </>
+      ) : (
+        <EmptyState title="No data for this day" />
+      )}
+    </div>
   );
 }
