@@ -256,3 +256,10 @@ export interface FantasyStanding {
   country: string;
   points: number;
 }
+
+export interface FantasyTeamProfile {
+  team: FantasyTeam;
+  selections?: FantasySelectionEntry[];
+  breakdown?: FantasyPlayerDayScore[];
+  total_points?: number;
+}
