@@ -1,14 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import Skeleton from "@/components/ui/Skeleton";
 import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
 import { getDays, getFantasyTeamProfile, getMyFantasyTeam } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import type { FantasyTeamProfile, TournamentDay } from "@/types";
 import DayScoreCard from "./DayScoreCard";
-import FantasyConsole from "./FantasyConsole";
 import ReadOnlySelection from "./ReadOnlySelection";
+
+function defaultDay(days: TournamentDay[]): TournamentDay | null {
+  if (days.length === 0) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...days].sort((a, b) => a.day_order - b.day_order);
+  return [...sorted].reverse().find((d) => d.date.slice(0, 10) <= today) ?? sorted[0];
+}
 
 export default function FantasyTeamViewer({
   tournamentId,
@@ -19,7 +26,6 @@ export default function FantasyTeamViewer({
   fantasyTeamId: number;
   teamName: string;
 }) {
-  const [checked, setChecked] = useState(false);
   const [isMine, setIsMine] = useState(false);
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [dayId, setDayId] = useState<number | null>(null);
@@ -29,17 +35,13 @@ export default function FantasyTeamViewer({
   useEffect(() => {
     getDays(tournamentId).then((d) => {
       setDays(d);
-      setDayId(d[0]?.id ?? null);
+      setDayId(defaultDay(d)?.id ?? null);
     });
 
-    if (!getToken()) {
-      setChecked(true);
-      return;
-    }
+    if (!getToken()) return;
     getMyFantasyTeam(tournamentId)
       .then((mine) => setIsMine(mine.id === fantasyTeamId))
-      .catch(() => setIsMine(false))
-      .finally(() => setChecked(true));
+      .catch(() => setIsMine(false));
   }, [tournamentId, fantasyTeamId]);
 
   const loadProfile = useCallback(() => {
@@ -51,20 +53,28 @@ export default function FantasyTeamViewer({
   }, [fantasyTeamId, dayId]);
 
   useEffect(() => {
-    if (checked && !isMine) loadProfile();
-  }, [checked, isMine, dayId, loadProfile]);
+    loadProfile();
+  }, [dayId, loadProfile]);
 
-  if (!checked) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
+  const selectedDay = days.find((d) => d.id === dayId) ?? null;
+  const dayIsFuture = selectedDay
+    ? selectedDay.date.slice(0, 10) >= new Date().toISOString().slice(0, 10)
+    : false;
 
-  // owner: hand off entirely to the real editable console
-  if (isMine) return <FantasyConsole tournamentId={tournamentId} />;
-
-  // read-only view for anyone else
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
-      <div className="chamfer border border-bone/10 bg-char-2 p-6">
-        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Viewing</p>
-        <p className="font-display text-3xl font-black uppercase">{teamName}</p>
+      <div className="chamfer flex flex-wrap items-center justify-between gap-4 border border-bone/10 bg-char-2 p-6">
+        <div>
+          <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
+            {isMine ? "Your fantasy team" : "Viewing"}
+          </p>
+          <p className="font-display text-3xl font-black uppercase">{teamName}</p>
+        </div>
+        {isMine && dayIsFuture && (
+          <Link href="/fantasy/pick-team" className="font-stat text-xs uppercase tracking-widest text-ember hover:underline">
+            Edit this pick →
+          </Link>
+        )}
       </div>
 
       {days.length > 0 && (
