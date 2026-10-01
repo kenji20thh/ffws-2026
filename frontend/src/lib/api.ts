@@ -13,6 +13,11 @@ import type {
   TeamStanding,
   Tournament,
   TournamentDay,
+  FantasyPick,
+  FantasyPlayerOption,
+  FantasySelectionResponse,
+  FantasyStanding,
+  FantasyTeam,
 } from "@/types";
 import { getToken } from "./auth";
 
@@ -106,3 +111,36 @@ export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
   );
 export const getTeamProfile = (teamId: number) => one<TeamProfile>(`/teams/${teamId}/stats`);
 export const getTeamStaff = (teamId: number) => list<TeamStaff>(`/teams/${teamId}/staff`);
+
+/* ---------- fantasy ---------- */
+export const getFantasyPlayerPool = (tournamentId: number) =>
+  list<FantasyPlayerOption>(`/fantasy/players?tournament_id=${tournamentId}`);
+
+export const getFantasyStandings = (tournamentId: number, dayId?: number) =>
+  list<FantasyStanding>(
+    `/fantasy/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`
+  );
+
+export const createFantasyTeam = (tournamentId: number, teamName: string, country: string) =>
+  request<{ data: FantasyTeam }>(
+    "/fantasy/team",
+    { method: "POST", body: JSON.stringify({ tournament_id: tournamentId, team_name: teamName, country }) },
+    true
+  ).then((r) => r.data);
+
+export const getMyFantasyTeam = (tournamentId: number) =>
+  request<{ data: FantasyTeam }>(`/fantasy/team?tournament_id=${tournamentId}`, {}, true).then((r) => r.data);
+
+export const getMyFantasySelection = (tournamentId: number, dayId: number) =>
+  request<{ data: FantasySelectionResponse }>(
+    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
+    {},
+    true
+  ).then((r) => r.data);
+
+export const submitFantasySelection = (tournamentId: number, dayId: number, picks: FantasyPick[]) =>
+  request<{ message: string }>(
+    `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
+    { method: "POST", body: JSON.stringify({ picks }) },
+    true
+  );
