@@ -30,6 +30,8 @@ func main() {
 		&models.RoomTeamResult{},
 		&models.PlayerRoomStat{},
 		&models.User{},
+		&models.FantasyTeam{},
+		&models.FantasySelection{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
@@ -78,6 +80,9 @@ func main() {
 
 	playerStatsHandler := handlers.NewPlayerStatsHandler(playerStatsRepo)
 
+	fantasyRepo := repository.NewFantasyRepository(database)
+	fantasyHandler := handlers.NewFantasyHandler(fantasyRepo)
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/auth/register", middleware.RateLimit(1, 3), authHandler.Register)
@@ -107,6 +112,11 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
 		{
+			protected.POST("/fantasy/team", fantasyHandler.CreateTeam)
+			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
+			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
+			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
+
 			adminOnly := protected.Group("/")
 			adminOnly.Use(middleware.RequireAdmin())
 			{
