@@ -108,6 +108,7 @@ func main() {
 		api.GET("/standings", roomResultHandler.GetStandings)
 
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
+		api.GET("/fantasy/schedule", fantasyHandler.GetSchedule)
 
 		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
