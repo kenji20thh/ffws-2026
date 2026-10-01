@@ -13,12 +13,19 @@ import DayScoreCard from "./DayScoreCard";
 import SelectionBuilder from "./SelectionBuilder";
 
 export default function FantasyConsole({ tournamentId }: { tournamentId: number }) {
-  const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined); // undefined = loading
+  const [authChecked, setAuthChecked] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined);
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [dayId, setDayId] = useState<number | null>(null);
   const [pool, setPool] = useState<FantasyPlayerOption[]>([]);
   const [sel, setSel] = useState<FantasySelectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoggedIn(!!getToken());
+    setAuthChecked(true);
+  }, []);
 
   const loadTeam = useCallback(() => {
     getMyFantasyTeam(tournamentId)
@@ -28,15 +35,15 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
       });
   }, [tournamentId]);
 
-  useEffect(() => {
-    if (!getToken()) return;
+    useEffect(() => {
+    if (!loggedIn) return;
     loadTeam();
     getDays(tournamentId).then((d) => {
       setDays(d);
       setDayId(d[0]?.id ?? null);
     });
     getFantasyPlayerPool(tournamentId).then(setPool);
-  }, [tournamentId, loadTeam]);
+  }, [loggedIn, tournamentId, loadTeam]);
 
   const loadSelection = useCallback(() => {
     if (!dayId) return;
