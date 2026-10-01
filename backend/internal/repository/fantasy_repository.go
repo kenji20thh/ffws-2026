@@ -288,3 +288,15 @@ func (r *FantasyRepository) GetPlayerPool(tournamentID uint) ([]FantasyPlayerOpt
 	`, tournamentID).Scan(&options).Error
 	return options, err
 }
+
+func (r *FantasyRepository) GetTeamByID(fantasyTeamID uint) (*models.FantasyTeam, error) {
+	var team models.FantasyTeam
+	err := r.db.First(&team, fantasyTeamID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrFantasyTeamNotFound
+		}
+		return nil, err
+	}
+	return &team, nil
+}
