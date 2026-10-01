@@ -239,3 +239,17 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
+
+func (h *FantasyHandler) GetSchedule(c *gin.Context) {
+	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
+		return
+	}
+	schedule, err := h.repo.GetScheduleOverview(uint(tournamentID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch schedule"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": schedule})
+}
