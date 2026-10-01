@@ -109,6 +109,9 @@ func main() {
 
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
 
+		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
+		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
+
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
 		{
