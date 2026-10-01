@@ -111,6 +111,7 @@ func main() {
 
 		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
+		api.GET("/fantasy/teams/:id", fantasyHandler.GetTeamProfile)
 
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
