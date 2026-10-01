@@ -19,6 +19,7 @@ import type {
   FantasyStanding,
   FantasyTeam,
   FantasyTeamProfile,
+  FantasyDaySchedule,
 } from "@/types";
 import { getToken } from "./auth";
 
@@ -158,3 +159,6 @@ export const submitFantasySelection = (tournamentId: number, dayId: number, pick
     selections: r.selections ?? [],
     breakdown: r.breakdown ?? [],
   }));
+
+  export const getFantasySchedule = (tournamentId: number) =>
+  list<FantasyDaySchedule>(`/fantasy/schedule?tournament_id=${tournamentId}`);
