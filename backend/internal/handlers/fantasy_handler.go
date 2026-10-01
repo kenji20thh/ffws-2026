@@ -193,3 +193,49 @@ func (h *FantasyHandler) GetStandings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"data": standings})
 }
+
+func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid fantasy team id"})
+		return
+	}
+
+	team, err := h.repo.GetTeamByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "fantasy team not found"})
+		return
+	}
+
+	var dayID *uint
+	if dayIDStr := c.Query("day_id"); dayIDStr != "" {
+		parsed, err := strconv.ParseUint(dayIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day_id"})
+			return
+		}
+		d := uint(parsed)
+		dayID = &d
+	}
+
+	resp := gin.H{"team": team}
+
+	if dayID != nil {
+		selections, err := h.repo.GetSelection(team.ID, *dayID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch selection"})
+			return
+		}
+		breakdown, total, err := h.repo.ComputeDayScore(team.ID, *dayID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute score"})
+			return
+		}
+		resp["selections"] = selections
+		resp["breakdown"] = breakdown
+		resp["total_points"] = total
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": resp})
+}
