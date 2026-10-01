@@ -18,6 +18,7 @@ import type {
   FantasySelectionResponse,
   FantasyStanding,
   FantasyTeam,
+  FantasyTeamProfile,
 } from "@/types";
 import { getToken } from "./auth";
 
@@ -148,3 +149,12 @@ export const submitFantasySelection = (tournamentId: number, dayId: number, pick
     { method: "POST", body: JSON.stringify({ picks }) },
     true
   );
+
+  export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
+  one<FantasyTeamProfile>(
+    `/fantasy/teams/${fantasyTeamId}${dayId ? `?day_id=${dayId}` : ""}`
+  ).then((r) => ({
+    ...r,
+    selections: r.selections ?? [],
+    breakdown: r.breakdown ?? [],
+  }));
