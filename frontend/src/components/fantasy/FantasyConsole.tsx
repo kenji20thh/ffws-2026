@@ -35,7 +35,7 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
       });
   }, [tournamentId]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!loggedIn) return;
     loadTeam();
     getDays(tournamentId).then((d) => {
@@ -58,7 +58,11 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
     if (team) loadSelection();
   }, [team, dayId, loadSelection]);
 
-  if (!getToken()) {
+  if (!authChecked) {
+    return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
+  }
+
+  if (!loggedIn) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
         <p className="font-display text-3xl font-black uppercase">Log in to play</p>
