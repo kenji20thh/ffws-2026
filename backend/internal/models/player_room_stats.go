@@ -11,6 +11,4 @@ type PlayerRoomStat struct {
 	Room   Room   `gorm:"foreignKey:RoomID" json:"-"`
 	Player Player `gorm:"foreignKey:PlayerID" json:"player"`
 	Team   Team   `gorm:"foreignKey:TeamID" json:"-"`
-
-	FantasyPrice int `gorm:"default:10" json:"fantasy_price"`
 }

@@ -15,4 +15,6 @@ type Player struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	Team Team `gorm:"foreignKey:TeamID" json:"-"`
+
+	FantasyPrice int `gorm:"default:10" json:"fantasy_price"`
 }
