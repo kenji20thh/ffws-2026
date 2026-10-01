@@ -136,7 +136,11 @@ export const getMyFantasySelection = (tournamentId: number, dayId: number) =>
     `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
     {},
     true
-  ).then((r) => r.data);
+  ).then((r) => ({
+    ...r.data,
+    selections: r.data.selections ?? [],
+    breakdown: r.data.breakdown ?? [],
+  }));
 
 export const submitFantasySelection = (tournamentId: number, dayId: number, picks: FantasyPick[]) =>
   request<{ message: string }>(
