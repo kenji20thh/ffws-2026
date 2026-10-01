@@ -1,56 +1,201 @@
-"use client";
+export const COUNTRY_FLAGS: Record<string, string> = {
+  Afghanistan: "🇦🇫",
+  Albania: "🇦🇱",
+  Algeria: "🇩🇿",
+  Andorra: "🇦🇩",
+  Angola: "🇦🇴",
+  AntiguaAndBarbuda: "🇦🇬",
+  Argentina: "🇦🇷",
+  Armenia: "🇦🇲",
+  Australia: "🇦🇺",
+  Austria: "🇦🇹",
+  Azerbaijan: "🇦🇿",
+  Bahamas: "🇧🇸",
+  Bahrain: "🇧🇭",
+  Bangladesh: "🇧🇩",
+  Barbados: "🇧🇧",
+  Belarus: "🇧🇾",
+  Belgium: "🇧🇪",
+  Belize: "🇧🇿",
+  Benin: "🇧🇯",
+  Bhutan: "🇧🇹",
+  Bolivia: "🇧🇴",
+  BosniaAndHerzegovina: "🇧🇦",
+  Botswana: "🇧🇼",
+  Brazil: "🇧🇷",
+  Brunei: "🇧🇳",
+  Bulgaria: "🇧🇬",
+  BurkinaFaso: "🇧🇫",
+  Burundi: "🇧🇮",
+  CaboVerde: "🇨🇻",
+  Cambodia: "🇰🇭",
+  Cameroon: "🇨🇲",
+  Canada: "🇨🇦",
+  CentralAfricanRepublic: "🇨🇫",
+  Chad: "🇹🇩",
+  Chile: "🇨🇱",
+  China: "🇨🇳",
+  Colombia: "🇨🇴",
+  Comoros: "🇰🇲",
+  Congo: "🇨🇬",
+  CostaRica: "🇨🇷",
+  Croatia: "🇭🇷",
+  Cuba: "🇨🇺",
+  Cyprus: "🇨🇾",
+  Czechia: "🇨🇿",
+  Denmark: "🇩🇰",
+  Djibouti: "🇩🇯",
+  Dominica: "🇩🇲",
+  DominicanRepublic: "🇩🇴",
+  Ecuador: "🇪🇨",
+  Egypt: "🇪🇬",
+  ElSalvador: "🇸🇻",
+  EquatorialGuinea: "🇬🇶",
+  Eritrea: "🇪🇷",
+  Estonia: "🇪🇪",
+  Eswatini: "🇸🇿",
+  Ethiopia: "🇪🇹",
+  Fiji: "🇫🇯",
+  Finland: "🇫🇮",
+  France: "🇫🇷",
+  Gabon: "🇬🇦",
+  Gambia: "🇬🇲",
+  Georgia: "🇬🇪",
+  Germany: "🇩🇪",
+  Ghana: "🇬🇭",
+  Greece: "🇬🇷",
+  Grenada: "🇬🇩",
+  Guatemala: "🇬🇹",
+  Guinea: "🇬🇳",
+  GuineaBissau: "🇬🇼",
+  Guyana: "🇬🇾",
+  Haiti: "🇭🇹",
+  Honduras: "🇭🇳",
+  Hungary: "🇭🇺",
+  Iceland: "🇮🇸",
+  India: "🇮🇳",
+  Indonesia: "🇮🇩",
+  Iran: "🇮🇷",
+  Iraq: "🇮🇶",
+  Ireland: "🇮🇪",
+  Israel: "🇮🇱",
+  Italy: "🇮🇹",
+  IvoryCoast: "🇨🇮",
+  Jamaica: "🇯🇲",
+  Japan: "🇯🇵",
+  Jordan: "🇯🇴",
+  Kazakhstan: "🇰🇿",
+  Kenya: "🇰🇪",
+  Kiribati: "🇰🇮",
+  Kuwait: "🇰🇼",
+  Kyrgyzstan: "🇰🇬",
+  Laos: "🇱🇦",
+  Latvia: "🇱🇻",
+  Lebanon: "🇱🇧",
+  Lesotho: "🇱🇸",
+  Liberia: "🇱🇷",
+  Libya: "🇱🇾",
+  Liechtenstein: "🇱🇮",
+  Lithuania: "🇱🇹",
+  Luxembourg: "🇱🇺",
+  Madagascar: "🇲🇬",
+  Malawi: "🇲🇼",
+  Malaysia: "🇲🇾",
+  Maldives: "🇲🇻",
+  Mali: "🇲🇱",
+  Malta: "🇲🇹",
+  MarshallIslands: "🇲🇭",
+  Mauritania: "🇲🇷",
+  Mauritius: "🇲🇺",
+  Mexico: "🇲🇽",
+  Micronesia: "🇫🇲",
+  Moldova: "🇲🇩",
+  Monaco: "🇲🇨",
+  Mongolia: "🇲🇳",
+  Montenegro: "🇲🇪",
+  Morocco: "🇲🇦",
+  Mozambique: "🇲🇿",
+  Myanmar: "🇲🇲",
+  Namibia: "🇳🇦",
+  Nauru: "🇳🇷",
+  Nepal: "🇳🇵",
+  Netherlands: "🇳🇱",
+  NewZealand: "🇳🇿",
+  Nicaragua: "🇳🇮",
+  Niger: "🇳🇪",
+  Nigeria: "🇳🇬",
+  NorthKorea: "🇰🇵",
+  NorthMacedonia: "🇲🇰",
+  Norway: "🇳🇴",
+  Oman: "🇴🇲",
+  Pakistan: "🇵🇰",
+  Palau: "🇵🇼",
+  Palestine: "🇵🇸",
+  Panama: "🇵🇦",
+  PapuaNewGuinea: "🇵🇬",
+  Paraguay: "🇵🇾",
+  Peru: "🇵🇪",
+  Philippines: "🇵🇭",
+  Poland: "🇵🇱",
+  Portugal: "🇵🇹",
+  Qatar: "🇶🇦",
+  Romania: "🇷🇴",
+  Russia: "🇷🇺",
+  Rwanda: "🇷🇼",
+  SaintKittsAndNevis: "🇰🇳",
+  SaintLucia: "🇱🇨",
+  SaintVincentAndTheGrenadines: "🇻🇨",
+  Samoa: "🇼🇸",
+  SanMarino: "🇸🇲",
+  SaoTomeAndPrincipe: "🇸🇹",
+  SaudiArabia: "🇸🇦",
+  Senegal: "🇸🇳",
+  Serbia: "🇷🇸",
+  Seychelles: "🇸🇨",
+  SierraLeone: "🇸🇱",
+  Singapore: "🇸🇬",
+  Slovakia: "🇸🇰",
+  Slovenia: "🇸🇮",
+  SolomonIslands: "🇸🇧",
+  Somalia: "🇸🇴",
+  SouthAfrica: "🇿🇦",
+  SouthKorea: "🇰🇷",
+  SouthSudan: "🇸🇸",
+  Spain: "🇪🇸",
+  SriLanka: "🇱🇰",
+  Sudan: "🇸🇩",
+  Suriname: "🇸🇷",
+  Sweden: "🇸🇪",
+  Switzerland: "🇨🇭",
+  Syria: "🇸🇾",
+  Taiwan: "🇹🇼",
+  Tajikistan: "🇹🇯",
+  Tanzania: "🇹🇿",
+  Thailand: "🇹🇭",
+  TimorLeste: "🇹🇱",
+  Togo: "🇹🇬",
+  Tonga: "🇹🇴",
+  TrinidadAndTobago: "🇹🇹",
+  Tunisia: "🇹🇳",
+  Turkey: "🇹🇷",
+  Turkmenistan: "🇹🇲",
+  Tuvalu: "🇹🇻",
+  Uganda: "🇺🇬",
+  Ukraine: "🇺🇦",
+  UnitedArabEmirates: "🇦🇪",
+  UnitedKingdom: "🇬🇧",
+  UnitedStates: "🇺🇸",
+  Uruguay: "🇺🇾",
+  Uzbekistan: "🇺🇿",
+  Vanuatu: "🇻🇺",
+  VaticanCity: "🇻🇦",
+  Venezuela: "🇻🇪",
+  Vietnam: "🇻🇳",
+  Yemen: "🇾🇪",
+  Zambia: "🇿🇲",
+  Zimbabwe: "🇿🇼",
+};
 
-import { useState } from "react";
-import Button from "@/components/ui/Button";
-import { ApiError, createFantasyTeam } from "@/lib/api";
-
-export default function CreateFantasyTeamForm({
-  tournamentId,
-  onCreated,
-}: {
-  tournamentId: number;
-  onCreated: () => void;
-}) {
-  const [teamName, setTeamName] = useState("");
-  const [country, setCountry] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await createFantasyTeam(tournamentId, teamName, country);
-      onCreated();
-    } catch (err) {
-      setError(err instanceof ApiError && err.status === 409 ? err.message : "Failed to create fantasy team");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const input =
-    "chamfer-sm w-full border border-bone/20 bg-char-2 px-4 py-3 font-stat text-sm text-bone focus:border-ember focus:outline-none";
-
-  return (
-    <form onSubmit={onSubmit} className="chamfer mx-auto w-full max-w-md space-y-4 border border-bone/10 bg-char-2 p-6">
-      <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Build your squad</p>
-      <h1 className="font-display text-4xl font-black uppercase leading-none">Create fantasy team</h1>
-
-      <div>
-        <label htmlFor="tn" className="sr-only">Team name</label>
-        <input id="tn" className={input} placeholder="Team name" value={teamName}
-          onChange={(e) => setTeamName(e.target.value)} required minLength={2} />
-      </div>
-      <div>
-        <label htmlFor="co" className="sr-only">Country</label>
-        <input id="co" className={input} placeholder="Country" value={country}
-          onChange={(e) => setCountry(e.target.value)} />
-      </div>
-
-      <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
-      <Button type="submit" disabled={busy} className="w-full">{busy ? "Creating…" : "Create team"}</Button>
-    </form>
-  );
+export function countryFlag(country: string): string {
+  return COUNTRY_FLAGS[country] ?? "🌐";
 }
