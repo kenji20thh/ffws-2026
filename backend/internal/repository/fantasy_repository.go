@@ -300,3 +300,34 @@ func (r *FantasyRepository) GetTeamByID(fantasyTeamID uint) (*models.FantasyTeam
 	}
 	return &team, nil
 }
+
+type FantasyDaySchedule struct {
+	DayID    uint       `json:"day_id"`
+	DayName  string     `json:"day_name"`
+	DayOrder int        `json:"day_order"`
+	Date     string     `json:"date"`
+	LockTime *time.Time `json:"lock_time"`
+}
+
+func (r *FantasyRepository) GetScheduleOverview(tournamentID uint) ([]FantasyDaySchedule, error) {
+	var days []models.TournamentDay
+	if err := r.db.Where("tournament_id = ?", tournamentID).Order("day_order asc").Find(&days).Error; err != nil {
+		return nil, err
+	}
+	var out []FantasyDaySchedule
+	for _, d := range days {
+		lock, err := r.GetDayLockTime(d.ID)
+		if err != nil {
+			return nil, err
+		}
+		var lockPtr *time.Time
+		if !lock.IsZero() {
+			lockPtr = &lock
+		}
+		out = append(out, FantasyDaySchedule{
+			DayID: d.ID, DayName: d.Name, DayOrder: d.DayOrder,
+			Date: d.Date.Format("2006-01-02"), LockTime: lockPtr,
+		})
+	}
+	return out, nil
+}
