@@ -2,37 +2,29 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Skeleton from "@/components/ui/Skeleton";
 import {
-  ApiError,
-  getDays,
-  getFantasyPlayerPool,
-  getMyFantasySelection,
-  getMyFantasyTeam,
+  ApiError, getDays, getFantasyPlayerPool, getMyFantasySelection, getMyFantasyTeam,
 } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import type {
-  FantasyPlayerOption,
-  FantasySelectionResponse,
-  FantasyTeam,
-  TournamentDay,
-} from "@/types";
+import type { FantasyPlayerOption, FantasySelectionResponse, FantasyTeam, TournamentDay } from "@/types";
 import CreateFantasyTeamForm from "./CreateFantasyTeamForm";
-import DayScoreCard from "./DayScoreCard";
 import SelectionBuilder from "./SelectionBuilder";
-import { useRouter } from "next/navigation";
 
-export default function FantasyConsole({
-  tournamentId,
-}: {
-  tournamentId: number;
-}) {
+function pickNextOpenDay(days: TournamentDay[]): TournamentDay | null {
+  if (days.length === 0) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const sorted = [...days].sort((a, b) => a.day_order - b.day_order);
+  return sorted.find((d) => d.date.slice(0, 10) >= today) ?? sorted[sorted.length - 1];
+}
+
+export default function FantasyConsole({ tournamentId }: { tournamentId: number }) {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined);
-  const [days, setDays] = useState<TournamentDay[]>([]);
-  const [dayId, setDayId] = useState<number | null>(null);
+  const [day, setDay] = useState<TournamentDay | null>(null);
   const [pool, setPool] = useState<FantasyPlayerOption[]>([]);
   const [sel, setSel] = useState<FantasySelectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,120 +45,76 @@ export default function FantasyConsole({
   useEffect(() => {
     if (!loggedIn) return;
     loadTeam();
-    getDays(tournamentId).then((d) => {
-      setDays(d);
-      setDayId(d[0]?.id ?? null);
-    });
+    getDays(tournamentId).then((d) => setDay(pickNextOpenDay(d)));
     getFantasyPlayerPool(tournamentId).then(setPool);
   }, [loggedIn, tournamentId, loadTeam]);
 
   const loadSelection = useCallback(() => {
-    if (!dayId) return;
+    if (!day) return;
     setLoading(true);
-    getMyFantasySelection(tournamentId, dayId)
+    getMyFantasySelection(tournamentId, day.id)
       .then(setSel)
       .catch(() => setSel(null))
       .finally(() => setLoading(false));
-  }, [tournamentId, dayId]);
+  }, [tournamentId, day]);
 
   useEffect(() => {
-    if (team) loadSelection();
-  }, [team, dayId, loadSelection]);
+    if (team && day) loadSelection();
+    else setLoading(false);
+  }, [team, day, loadSelection]);
 
-  if (!authChecked) {
-    return (
-      <div className="mx-auto max-w-3xl px-5 py-10">
-        <Skeleton className="h-40" />
-      </div>
-    );
-  }
+  if (!authChecked) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
 
   if (!loggedIn) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
-        <p className="font-display text-3xl font-black uppercase">
-          Log in to play
-        </p>
-        <Link
-          href="/login"
-          className="mt-4 inline-block font-stat text-sm uppercase tracking-widest text-ember hover:underline"
-        >
+        <p className="font-display text-3xl font-black uppercase">Log in to play</p>
+        <Link href="/login" className="mt-4 inline-block font-stat text-sm uppercase tracking-widest text-ember hover:underline">
           Go to login →
         </Link>
       </div>
     );
   }
 
-  if (team === undefined)
-    return (
-      <div className="mx-auto max-w-3xl px-5 py-10">
-        <Skeleton className="h-40" />
-      </div>
-    );
+  if (team === undefined) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
 
   if (team === null) {
     return (
       <div className="px-5 py-16">
-        <CreateFantasyTeamForm
-          tournamentId={tournamentId}
-          onCreated={loadTeam}
-        />
+        <CreateFantasyTeamForm tournamentId={tournamentId} onCreated={loadTeam} />
       </div>
     );
   }
 
-  const locked = sel?.lock_time
-    ? new Date(sel.lock_time).getTime() < Date.now()
-    : false;
+  const locked = sel?.lock_time ? new Date(sel.lock_time).getTime() < Date.now() : false;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
       <div className="chamfer border border-bone/10 bg-char-2 p-6">
-        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
-          Your fantasy team
-        </p>
-        <p className="font-display text-3xl font-black uppercase">
-          {team.team_name}
-        </p>
+        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Your fantasy team</p>
+        <p className="font-display text-3xl font-black uppercase">{team.team_name}</p>
       </div>
 
-      {days.length > 0 && (
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Day">
-          {days.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => setDayId(d.id)}
-              className={`chamfer-sm px-5 py-2 font-display text-lg font-bold uppercase tracking-wider transition-colors ${
-                dayId === d.id
-                  ? "bg-ember text-char"
-                  : "border border-bone/20 text-bone/70 hover:text-ember"
-              }`}
-            >
-              {d.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {loading ? (
+      {!day ? (
+        <p className="font-stat text-sm uppercase tracking-widest text-ash">No tournament days scheduled yet.</p>
+      ) : loading ? (
         <Skeleton className="h-64" />
-      ) : dayId ? (
+      ) : (
         <>
-          {sel && sel.breakdown.length > 0 && (
-            <DayScoreCard breakdown={sel.breakdown} total={sel.total_points} />
-          )}
+          <div className="chamfer-sm border border-bone/15 bg-char-2 px-5 py-3">
+            <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Building for</p>
+            <p className="font-display text-2xl font-black uppercase text-ember">{day.name}</p>
+          </div>
           <SelectionBuilder
             tournamentId={tournamentId}
-            dayId={dayId}
+            dayId={day.id}
             pool={pool}
             existing={sel?.selections ?? []}
             locked={locked}
-            onSaved={() => {
-              if (team) router.push(`/fantasy/${team.id}`);
-            }}
+            onSaved={() => router.push(`/fantasy/${team.id}`)}
           />
         </>
-      ) : null}
+      )}
     </div>
   );
 }
