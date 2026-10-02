@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"ffws/internal/models"
 	"ffws/internal/repository"
@@ -23,7 +24,8 @@ type createDayRequest struct {
 	TournamentID uint   `json:"tournament_id" binding:"required"`
 	Name         string `json:"name" binding:"required"`
 	DayOrder     int    `json:"day_order"`
-	Date         string `json:"date"` // "2026-11-06"
+	Date         string `json:"date"`     // "2026-11-06"
+	Deadline     string `json:"deadline"` // "2026-11-06T13:30:00Z"
 }
 
 func (h *TournamentDayHandler) Create(c *gin.Context) {
@@ -41,6 +43,11 @@ func (h *TournamentDayHandler) Create(c *gin.Context) {
 	if req.Date != "" {
 		if t, err := parseDate(req.Date); err == nil {
 			day.Date = t
+		}
+	}
+	if req.Deadline != "" {
+		if t, err := time.Parse(time.RFC3339, req.Deadline); err == nil {
+			day.Deadline = t
 		}
 	}
 
@@ -83,6 +90,57 @@ func (h *TournamentDayHandler) GetByID(c *gin.Context) {
 	day, err := h.dayRepo.FindByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "tournament day not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": day})
+}
+
+type updateDayRequest struct {
+	Name     string `json:"name"`
+	DayOrder int    `json:"day_order"`
+	Date     string `json:"date"`
+	Deadline string `json:"deadline"`
+}
+
+func (h *TournamentDayHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day id"})
+		return
+	}
+
+	day, err := h.dayRepo.FindByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "tournament day not found"})
+		return
+	}
+
+	var req updateDayRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Name != "" {
+		day.Name = req.Name
+	}
+	if req.DayOrder != 0 {
+		day.DayOrder = req.DayOrder
+	}
+	if req.Date != "" {
+		if t, err := parseDate(req.Date); err == nil {
+			day.Date = t
+		}
+	}
+	if req.Deadline != "" {
+		if t, err := time.Parse(time.RFC3339, req.Deadline); err == nil {
+			day.Deadline = t
+		}
+	}
+
+	if err := h.dayRepo.Update(day); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update tournament day"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": day})
