@@ -264,13 +264,6 @@ export interface FantasyTeamProfile {
   total_points?: number;
 }
 
-export interface FantasyDaySchedule {
-  day_id: number;
-  day_name: string;
-  day_order: number;
-  date: string;
-  lock_time: string | null;
-}
 
 export interface TournamentDay {
   id: number;
