@@ -108,7 +108,6 @@ func main() {
 		api.GET("/standings", roomResultHandler.GetStandings)
 
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
-		api.GET("/fantasy/schedule", fantasyHandler.GetSchedule)
 
 		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
@@ -133,6 +132,7 @@ func main() {
 				adminOnly.POST("/teams", teamHandler.Create)
 				adminOnly.POST("/players", playerHandler.Create)
 				adminOnly.POST("/tournament-days", tournamentDayHandler.Create)
+				adminOnly.PUT("/tournament-days/:id", tournamentDayHandler.Update)
 				adminOnly.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
 				adminOnly.POST("/rooms", roomHandler.Create)
 				adminOnly.POST("/rooms/:id/results", roomResultHandler.Submit)
