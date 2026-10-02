@@ -89,7 +89,7 @@ export default function Navbar() {
           aria-label="FFWS World Series"
         >
           <Image
-            src="/logo.png"
+            src="/download.png"
             alt="FFWS World Series"
             width={170}
             height={60}
