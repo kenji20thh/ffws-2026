@@ -34,3 +34,7 @@ func (r *TournamentDayRepository) FindByID(id uint) (*models.TournamentDay, erro
 	}
 	return &day, nil
 }
+
+func (r *TournamentDayRepository) Update(d *models.TournamentDay) error {
+	return r.db.Save(d).Error
+}
