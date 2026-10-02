@@ -12,9 +12,17 @@ import ReadOnlySelection from "./ReadOnlySelection";
 
 function defaultDay(days: TournamentDay[]): TournamentDay | null {
   if (days.length === 0) return null;
-  const today = new Date().toISOString().slice(0, 10);
   const sorted = [...days].sort((a, b) => a.day_order - b.day_order);
-  return [...sorted].reverse().find((d) => d.date.slice(0, 10) <= today) ?? sorted[0];
+  const now = Date.now();
+
+  const open = sorted.find((d) => {
+    const hasDeadline = d.deadline && !d.deadline.startsWith("0001");
+    if (!hasDeadline) return true;
+    return new Date(d.deadline).getTime() > now;
+  });
+
+  if (open) return open;
+  return [...sorted].reverse()[0];
 }
 
 export default function FantasyTeamViewer({
@@ -57,9 +65,12 @@ export default function FantasyTeamViewer({
   }, [dayId, loadProfile]);
 
   const selectedDay = days.find((d) => d.id === dayId) ?? null;
-  const dayIsFuture = selectedDay
-    ? selectedDay.date.slice(0, 10) >= new Date().toISOString().slice(0, 10)
-    : false;
+  const dayIsFuture = (() => {
+    if (!selectedDay) return false;
+    const hasDeadline = selectedDay.deadline && !selectedDay.deadline.startsWith("0001");
+    if (!hasDeadline) return true;
+    return new Date(selectedDay.deadline).getTime() > Date.now();
+  })();
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
