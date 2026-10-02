@@ -271,3 +271,13 @@ export interface FantasyDaySchedule {
   date: string;
   lock_time: string | null;
 }
+
+export interface TournamentDay {
+  id: number;
+  tournament_id: number;
+  name: string;
+  day_order: number;
+  date: string;
+  deadline: string;
+  rooms?: Room[];
+}
