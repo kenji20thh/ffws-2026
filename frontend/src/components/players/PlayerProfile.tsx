@@ -2,7 +2,6 @@ import Image from "next/image";
 import type { PlayerProfile as PlayerProfileData } from "@/types";
 import { roleIcon, roleLabel } from "@/lib/roles";
 
-
 type PlayerProfileProps = {
   player: PlayerProfileData["player"];
   team: PlayerProfileData["team"];
@@ -26,11 +25,8 @@ const countryFlags: Record<string, string> = {
   Argentina: "🇦🇷",
 };
 
-export default function PlayerProfile({
-  player,
-  team,
-}: PlayerProfileProps) {
- const icon = roleIcon(player.role);
+export default function PlayerProfile({ player, team }: PlayerProfileProps) {
+  const icon = roleIcon(player.role);
   const countryFlag = countryFlags[player.country] ?? "🌐";
 
   return (
@@ -62,6 +58,7 @@ export default function PlayerProfile({
               alt={player.ign}
               fill
               priority
+              unoptimized
               className="object-contain object-bottom"
               sizes="(max-width: 768px) 270px, (max-width: 1024px) 340px, 390px"
             />
@@ -93,9 +90,7 @@ export default function PlayerProfile({
                 {team.tag}
               </p>
 
-              <p className="font-bold uppercase tracking-wide">
-                {team.name}
-              </p>
+              <p className="font-bold uppercase tracking-wide">{team.name}</p>
             </div>
           </div>
 
@@ -136,9 +131,7 @@ export default function PlayerProfile({
               </p>
 
               <p className="mt-1 flex items-center gap-2 text-sm font-bold uppercase">
-                <span className="text-lg leading-none">
-                  {countryFlag}
-                </span>
+                <span className="text-lg leading-none">{countryFlag}</span>
 
                 {player.country}
               </p>

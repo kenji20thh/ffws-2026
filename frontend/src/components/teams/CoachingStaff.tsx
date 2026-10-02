@@ -56,7 +56,10 @@ function StaffCard({ staff }: { staff: TeamStaff }) {
 
           {staff.country && (
             <span className="ml-2">
-              {countryFlag(staff.country)} {staff.country}
+              <span className="text-[15px] leading-none">
+                {countryFlag(staff.country)}
+              </span>
+              {staff.country}
             </span>
           )}
         </p>
