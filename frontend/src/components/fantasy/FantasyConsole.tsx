@@ -14,9 +14,16 @@ import SelectionBuilder from "./SelectionBuilder";
 
 function pickNextOpenDay(days: TournamentDay[]): TournamentDay | null {
   if (days.length === 0) return null;
-  const today = new Date().toISOString().slice(0, 10);
   const sorted = [...days].sort((a, b) => a.day_order - b.day_order);
-  return sorted.find((d) => d.date.slice(0, 10) >= today) ?? sorted[sorted.length - 1];
+  const now = Date.now();
+
+  const open = sorted.find((d) => {
+    const hasDeadline = d.deadline && !d.deadline.startsWith("0001");
+    if (!hasDeadline) return true;
+    return new Date(d.deadline).getTime() > now;
+  });
+
+  return open ?? sorted[sorted.length - 1];
 }
 
 export default function FantasyConsole({ tournamentId }: { tournamentId: number }) {
