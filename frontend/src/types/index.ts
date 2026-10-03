@@ -201,7 +201,7 @@ export interface TeamProfile {
 
 export interface FantasyTeam {
   id: number;
-  user_id: number;
+  user_id?: number; // only present on your own team, never on public profiles
   tournament_id: number;
   team_name: string;
   country: string;
@@ -249,6 +249,7 @@ export interface FantasySelectionResponse {
   breakdown: FantasyPlayerDayScore[];
   total_points: number;
   lock_time: string | null;
+  locked: boolean;
 }
 
 export interface FantasyStanding {
@@ -260,6 +261,8 @@ export interface FantasyStanding {
 
 export interface FantasyTeamProfile {
   team: FantasyTeam;
+  hidden?: boolean; // true while the day is open and you are not the owner
+  locked?: boolean;
   selections?: FantasySelectionEntry[];
   breakdown?: FantasyPlayerDayScore[];
   total_points?: number;
