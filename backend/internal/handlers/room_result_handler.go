@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -19,7 +21,7 @@ func NewRoomResultHandler(repo *repository.RoomResultRepository) *RoomResultHand
 
 type submitPlayerResult struct {
 	PlayerID   uint `json:"player_id" binding:"required"`
-	Kills      int  `json:"kills" binding:"gte=0"`
+	Kills      int  `json:"kills" binding:"gte=0,lte=100"`
 	FirstBlood bool `json:"first_blood"`
 }
 
@@ -67,7 +69,16 @@ func (h *RoomResultHandler) Submit(c *gin.Context) {
 	}
 
 	if err := h.repo.SubmitRoomResults(uint(roomID), teams); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit results"})
+		var resErr *repository.ResultError
+		switch {
+		case errors.Is(err, repository.ErrRoomNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.As(err, &resErr):
+			c.JSON(http.StatusBadRequest, gin.H{"error": resErr.Error()})
+		default:
+			log.Printf("submit room results failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit results"})
+		}
 		return
 	}
 
