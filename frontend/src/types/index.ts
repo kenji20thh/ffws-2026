@@ -161,6 +161,7 @@ export interface TeamStaff {
   id: number;
   team_id: number;
   name: string;
+  real_name: string;
   role: string;
   photo_url: string;
   country: string;
