@@ -25,7 +25,7 @@ export default function SubscribeForm() {
         setMessage("You're already on the list.");
       } else if (err instanceof ApiError && err.status === 429) {
         setStatus("error");
-        setMessage("Slow down a little and try again in a few seconds.");
+        setMessage("Too many attempts. Please try again in a minute.");
       } else {
         setStatus("error");
         setMessage(err instanceof Error ? err.message : "Something went wrong");

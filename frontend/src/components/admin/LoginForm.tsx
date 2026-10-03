@@ -26,7 +26,7 @@ export default function LoginForm() {
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
-        setError("Too many attempts. Wait a few seconds.");
+        setError("Too many attempts. Please wait a minute and try again.");
       } else {
         setError(err instanceof Error ? err.message : "Login failed");
       }

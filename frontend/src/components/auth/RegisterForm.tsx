@@ -36,7 +36,7 @@ export default function RegisterForm() {
       router.replace("/");
       router.refresh();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429) setError("Too many attempts. Wait a few seconds.");
+      if (err instanceof ApiError && err.status === 429) setError("Too many attempts. Please wait a minute and try again.");
       else if (err instanceof ApiError && err.status === 500) setError("That username may already be taken.");
       else setError(err instanceof Error ? err.message : "Registration failed");
     } finally {

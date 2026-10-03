@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"ffws/internal/config"
 	"ffws/internal/db"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -37,6 +39,11 @@ func main() {
 	}
 
 	router := gin.Default()
+	// Only believe X-Forwarded-For from proxies you list in TRUSTED_PROXIES; otherwise anyone
+	// could fake their IP and dodge the rate limiter.
+	if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		log.Fatalf("invalid TRUSTED_PROXIES: %v", err)
+	}
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
@@ -85,10 +92,10 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
-		api.POST("/auth/register", middleware.RateLimit(1, 3), authHandler.Register)
-		api.POST("/auth/login", middleware.RateLimit(1, 5), authHandler.Login)
+		api.POST("/auth/register", middleware.RateLimit(rate.Every(30*time.Second), 3), authHandler.Register)
+		api.POST("/auth/login", middleware.RateLimit(rate.Every(15*time.Second), 5), authHandler.Login)
 
-		api.POST("/subscribe", middleware.RateLimit(1, 5), subscriberHandler.Subscribe)
+		api.POST("/subscribe", middleware.RateLimit(rate.Every(10*time.Second), 5), subscriberHandler.Subscribe)
 
 		api.GET("/teams/:id/stats", teamStatsHandler.GetProfile)
 		api.GET("/teams/:id/staff", teamStaffHandler.List)

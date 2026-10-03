@@ -20,6 +20,10 @@ type Config struct {
 
 	// AllowedOrigins is the list of browser origins allowed by CORS (CORS_ORIGINS, comma-separated).
 	AllowedOrigins []string
+
+	// TrustedProxies lists reverse proxies whose X-Forwarded-For header may be believed
+	// (TRUSTED_PROXIES, comma-separated IPs/CIDRs). Empty = trust none, use the socket IP.
+	TrustedProxies []string
 }
 
 const minJWTSecretLength = 32
@@ -58,6 +62,12 @@ func Load() *Config {
 	}
 	if len(cfg.AllowedOrigins) == 0 {
 		log.Fatal("CORS_ORIGINS must list at least one explicit origin (\"*\" is not allowed)")
+	}
+
+	for _, p := range strings.Split(os.Getenv("TRUSTED_PROXIES"), ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			cfg.TrustedProxies = append(cfg.TrustedProxies, p)
+		}
 	}
 
 	return cfg
