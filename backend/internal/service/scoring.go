@@ -55,3 +55,31 @@ func FantasyPlacementPoints(placement int) int {
 
 const FantasyKillPoints = 10
 const FantasyFirstBloodPoints = 5
+
+// PredictionPoints scores a team placement prediction by how close it was to the
+// actual result. Same weight regardless of which placement is being predicted —
+// no special bonus for predicting 1st.
+func PredictionPoints(predicted, actual int) int {
+	diff := predicted - actual
+	if diff < 0 {
+		diff = -diff
+	}
+	switch diff {
+	case 0:
+		return 12
+	case 1:
+		return 9
+	case 2:
+		return 7
+	case 3:
+		return 5
+	case 4:
+		return 3
+	case 5:
+		return 2
+	case 6:
+		return 1
+	default:
+		return 0
+	}
+}
