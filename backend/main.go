@@ -34,6 +34,8 @@ func main() {
 		&models.User{},
 		&models.FantasyTeam{},
 		&models.FantasySelection{},
+		&models.Prediction{},
+		&models.PredictionTeam{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
@@ -87,6 +89,9 @@ func main() {
 
 	playerStatsHandler := handlers.NewPlayerStatsHandler(playerStatsRepo)
 
+	predictionRepo := repository.NewPredictionRepository(database)
+	predictionHandler := handlers.NewPredictionHandler(predictionRepo)
+
 	fantasyRepo := repository.NewFantasyRepository(database)
 	fantasyHandler := handlers.NewFantasyHandler(fantasyRepo)
 
@@ -99,6 +104,9 @@ func main() {
 
 		api.GET("/teams/:id/stats", teamStatsHandler.GetProfile)
 		api.GET("/teams/:id/staff", teamStaffHandler.List)
+
+		api.GET("/predictions/standings", predictionHandler.GetStandings)
+		api.GET("/predictions/:id", predictionHandler.GetByID)
 
 		api.GET("/tournaments", tournamentHandler.List)
 		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
@@ -127,6 +135,8 @@ func main() {
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
 			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
 			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
+			protected.GET("/predictions/mine/:dayId", predictionHandler.GetMine)
+			protected.POST("/predictions/:dayId", predictionHandler.Submit)
 
 			adminOnly := protected.Group("/")
 			adminOnly.Use(middleware.RequireAdmin())
@@ -152,6 +162,8 @@ func main() {
 				adminOnly.DELETE("/players/:id", playerHandler.Delete)
 				adminOnly.PUT("/rooms/:id", roomHandler.Update)
 				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)
+
+				adminOnly.POST("/predictions/:dayId/score", predictionHandler.ScoreDay)
 			}
 		}
 	}
