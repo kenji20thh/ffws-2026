@@ -278,3 +278,42 @@ export interface TournamentDay {
   deadline: string;
   rooms?: Room[];
 }
+
+export interface Prediction {
+  id: number;
+  user_id: number;
+  tournament_id: number;
+  tournament_day_id: number;
+  total_points: number;
+  submitted_at: string;
+  scored_at: string | null;
+}
+
+export interface PredictionTeamEntry {
+  id: number;
+  prediction_id: number;
+  team_id: number;
+  predicted_placement: number;
+  actual_placement: number;
+  points: number;
+  team: Team;
+}
+
+export interface PredictionDetail {
+  prediction: Prediction;
+  teams: PredictionTeamEntry[];
+  lock_time?: string | null;
+}
+
+export interface PredictionPick {
+  team_id: number;
+  placement: number;
+}
+
+export interface PredictionStanding {
+  user_id: number;
+  username: string;
+  prediction_id: number;
+  total_points: number;
+  scored: boolean;
+}
