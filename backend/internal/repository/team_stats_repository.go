@@ -36,6 +36,9 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 			ID: team.ID, Name: team.Name, Tag: team.Tag,
 			LogoURL: team.LogoURL, Region: team.Region, Country: team.Country,
 		},
+		Players: []TeamPlayerStats{},
+		Rooms:   []TeamRoomHistory{},
+		Maps:    []TeamMapStats{},
 	}
 
 	var players []struct {
@@ -48,6 +51,12 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 	if err := r.db.Raw(`SELECT id, ign, role, photo_url, country FROM players WHERE team_id = ? ORDER BY id ASC`, teamID).
 		Scan(&players).Error; err != nil {
 		return nil, err
+	}
+
+	// A team with no players yet has nothing to compute — return a clean empty
+	// profile instead of continuing into logic that assumes at least one player.
+	if len(players) == 0 {
+		return profile, nil
 	}
 
 	teamTotalKills := 0
