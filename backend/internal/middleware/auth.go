@@ -34,23 +34,6 @@ func RequireAuth(cfg *config.Config) gin.HandlerFunc {
 	}
 }
 
-// OptionalAuth reads a valid Bearer token if one is sent, but never rejects the request.
-// Use it on public routes that show extra data to the logged-in owner.
-func OptionalAuth(cfg *config.Config) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			claims, err := service.ParseToken(strings.TrimPrefix(authHeader, "Bearer "), cfg.JWTSecret)
-			if err == nil {
-				c.Set("user_id", claims.UserID)
-				c.Set("username", claims.Username)
-				c.Set("role", claims.Role)
-			}
-		}
-		c.Next()
-	}
-}
-
 func RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")

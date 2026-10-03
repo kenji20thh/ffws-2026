@@ -2,10 +2,8 @@ package handlers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"ffws/internal/repository"
 
@@ -106,19 +104,12 @@ func (h *FantasyHandler) SubmitSelection(c *gin.Context) {
 		picks = append(picks, repository.PickInput{PlayerID: p.PlayerID, IsCaptain: p.IsCaptain})
 	}
 
-	if err := h.repo.SubmitSelection(team.ID, uint(tournamentID), uint(dayID), picks); err != nil {
-		var selErr *repository.SelectionError
-		switch {
-		case errors.Is(err, repository.ErrDayNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		case errors.Is(err, repository.ErrSelectionLocked):
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		case errors.As(err, &selErr):
-			c.JSON(http.StatusBadRequest, gin.H{"error": selErr.Error()})
-		default:
-			log.Printf("submit selection failed: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save selection"})
+	if err := h.repo.SubmitSelection(team.ID, uint(dayID), picks); err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, repository.ErrSelectionLocked) {
+			status = http.StatusConflict
 		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "selection saved"})
@@ -143,43 +134,23 @@ func (h *FantasyHandler) GetMySelection(c *gin.Context) {
 		return
 	}
 
-	day, err := h.repo.GetDayInTournament(uint(dayID), uint(tournamentID))
-	if err != nil {
-		if errors.Is(err, repository.ErrDayNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch tournament day"})
-		return
-	}
-
-	selections, err := h.repo.GetSelection(team.ID, day.ID)
+	selections, err := h.repo.GetSelection(team.ID, uint(dayID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch selection"})
 		return
 	}
-	breakdown, total, err := h.repo.ComputeDayScore(team.ID, day.ID)
+	breakdown, total, err := h.repo.ComputeDayScore(team.ID, uint(dayID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute score"})
 		return
 	}
-	locked, err := h.repo.IsDayLocked(day)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check lock status"})
-		return
-	}
-
-	var lockTime *time.Time
-	if !day.Deadline.IsZero() {
-		lockTime = &day.Deadline
-	}
+	lockTime, _ := h.repo.GetDayLockTime(uint(dayID))
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"selections":   selections,
 		"breakdown":    breakdown,
 		"total_points": total,
 		"lock_time":    lockTime,
-		"locked":       locked,
 	}})
 }
 
@@ -237,67 +208,34 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 		return
 	}
 
-	// Public view of the team: never expose the owner's user id.
-	resp := gin.H{"team": gin.H{
-		"id":            team.ID,
-		"tournament_id": team.TournamentID,
-		"team_name":     team.TeamName,
-		"country":       team.Country,
-		"created_at":    team.CreatedAt,
-	}}
-
-	dayIDStr := c.Query("day_id")
-	if dayIDStr == "" {
-		c.JSON(http.StatusOK, gin.H{"data": resp})
-		return
-	}
-	parsed, err := strconv.ParseUint(dayIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day_id"})
-		return
-	}
-
-	day, err := h.repo.GetDayInTournament(uint(parsed), team.TournamentID)
-	if err != nil {
-		if errors.Is(err, repository.ErrDayNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	var dayID *uint
+	if dayIDStr := c.Query("day_id"); dayIDStr != "" {
+		parsed, err := strconv.ParseUint(dayIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day_id"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch tournament day"})
-		return
-	}
-	locked, err := h.repo.IsDayLocked(day)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check lock status"})
-		return
+		d := uint(parsed)
+		dayID = &d
 	}
 
-	// Picks stay private until the day locks, so nobody can copy another player's team.
-	// The owner (identified by the optional auth token) can always see their own picks.
-	viewerID := c.GetUint("user_id")
-	isOwner := viewerID != 0 && viewerID == team.UserID
-	resp["locked"] = locked
+	resp := gin.H{"team": team}
 
-	if !locked && !isOwner {
-		resp["selections"] = []any{}
-		resp["hidden"] = true
-		c.JSON(http.StatusOK, gin.H{"data": resp})
-		return
+	if dayID != nil {
+		selections, err := h.repo.GetSelection(team.ID, *dayID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch selection"})
+			return
+		}
+		breakdown, total, err := h.repo.ComputeDayScore(team.ID, *dayID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute score"})
+			return
+		}
+		resp["selections"] = selections
+		resp["breakdown"] = breakdown
+		resp["total_points"] = total
 	}
-
-	selections, err := h.repo.GetSelection(team.ID, day.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch selection"})
-		return
-	}
-	breakdown, total, err := h.repo.ComputeDayScore(team.ID, day.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute score"})
-		return
-	}
-	resp["selections"] = selections
-	resp["breakdown"] = breakdown
-	resp["total_points"] = total
 
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }

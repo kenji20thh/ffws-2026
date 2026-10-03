@@ -38,7 +38,7 @@ func main() {
 
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.AllowedOrigins,
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -111,7 +111,7 @@ func main() {
 
 		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
-		api.GET("/fantasy/teams/:id", middleware.OptionalAuth(cfg), fantasyHandler.GetTeamProfile)
+		api.GET("/fantasy/teams/:id", fantasyHandler.GetTeamProfile)
 
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
