@@ -20,6 +20,7 @@ func NewTeamStaffHandler(repo *repository.TeamStaffRepository) *TeamStaffHandler
 
 type createStaffRequest struct {
 	Name     string `json:"name" binding:"required"`
+	RealName string `json:"real_name"`
 	Role     string `json:"role"`
 	PhotoURL string `json:"photo_url"`
 	Country  string `json:"country"`
