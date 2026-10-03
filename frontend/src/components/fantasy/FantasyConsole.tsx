@@ -93,7 +93,7 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
     );
   }
 
-  const locked = sel?.lock_time ? new Date(sel.lock_time).getTime() < Date.now() : false;
+  const locked = sel?.locked ?? false;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">

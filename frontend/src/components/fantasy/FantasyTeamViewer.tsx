@@ -111,7 +111,13 @@ export default function FantasyTeamViewer({
           {profile.breakdown && profile.breakdown.length > 0 && (
             <DayScoreCard breakdown={profile.breakdown} total={profile.total_points ?? 0} />
           )}
-          <ReadOnlySelection selections={profile.selections ?? []} />
+          {profile.hidden ? (
+            <p className="font-stat text-xs uppercase tracking-widest text-ash">
+              Picks stay hidden until this day locks
+            </p>
+          ) : (
+            <ReadOnlySelection selections={profile.selections ?? []} />
+          )}
         </>
       ) : (
         <EmptyState title="No data for this day" />
