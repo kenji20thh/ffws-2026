@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -32,9 +33,12 @@ func ParseToken(tokenString string, secret string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
-	})
-	if err != nil || !token.Valid {
+	}, jwt.WithValidMethods([]string{"HS256"}))
+	if err != nil {
 		return nil, err
+	}
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 	return claims, nil
 }

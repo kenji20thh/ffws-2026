@@ -22,7 +22,21 @@ var (
 	ErrFantasyTeamExists   = errors.New("you already have a fantasy team for this tournament")
 	ErrFantasyTeamNotFound = errors.New("fantasy team not found")
 	ErrSelectionLocked     = errors.New("selections are locked for this day")
+	ErrDayNotFound         = errors.New("tournament day not found")
 )
+
+const (
+	SelectionSize   = 4
+	SelectionBudget = 100
+)
+
+// SelectionError is a user-facing validation problem (safe to show to the client).
+// Any other error returned by SubmitSelection is an internal failure.
+type SelectionError struct{ Msg string }
+
+func (e *SelectionError) Error() string { return e.Msg }
+
+func invalidSelection(msg string) error { return &SelectionError{Msg: msg} }
 
 func (r *FantasyRepository) CreateTeam(userID, tournamentID uint, teamName, country string) (*models.FantasyTeam, error) {
 	var count int64
@@ -61,6 +75,41 @@ func (r *FantasyRepository) GetTeamByID(fantasyTeamID uint) (*models.FantasyTeam
 	return &team, nil
 }
 
+// GetDayInTournament returns the day only if it belongs to the given tournament.
+func (r *FantasyRepository) GetDayInTournament(dayID, tournamentID uint) (*models.TournamentDay, error) {
+	var day models.TournamentDay
+	err := r.db.Where("id = ? AND tournament_id = ?", dayID, tournamentID).First(&day).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrDayNotFound
+		}
+		return nil, err
+	}
+	return &day, nil
+}
+
+// IsDayLocked reports whether picks for the day are closed. A day is locked when:
+//   - its deadline has passed, OR
+//   - any of its rooms is live/completed or already has results
+//
+// The second rule means a day with no deadline set can never be edited after play has started.
+func (r *FantasyRepository) IsDayLocked(day *models.TournamentDay) (bool, error) {
+	if !day.Deadline.IsZero() && time.Now().After(day.Deadline) {
+		return true, nil
+	}
+	var started int64
+	err := r.db.Raw(`
+		SELECT COUNT(*) FROM rooms r
+		WHERE r.tournament_day_id = ?
+		  AND (r.status IN ('live', 'completed')
+		       OR EXISTS (SELECT 1 FROM room_team_results rtr WHERE rtr.room_id = r.id))
+	`, day.ID).Scan(&started).Error
+	if err != nil {
+		return false, err
+	}
+	return started > 0, nil
+}
+
 // GetDayLockTime returns the tournament day's deadline directly.
 // If no deadline has been set yet, it returns the zero time, meaning selections stay open.
 func (r *FantasyRepository) GetDayLockTime(dayID uint) (time.Time, error) {
@@ -77,16 +126,16 @@ type PickInput struct {
 }
 
 // SubmitSelection validates and replaces a fantasy team's 4 picks for a day.
-func (r *FantasyRepository) SubmitSelection(fantasyTeamID, dayID uint, picks []PickInput) error {
-	if len(picks) != 4 {
-		return errors.New("you must select exactly 4 players")
+func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID uint, picks []PickInput) error {
+	if len(picks) != SelectionSize {
+		return invalidSelection("you must select exactly 4 players")
 	}
 
 	captainCount := 0
 	seen := map[uint]bool{}
 	for _, p := range picks {
 		if seen[p.PlayerID] {
-			return errors.New("duplicate player in selection")
+			return invalidSelection("duplicate player in selection")
 		}
 		seen[p.PlayerID] = true
 		if p.IsCaptain {
@@ -94,14 +143,18 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, dayID uint, picks []P
 		}
 	}
 	if captainCount != 1 {
-		return errors.New("you must select exactly one captain")
+		return invalidSelection("you must select exactly one captain")
 	}
 
-	lockTime, err := r.GetDayLockTime(dayID)
+	day, err := r.GetDayInTournament(dayID, tournamentID)
 	if err != nil {
 		return err
 	}
-	if !lockTime.IsZero() && time.Now().After(lockTime) {
+	locked, err := r.IsDayLocked(day)
+	if err != nil {
+		return err
+	}
+	if locked {
 		return ErrSelectionLocked
 	}
 
@@ -111,28 +164,34 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, dayID uint, picks []P
 		FantasyPrice int
 	}
 	var rows []playerRow
-	ids := make([]uint, 0, 4)
+	ids := make([]uint, 0, SelectionSize)
 	for _, p := range picks {
 		ids = append(ids, p.PlayerID)
 	}
-	if err := r.db.Raw(`SELECT id, team_id, fantasy_price FROM players WHERE id IN (?)`, ids).Scan(&rows).Error; err != nil {
+	// Only players whose team belongs to this tournament are valid picks.
+	if err := r.db.Raw(`
+		SELECT p.id, p.team_id, p.fantasy_price
+		FROM players p
+		JOIN teams t ON t.id = p.team_id
+		WHERE p.id IN (?) AND t.tournament_id = ?
+	`, ids, tournamentID).Scan(&rows).Error; err != nil {
 		return err
 	}
-	if len(rows) != 4 {
-		return errors.New("one or more selected players do not exist")
+	if len(rows) != SelectionSize {
+		return invalidSelection("one or more selected players are not available in this tournament")
 	}
 
 	teamSeen := map[uint]bool{}
 	totalBudget := 0
 	for _, row := range rows {
 		if teamSeen[row.TeamID] {
-			return errors.New("all 4 players must be from different teams")
+			return invalidSelection("all 4 players must be from different teams")
 		}
 		teamSeen[row.TeamID] = true
 		totalBudget += row.FantasyPrice
 	}
-	if totalBudget > 100 {
-		return errors.New("selection exceeds the $100 budget")
+	if totalBudget > SelectionBudget {
+		return invalidSelection("selection exceeds the $100 budget")
 	}
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
