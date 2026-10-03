@@ -22,6 +22,7 @@ func Connect(cfg *config.Config) *gorm.DB {
 
 	q := u.Query()
 	q.Set("sslmode", "require")
+	q.Set("search_path", "public")
 	u.RawQuery = q.Encode()
 
 	dsn := u.String()
