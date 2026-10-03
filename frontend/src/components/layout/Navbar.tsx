@@ -18,6 +18,8 @@ const LINKS = [
 { href: "/standings", label: "Standings" },
 { href: "/players", label: "Players" },
 { href: "/news", label: "News" },
+{ href: "/predictions", label: "Predictions" },
+
 ];
 
 interface Session {
