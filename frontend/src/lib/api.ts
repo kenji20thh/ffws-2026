@@ -19,6 +19,10 @@ import type {
   FantasyStanding,
   FantasyTeam,
   FantasyTeamProfile,
+  Prediction,
+  PredictionDetail,
+  PredictionPick,
+  PredictionStanding,
   } from "@/types";
 import { getToken } from "./auth";
 
