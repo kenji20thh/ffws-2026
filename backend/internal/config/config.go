@@ -38,7 +38,7 @@ func Load() *Config {
 		DBPort:      getEnv("DB_PORT", "5432"),
 		DBUser:      getEnv("DB_USER", "postgres"),
 		DBPassword:  getEnv("DB_PASSWORD", ""),
-		DBName:      getEnv("DB_NAME", "ffws"),
+		DBName:      getEnvNonEmpty("DB_NAME", "ffws"),
 		JWTSecret:   getEnv("JWT_SECRET", ""),
 		Environment: getEnv("ENV", "development"),
 	}
@@ -78,4 +78,12 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+func getEnvNonEmpty(key, fallback string) string {
+	val := strings.TrimSpace(os.Getenv(key))
+	if val == "" {
+		return fallback
+	}
+	return val
 }
