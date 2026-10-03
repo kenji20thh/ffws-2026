@@ -41,7 +41,7 @@ func (h *TeamStaffHandler) Create(c *gin.Context) {
 	}
 
 	staff := models.TeamStaff{
-		TeamID: uint(teamID), Name: req.Name, Role: req.Role,
+		TeamID: uint(teamID), Name: req.Name, RealName: req.RealName, Role: req.Role,
 		PhotoURL: req.PhotoURL, Country: req.Country,
 	}
 	if err := h.repo.Create(&staff); err != nil {
