@@ -160,3 +160,29 @@ export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
     selections: r.data.selections ?? [],
     breakdown: r.data.breakdown ?? [],
   }));
+
+
+  /* ---------- predictions ---------- */
+export const getPredictionStandings = (tournamentId: number, dayId?: number) =>
+  list<PredictionStanding>(
+    `/predictions/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`
+  );
+
+export const getPredictionById = (predictionId: number) =>
+  request<{ data: PredictionDetail }>(`/predictions/${predictionId}`).then((r) => ({
+    ...r.data,
+    teams: r.data.teams ?? [],
+  }));
+
+export const getMyPrediction = (dayId: number) =>
+  request<{ data: PredictionDetail }>(`/predictions/mine/${dayId}`, {}, true).then((r) => ({
+    ...r.data,
+    teams: r.data.teams ?? [],
+  }));
+
+export const submitPrediction = (dayId: number, picks: PredictionPick[]) =>
+  request<{ data: Prediction }>(
+    `/predictions/${dayId}`,
+    { method: "POST", body: JSON.stringify({ picks }) },
+    true
+  ).then((r) => r.data);
