@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import {
   ApiError, getDays, getFantasyPlayerPool, getMyFantasySelection, getMyFantasyTeam,
 } from "@/lib/api";
-import { getToken } from "@/lib/auth";
+import { clearSession, getToken } from "@/lib/auth";
 import type { FantasyPlayerOption, FantasySelectionResponse, FantasyTeam, TournamentDay } from "@/types";
 import CreateFantasyTeamForm from "./CreateFantasyTeamForm";
 import SelectionBuilder from "./SelectionBuilder";
@@ -35,35 +36,58 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
   const [pool, setPool] = useState<FantasyPlayerOption[]>([]);
   const [sel, setSel] = useState<FantasySelectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoggedIn(!!getToken());
     setAuthChecked(true);
   }, []);
 
+  // An expired or invalid token (401) ends the session and shows the "log in" prompt.
+  const expireSession = useCallback((e: unknown) => {
+    if (e instanceof ApiError && e.status === 401) {
+      clearSession();
+      setLoggedIn(false);
+      return true;
+    }
+    return false;
+  }, []);
+
+  const fail = useCallback(
+    (e: unknown) => {
+      if (expireSession(e)) return;
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    },
+    [expireSession]
+  );
+
   const loadTeam = useCallback(() => {
     getMyFantasyTeam(tournamentId)
       .then(setTeam)
       .catch((e) => {
         if (e instanceof ApiError && e.status === 404) setTeam(null);
+        else fail(e);
       });
-  }, [tournamentId]);
+  }, [tournamentId, fail]);
 
   useEffect(() => {
     if (!loggedIn) return;
+    setError(null);
     loadTeam();
-    getDays(tournamentId).then((d) => setDay(pickNextOpenDay(d)));
-    getFantasyPlayerPool(tournamentId).then(setPool);
-  }, [loggedIn, tournamentId, loadTeam]);
+    getDays(tournamentId).then((d) => setDay(pickNextOpenDay(d))).catch(fail);
+    getFantasyPlayerPool(tournamentId).then(setPool).catch(fail);
+  }, [loggedIn, tournamentId, loadTeam, fail]);
 
   const loadSelection = useCallback(() => {
     if (!day) return;
     setLoading(true);
     getMyFantasySelection(tournamentId, day.id)
       .then(setSel)
-      .catch(() => setSel(null))
+      .catch((e) => {
+        if (!expireSession(e)) setSel(null);
+      })
       .finally(() => setLoading(false));
-  }, [tournamentId, day]);
+  }, [tournamentId, day, expireSession]);
 
   useEffect(() => {
     if (team && day) loadSelection();
@@ -83,6 +107,14 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
     );
   }
 
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-16">
+        <ErrorState message={error} />
+      </div>
+    );
+  }
+
   if (team === undefined) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
 
   if (team === null) {
@@ -93,6 +125,7 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
     );
   }
 
+  // The server decides whether the day is locked (deadline passed, or play already started).
   const locked = sel?.locked ?? false;
 
   return (

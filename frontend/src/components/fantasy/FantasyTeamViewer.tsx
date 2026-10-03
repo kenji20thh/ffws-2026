@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
+import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import { getDays, getFantasyTeamProfile, getMyFantasyTeam } from "@/lib/api";
 import { getToken } from "@/lib/auth";
@@ -36,33 +37,72 @@ export default function FantasyTeamViewer({
 }) {
   const [isMine, setIsMine] = useState(false);
   const [days, setDays] = useState<TournamentDay[]>([]);
+  const [daysLoaded, setDaysLoaded] = useState(false);
   const [dayId, setDayId] = useState<number | null>(null);
   const [profile, setProfile] = useState<FantasyTeamProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // load the tournament days (and whether this is the viewer's own team)
   useEffect(() => {
-    getDays(tournamentId).then((d) => {
-      setDays(d);
-      setDayId(defaultDay(d)?.id ?? null);
-    });
+    let cancelled = false;
 
-    if (!getToken()) return;
-    getMyFantasyTeam(tournamentId)
-      .then((mine) => setIsMine(mine.id === fantasyTeamId))
-      .catch(() => setIsMine(false));
+    getDays(tournamentId)
+      .then((d) => {
+        if (cancelled) return;
+        setDays(d);
+        setDayId(defaultDay(d)?.id ?? null);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load tournament days");
+      })
+      .finally(() => {
+        if (!cancelled) setDaysLoaded(true);
+      });
+
+    if (getToken()) {
+      getMyFantasyTeam(tournamentId)
+        .then((mine) => {
+          if (!cancelled) setIsMine(mine.id === fantasyTeamId);
+        })
+        .catch(() => {
+          if (!cancelled) setIsMine(false);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [tournamentId, fantasyTeamId]);
 
-  const loadProfile = useCallback(() => {
-    if (!dayId) return;
-    setLoading(true);
-    getFantasyTeamProfile(fantasyTeamId, dayId)
-      .then(setProfile)
-      .finally(() => setLoading(false));
-  }, [fantasyTeamId, dayId]);
-
+  // load the team's picks for the selected day; ignore answers that arrive after the day changed
   useEffect(() => {
-    loadProfile();
-  }, [dayId, loadProfile]);
+    if (!dayId) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProfileLoading(true);
+    setError(null);
+
+    getFantasyTeamProfile(fantasyTeamId, dayId)
+      .then((p) => {
+        if (!cancelled) setProfile(p);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setProfile(null); // never keep showing the previous day's data
+        setError(e instanceof Error ? e.message : "Failed to load this team");
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fantasyTeamId, dayId]);
 
   const selectedDay = days.find((d) => d.id === dayId) ?? null;
   const dayIsFuture = (() => {
@@ -71,6 +111,8 @@ export default function FantasyTeamViewer({
     if (!hasDeadline) return true;
     return new Date(selectedDay.deadline).getTime() > Date.now();
   })();
+
+  const loading = !daysLoaded || profileLoading;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
@@ -106,6 +148,10 @@ export default function FantasyTeamViewer({
 
       {loading ? (
         <Skeleton className="h-64" />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : days.length === 0 ? (
+        <EmptyState title="No tournament days yet" hint="Picks will appear here once days are scheduled." />
       ) : profile ? (
         <>
           {profile.breakdown && profile.breakdown.length > 0 && (

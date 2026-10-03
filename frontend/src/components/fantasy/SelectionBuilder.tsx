@@ -41,7 +41,13 @@ export default function SelectionBuilder({ tournamentId, dayId, pool, existing, 
     setPicks((prev) => {
       const next = new Map(prev);
       if (next.has(o.player_id)) {
+        const wasCaptain = next.get(o.player_id) === true;
         next.delete(o.player_id);
+        // removing the captain hands the armband to the first remaining pick
+        if (wasCaptain && next.size > 0) {
+          const [firstId] = next.keys();
+          next.set(firstId, true);
+        }
       } else {
         if (next.size >= 4) return prev;
         if (usedTeamIds.has(o.team_id)) return prev;

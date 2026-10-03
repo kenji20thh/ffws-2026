@@ -28,16 +28,22 @@ export default function RegisterForm() {
       return;
     }
 
+    const name = username.trim();
+    if (name.length < 3) {
+      setError("Username must be at least 3 characters.");
+      return;
+    }
+
     setBusy(true);
     try {
-      await register(username, password);
-      const res = await login(username, password);
-      saveSession(res.token, res.role, username);
+      await register(name, password);
+      const res = await login(name, password);
+      saveSession(res.token, res.role, name);
       router.replace("/");
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) setError("Too many attempts. Please wait a minute and try again.");
-      else if (err instanceof ApiError && err.status === 500) setError("That username may already be taken.");
+      else if (err instanceof ApiError && err.status === 409) setError("That username is already taken.");
       else setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setBusy(false);
@@ -55,12 +61,12 @@ export default function RegisterForm() {
       <div>
         <label htmlFor="u" className="sr-only">Username</label>
         <input id="u" className={input} placeholder="Username" autoComplete="username"
-          value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} />
+          value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={32} />
       </div>
       <div>
         <label htmlFor="p" className="sr-only">Password</label>
         <input id="p" type="password" className={input} placeholder="Password (min 8 characters)" autoComplete="new-password"
-          value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+          value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} maxLength={72} />
       </div>
       <div>
         <label htmlFor="c" className="sr-only">Confirm password</label>

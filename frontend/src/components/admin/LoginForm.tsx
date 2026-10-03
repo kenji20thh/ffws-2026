@@ -20,8 +20,9 @@ export default function LoginForm() {
     setError("");
 
     try {
-      const res = await login(username, password);
-      saveSession(res.token, res.role, username);
+      const name = username.trim();
+      const res = await login(name, password);
+      saveSession(res.token, res.role, name);
       router.replace(res.role === "admin" ? "/admin" : "/");
       router.refresh();
     } catch (err) {
