@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { NewsArticle } from "@/data/news";
 
 type NewsCardProps = {
@@ -14,8 +13,10 @@ year: "numeric",
 });
 
 return (
-<Link
-href={`/news/${article.slug}`}
+<a
+href={article.url || "#"}
+target={article.url ? "_blank" : undefined}
+rel={article.url ? "noopener noreferrer" : undefined}
 className="group block overflow-hidden border border-bone/[0.08] bg-[#0d0d0d] transition-colors duration-300 hover:border-[#ff5a1f]/40"
 >
 {/* Image */} <div className="relative aspect-[16/9] overflow-hidden"> <Image
@@ -61,7 +62,7 @@ className="group block overflow-hidden border border-bone/[0.08] bg-[#0d0d0d] tr
       </span>
     </div>
   </div>
-</Link>
+</a>
 
 );
 }
