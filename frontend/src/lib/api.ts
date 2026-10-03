@@ -19,8 +19,7 @@ import type {
   FantasyStanding,
   FantasyTeam,
   FantasyTeamProfile,
-  FantasyDaySchedule,
-} from "@/types";
+  } from "@/types";
 import { getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
@@ -160,5 +159,3 @@ export const submitFantasySelection = (tournamentId: number, dayId: number, pick
     breakdown: r.breakdown ?? [],
   }));
 
-  export const getFantasySchedule = (tournamentId: number) =>
-  list<FantasyDaySchedule>(`/fantasy/schedule?tournament_id=${tournamentId}`);
