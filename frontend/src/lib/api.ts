@@ -150,12 +150,13 @@ export const submitFantasySelection = (tournamentId: number, dayId: number, pick
     true
   );
 
-  export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
-  one<FantasyTeamProfile>(
-    `/fantasy/teams/${fantasyTeamId}${dayId ? `?day_id=${dayId}` : ""}`
+export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
+  request<{ data: FantasyTeamProfile }>(
+    `/fantasy/teams/${fantasyTeamId}${dayId ? `?day_id=${dayId}` : ""}`,
+    {},
+    true // optional on the server: lets the owner see their own picks before the deadline
   ).then((r) => ({
-    ...r,
-    selections: r.selections ?? [],
-    breakdown: r.breakdown ?? [],
+    ...r.data,
+    selections: r.data.selections ?? [],
+    breakdown: r.data.breakdown ?? [],
   }));
-
