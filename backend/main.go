@@ -20,6 +20,17 @@ func main() {
 	cfg := config.Load()
 	database := db.Connect(cfg)
 
+	sqlDB, err := database.DB()
+	if err != nil {
+		log.Fatalf("failed to get database connection: %v", err)
+	}
+
+	sqlDB.SetMaxOpenConns(1)
+
+	if _, err := sqlDB.Exec("SET search_path TO public"); err != nil {
+		log.Fatalf("failed to set database schema: %v", err)
+	}
+
 	if err := database.AutoMigrate(
 		&models.Subscriber{},
 		&models.Tournament{},
@@ -41,11 +52,13 @@ func main() {
 	}
 
 	router := gin.Default()
+
 	// Only believe X-Forwarded-For from proxies you list in TRUSTED_PROXIES; otherwise anyone
 	// could fake their IP and dodge the rate limiter.
 	if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		log.Fatalf("invalid TRUSTED_PROXIES: %v", err)
 	}
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
@@ -172,4 +185,5 @@ func main() {
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}
+
 }
