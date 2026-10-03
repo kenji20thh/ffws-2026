@@ -6,68 +6,75 @@ title: string;
 excerpt: string;
 date: string;
 image: string;
+url: string;
 };
 
 export const NEWS: NewsArticle[] = [
 {
 id: 1,
-slug: "ffws-2026-world-championship-coming-to-bangkok",
-category: "Tournament",
-title: "FFWS 2026 World Championship Set for Bangkok",
+slug: "tsg-pros-roster-reportedly-leaves-organization",
+category: "Teams",
+title: "TSG Pros Roster Reportedly Leaves Organization After FFWS Qualification",
 excerpt:
-"The world's best Free Fire teams will meet in Bangkok for the FFWS 2026 World Championship.",
-date: "2026-10-03",
-image: "/home/venue.jpg",
+"The TSG Pros roster has reportedly parted ways with the organization shortly after securing qualification for the FFWS 2026 Global Finals.",
+date: "2026-10-02",
+image: "/news/news1.jpg",
+url: "",
 },
 {
 id: 2,
-slug: "meet-the-teams-competing-at-ffws-2026",
-category: "Teams",
-title: "Meet the Teams Competing at FFWS 2026",
+slug: "apex-resurrection-tsg-qualify-for-ffws-global-finals",
+category: "Qualification",
+title: "Apex Gaming, Resurrection and TSG Pros Qualify for FFWS Global Finals",
 excerpt:
-"Get to know the teams preparing to battle for the world championship title this November.",
-date: "2026-10-02",
-image: "/home/venue.jpg",
+"Team Apex Gaming, Resurrection Esports and TSG Pros have secured India's three spots at the FFWS 2026 Global Finals.",
+date: "2026-09-27",
+image: "/news/news2.jpg",
+url: "",
 },
 {
 id: 3,
-slug: "everything-you-need-to-know-about-ffws-2026",
-category: "Tournament",
-title: "Everything You Need to Know About FFWS 2026",
+slug: "xprojekt-esports-crowned-ffws-mena-fall-champions",
+category: "MENA",
+title: "xProjekt Esports Crowned FFWS MENA Fall Champions",
 excerpt:
-"Dates, tournament structure, schedule and everything else you need to know before the action begins.",
-date: "2026-10-01",
-image: "/home/venue.jpg",
+"Moroccan squad xProjekt Esports won the FFWS MENA 2026 Fall season and secured a place at the Global Finals in Bangkok.",
+date: "2026-09-19",
+image: "/news/news3.png",
+url: "",
 },
 {
 id: 4,
-slug: "the-road-to-the-world-stage",
-category: "Feature",
-title: "The Road to the World Stage",
+slug: "bigetron-by-vitality-wins-ffws-sea-fall",
+category: "SEA",
+title: "Bigetron by Vitality Wins FFWS SEA Fall",
 excerpt:
-"From regional competition to the global stage, follow the journey of the teams heading to Bangkok.",
-date: "2026-09-29",
-image: "/home/venue.jpg",
+"Bigetron by Vitality claimed the FFWS SEA 2026 Fall championship as Southeast Asia finalized its Global Finals representatives.",
+date: "2026-09-20",
+image: "/news/news4.webp",
+url: "",
 },
 {
 id: 5,
-slug: "ffws-2026-schedule-revealed",
-category: "Schedule",
-title: "FFWS 2026 Schedule Revealed",
+slug: "ffws-sea-fall-breaks-viewership-record",
+category: "Esports",
+title: "FFWS SEA Fall Breaks Regional Viewership Record",
 excerpt:
-"The complete championship schedule is now available, with the world's best teams ready for battle.",
-date: "2026-09-27",
-image: "/home/venue.jpg",
+"The FFWS SEA 2026 Fall season reached a new regional peak in viewership, highlighting the continued growth of competitive Free Fire.",
+date: "2026-09-21",
+image: "/news/news5.jpg",
+url: "",
 },
 {
 id: 6,
-slug: "players-to-watch-at-ffws-2026",
-category: "Players",
-title: "Players to Watch at FFWS 2026",
+slug: "24-teams-set-for-ffws-global-finals-bangkok",
+category: "Tournament",
+title: "24 Teams Set for FFWS 2026 Global Finals in Bangkok",
 excerpt:
-"These players will be among the names to watch when the World Championship gets underway.",
-date: "2026-09-25",
-image: "/home/venue.jpg",
+"The expanded FFWS 2026 Global Finals will bring 24 teams together in Bangkok this November to compete for the world championship.",
+date: "2026-09-15",
+image: "/news/news6.jpg",
+url: "",
 },
 ];
 
