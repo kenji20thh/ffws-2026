@@ -14,9 +14,10 @@ onAuthChange,
 
 const LINKS = [
 { href: "/teams", label: "Teams" },
+{ href: "/players", label: "Players" },
+
 { href: "/schedule", label: "Schedule" },
 { href: "/standings", label: "Standings" },
-{ href: "/players", label: "Players" },
 { href: "/news", label: "News" },
 { href: "/predictions", label: "Predictions" },
 
