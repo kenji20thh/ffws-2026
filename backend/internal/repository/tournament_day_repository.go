@@ -4,6 +4,7 @@ import (
 	"ffws/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TournamentDayRepository struct {
@@ -36,5 +37,6 @@ func (r *TournamentDayRepository) FindByID(id uint) (*models.TournamentDay, erro
 }
 
 func (r *TournamentDayRepository) Update(d *models.TournamentDay) error {
-	return r.db.Save(d).Error
+	// Omit associations: FindByID preloads Rooms, and Save would otherwise write those rooms back.
+	return r.db.Omit(clause.Associations).Save(d).Error
 }

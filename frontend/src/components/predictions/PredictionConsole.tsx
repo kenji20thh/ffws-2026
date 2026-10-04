@@ -136,8 +136,10 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     return <div className="mx-auto max-w-3xl px-5 py-20"><EmptyState title="No tournament days available" /></div>;
   }
 
-  const lockTime = existing?.lock_time;
-  const locked = lockTime ? new Date(lockTime).getTime() < Date.now() : false;
+  // Prefer the server's verdict; before the first prediction exists, fall back to the day's deadline.
+  const hasDeadline = !!day.deadline && !day.deadline.startsWith("0001");
+  const deadlinePassed = hasDeadline && new Date(day.deadline).getTime() < Date.now();
+  const locked = existing?.locked ?? deadlinePassed;
 
   if (loading) {
     return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-96" /></div>;

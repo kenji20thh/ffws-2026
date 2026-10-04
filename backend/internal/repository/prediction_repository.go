@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"ffws/internal/models"
@@ -24,6 +25,13 @@ var (
 	ErrNoCompetitorTeam   = errors.New("create your team first")
 )
 
+// PredictionError is a user-facing validation problem (safe to show to the client).
+type PredictionError struct{ Msg string }
+
+func (e *PredictionError) Error() string { return e.Msg }
+
+func invalidPrediction(msg string) error { return &PredictionError{Msg: msg} }
+
 type PlacementInput struct {
 	TeamID    uint
 	Placement int
@@ -35,6 +43,42 @@ func (r *PredictionRepository) GetDayLockTime(dayID uint) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return day.Deadline, nil
+}
+
+// IsDayLocked reports whether predictions for the day are closed (same rule as Fantasy).
+func (r *PredictionRepository) IsDayLocked(dayID uint) (bool, error) {
+	var day models.TournamentDay
+	if err := r.db.First(&day, dayID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, ErrDayNotFound
+		}
+		return false, err
+	}
+	return isDayLocked(r.db, &day)
+}
+
+// CanView reports whether the viewer may see this prediction's picks: always once the
+// day has locked; before that, only the owner. viewerUserID is 0 for anonymous viewers.
+func (r *PredictionRepository) CanView(p *models.Prediction, viewerUserID uint) (bool, error) {
+	var day models.TournamentDay
+	if err := r.db.First(&day, p.TournamentDayID).Error; err != nil {
+		return false, err
+	}
+	locked, err := isDayLocked(r.db, &day)
+	if err != nil {
+		return false, err
+	}
+	if locked {
+		return true, nil
+	}
+	if viewerUserID == 0 {
+		return false, nil
+	}
+	var owner struct{ UserID uint }
+	if err := r.db.Raw(`SELECT user_id FROM fantasy_teams WHERE id = ?`, p.CompetitorTeamID).Scan(&owner).Error; err != nil {
+		return false, err
+	}
+	return owner.UserID == viewerUserID, nil
 }
 
 func (r *PredictionRepository) GetDayTeamIDs(dayID uint) (map[uint]bool, error) {
@@ -68,6 +112,9 @@ func (r *PredictionRepository) resolveCompetitorTeam(userID uint, day models.Tou
 func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []PlacementInput) (*models.Prediction, error) {
 	var day models.TournamentDay
 	if err := r.db.First(&day, dayID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrDayNotFound
+		}
 		return nil, err
 	}
 
@@ -81,34 +128,38 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 		return nil, err
 	}
 	if len(dayTeams) != 12 {
-		return nil, errors.New("this tournament day does not have exactly 12 teams assigned")
+		return nil, invalidPrediction("this tournament day does not have exactly 12 teams assigned")
 	}
 	if len(picks) != 12 {
-		return nil, errors.New("you must predict all 12 teams")
+		return nil, invalidPrediction("you must predict all 12 teams")
 	}
 
 	seenTeams := map[uint]bool{}
 	seenPlacements := map[int]bool{}
 	for _, p := range picks {
 		if seenTeams[p.TeamID] {
-			return nil, errors.New("duplicate team in prediction")
+			return nil, invalidPrediction("duplicate team in prediction")
 		}
 		seenTeams[p.TeamID] = true
 
 		if p.Placement < 1 || p.Placement > 12 {
-			return nil, errors.New("placements must be between 1 and 12")
+			return nil, invalidPrediction("placements must be between 1 and 12")
 		}
 		if seenPlacements[p.Placement] {
-			return nil, errors.New("duplicate placement in prediction")
+			return nil, invalidPrediction("duplicate placement in prediction")
 		}
 		seenPlacements[p.Placement] = true
 
 		if !dayTeams[p.TeamID] {
-			return nil, errors.New("one or more teams are not participating in this tournament day")
+			return nil, invalidPrediction("one or more teams are not participating in this tournament day")
 		}
 	}
 
-	if !day.Deadline.IsZero() && time.Now().After(day.Deadline) {
+	locked, err := isDayLocked(r.db, &day)
+	if err != nil {
+		return nil, err
+	}
+	if locked {
 		return nil, ErrPredictionLocked
 	}
 
@@ -159,6 +210,9 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 func (r *PredictionRepository) GetByUserAndDay(userID, dayID uint) (*models.Prediction, []models.PredictionTeam, error) {
 	var day models.TournamentDay
 	if err := r.db.First(&day, dayID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, ErrDayNotFound
+		}
 		return nil, nil, err
 	}
 
@@ -328,13 +382,7 @@ type PredictionStanding struct {
 }
 
 func sortPredictionStandings(s []PredictionStanding) {
-	for i := 0; i < len(s); i++ {
-		for j := i + 1; j < len(s); j++ {
-			if s[j].TotalPoints > s[i].TotalPoints {
-				s[i], s[j] = s[j], s[i]
-			}
-		}
-	}
+	sort.SliceStable(s, func(i, j int) bool { return s[i].TotalPoints > s[j].TotalPoints })
 }
 
 func (r *PredictionRepository) GetStandings(tournamentID uint, dayID *uint) ([]PredictionStanding, error) {

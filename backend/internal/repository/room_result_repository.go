@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"ffws/internal/models"
 	"ffws/internal/service"
@@ -242,51 +243,73 @@ type TeamRoomSummary struct {
 
 // GetTournamentStandings aggregates every team's points across all rooms in a tournament,
 // sorted by total points descending (highest first).
+// Three queries in total, however many teams and rooms there are.
 func (r *RoomResultRepository) GetTournamentStandings(tournamentID uint) ([]TeamStandingSummary, error) {
 	var teams []models.Team
-	if err := r.db.Where("tournament_id = ?", tournamentID).Find(&teams).Error; err != nil {
+	if err := r.db.Where("tournament_id = ?", tournamentID).Order("id ASC").Find(&teams).Error; err != nil {
+		return nil, err
+	}
+	if len(teams) == 0 {
+		return []TeamStandingSummary{}, nil
+	}
+
+	var results []struct {
+		RoomID    uint
+		TeamID    uint
+		Placement int
+	}
+	if err := r.db.Raw(`
+		SELECT rtr.room_id, rtr.team_id, rtr.placement
+		FROM room_team_results rtr
+		JOIN teams t ON t.id = rtr.team_id
+		WHERE t.tournament_id = ?`, tournamentID).Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	var standings []TeamStandingSummary
-	for _, team := range teams {
-		var results []models.RoomTeamResult
-		r.db.Where("team_id = ?", team.ID).Find(&results)
-
-		totalPlacementPoints := 0
-		totalKillPoints := 0
-		roomsPlayed := len(results)
-
-		for _, res := range results {
-			var kills int64
-			r.db.Model(&models.PlayerRoomStat{}).
-				Where("room_id = ? AND team_id = ?", res.RoomID, team.ID).
-				Select("COALESCE(SUM(kills), 0)").
-				Scan(&kills)
-
-			totalPlacementPoints += service.PlacementPoints(res.Placement)
-			totalKillPoints += service.KillPoints(int(kills))
-		}
-
-		standings = append(standings, TeamStandingSummary{
-			TeamID:          team.ID,
-			TeamName:        team.Name,
-			RoomsPlayed:     roomsPlayed,
-			PlacementPoints: totalPlacementPoints,
-			KillPoints:      totalKillPoints,
-			TotalPoints:     totalPlacementPoints + totalKillPoints,
-		})
+	var killRows []struct {
+		RoomID uint
+		TeamID uint
+		Kills  int
+	}
+	if err := r.db.Raw(`
+		SELECT prs.room_id, prs.team_id, COALESCE(SUM(prs.kills), 0) AS kills
+		FROM player_room_stats prs
+		JOIN teams t ON t.id = prs.team_id
+		WHERE t.tournament_id = ?
+		GROUP BY prs.room_id, prs.team_id`, tournamentID).Scan(&killRows).Error; err != nil {
+		return nil, err
 	}
 
-	// sort descending by total points
-	for i := 0; i < len(standings); i++ {
-		for j := i + 1; j < len(standings); j++ {
-			if standings[j].TotalPoints > standings[i].TotalPoints {
-				standings[i], standings[j] = standings[j], standings[i]
-			}
-		}
+	type roomTeam struct{ roomID, teamID uint }
+	kills := map[roomTeam]int{}
+	for _, k := range killRows {
+		kills[roomTeam{k.RoomID, k.TeamID}] = k.Kills
 	}
 
+	byTeam := make(map[uint]*TeamStandingSummary, len(teams))
+	standings := make([]TeamStandingSummary, 0, len(teams))
+	for _, t := range teams {
+		standings = append(standings, TeamStandingSummary{TeamID: t.ID, TeamName: t.Name})
+	}
+	for i := range standings {
+		byTeam[standings[i].TeamID] = &standings[i]
+	}
+
+	for _, res := range results {
+		s := byTeam[res.TeamID]
+		if s == nil {
+			continue
+		}
+		s.RoomsPlayed++
+		s.PlacementPoints += service.PlacementPoints(res.Placement)
+		s.KillPoints += service.KillPoints(kills[roomTeam{res.RoomID, res.TeamID}])
+	}
+	for i := range standings {
+		standings[i].TotalPoints = standings[i].PlacementPoints + standings[i].KillPoints
+	}
+
+	// highest points first; equal points keep their original order (no tiebreak rule is applied)
+	sort.SliceStable(standings, func(i, j int) bool { return standings[i].TotalPoints > standings[j].TotalPoints })
 	return standings, nil
 }
 

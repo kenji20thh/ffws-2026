@@ -303,6 +303,8 @@ export interface PredictionDetail {
   prediction: Prediction;
   teams: PredictionTeamEntry[];
   lock_time?: string | null;
+  locked?: boolean; // server's verdict on whether predictions are closed (only on "mine")
+  hidden?: boolean; // true while the day is open and you are not the owner
 }
 
 export interface PredictionPick {

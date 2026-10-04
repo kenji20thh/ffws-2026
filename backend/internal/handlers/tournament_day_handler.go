@@ -41,14 +41,20 @@ func (h *TournamentDayHandler) Create(c *gin.Context) {
 		DayOrder:     req.DayOrder,
 	}
 	if req.Date != "" {
-		if t, err := parseDate(req.Date); err == nil {
-			day.Date = t
+		t, err := parseDate(req.Date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date, expected YYYY-MM-DD"})
+			return
 		}
+		day.Date = t
 	}
 	if req.Deadline != "" {
-		if t, err := time.Parse(time.RFC3339, req.Deadline); err == nil {
-			day.Deadline = t
+		t, err := time.Parse(time.RFC3339, req.Deadline)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid deadline, expected RFC3339 (e.g. 2026-11-06T13:30:00Z)"})
+			return
 		}
+		day.Deadline = t
 	}
 
 	if err := h.dayRepo.Create(&day); err != nil {
@@ -129,14 +135,20 @@ func (h *TournamentDayHandler) Update(c *gin.Context) {
 		day.DayOrder = req.DayOrder
 	}
 	if req.Date != "" {
-		if t, err := parseDate(req.Date); err == nil {
-			day.Date = t
+		t, err := parseDate(req.Date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date, expected YYYY-MM-DD"})
+			return
 		}
+		day.Date = t
 	}
 	if req.Deadline != "" {
-		if t, err := time.Parse(time.RFC3339, req.Deadline); err == nil {
-			day.Deadline = t
+		t, err := time.Parse(time.RFC3339, req.Deadline)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid deadline, expected RFC3339 (e.g. 2026-11-06T13:30:00Z)"})
+			return
 		}
+		day.Deadline = t
 	}
 
 	if err := h.dayRepo.Update(day); err != nil {

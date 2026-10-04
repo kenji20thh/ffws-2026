@@ -173,7 +173,7 @@ export const getPredictionStandings = (tournamentId: number, dayId?: number) =>
   );
 
 export const getPredictionById = (predictionId: number) =>
-  request<{ data: PredictionDetail }>(`/predictions/${predictionId}`).then((r) => ({
+  request<{ data: PredictionDetail }>(`/predictions/${predictionId}`, {}, true).then((r) => ({
     ...r.data,
     teams: r.data.teams ?? [],
   }));

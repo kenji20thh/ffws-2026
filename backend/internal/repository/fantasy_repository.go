@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"ffws/internal/models"
@@ -94,20 +95,7 @@ func (r *FantasyRepository) GetDayInTournament(dayID, tournamentID uint) (*model
 //
 // The second rule means a day with no deadline set can never be edited after play has started.
 func (r *FantasyRepository) IsDayLocked(day *models.TournamentDay) (bool, error) {
-	if !day.Deadline.IsZero() && time.Now().After(day.Deadline) {
-		return true, nil
-	}
-	var started int64
-	err := r.db.Raw(`
-		SELECT COUNT(*) FROM rooms r
-		WHERE r.tournament_day_id = ?
-		  AND (r.status IN ('live', 'completed')
-		       OR EXISTS (SELECT 1 FROM room_team_results rtr WHERE rtr.room_id = r.id))
-	`, day.ID).Scan(&started).Error
-	if err != nil {
-		return false, err
-	}
-	return started > 0, nil
+	return isDayLocked(r.db, day)
 }
 
 // GetDayLockTime returns the tournament day's deadline directly.
@@ -290,43 +278,88 @@ type FantasyStanding struct {
 	Points        int    `json:"points"`
 }
 
+// GetStandings totals every fantasy team's points, optionally for a single day.
+// It runs three queries no matter how many teams or picks exist (no per-team queries),
+// and scores through service.Fantasy* so the rules live in one place.
 func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]FantasyStanding, error) {
 	var teams []models.FantasyTeam
-	if err := r.db.Where("tournament_id = ?", tournamentID).Find(&teams).Error; err != nil {
+	if err := r.db.Where("tournament_id = ?", tournamentID).Order("id ASC").Find(&teams).Error; err != nil {
+		return nil, err
+	}
+	if len(teams) == 0 {
+		return []FantasyStanding{}, nil
+	}
+
+	selQuery := `
+		SELECT fs.fantasy_team_id, fs.tournament_day_id AS day_id, fs.player_id, fs.is_captain
+		FROM fantasy_selections fs
+		JOIN fantasy_teams ft ON ft.id = fs.fantasy_team_id
+		WHERE ft.tournament_id = ?`
+	statQuery := `
+		SELECT prs.player_id, r.tournament_day_id AS day_id, prs.kills, prs.first_blood, rtr.placement
+		FROM player_room_stats prs
+		JOIN rooms r ON r.id = prs.room_id
+		JOIN room_team_results rtr ON rtr.room_id = prs.room_id AND rtr.team_id = prs.team_id
+		JOIN tournament_days td ON td.id = r.tournament_day_id
+		WHERE td.tournament_id = ?`
+	selArgs := []any{tournamentID}
+	statArgs := []any{tournamentID}
+	if dayID != nil {
+		selQuery += " AND fs.tournament_day_id = ?"
+		statQuery += " AND r.tournament_day_id = ?"
+		selArgs = append(selArgs, *dayID)
+		statArgs = append(statArgs, *dayID)
+	}
+
+	var sels []struct {
+		FantasyTeamID uint
+		DayID         uint
+		PlayerID      uint
+		IsCaptain     bool
+	}
+	if err := r.db.Raw(selQuery, selArgs...).Scan(&sels).Error; err != nil {
 		return nil, err
 	}
 
-	var days []models.TournamentDay
-	if dayID == nil {
-		if err := r.db.Where("tournament_id = ?", tournamentID).Find(&days).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		days = []models.TournamentDay{{ID: *dayID}}
+	var stats []struct {
+		PlayerID   uint
+		DayID      uint
+		Kills      int
+		FirstBlood bool
+		Placement  int
+	}
+	if err := r.db.Raw(statQuery, statArgs...).Scan(&stats).Error; err != nil {
+		return nil, err
 	}
 
-	var standings []FantasyStanding
-	for _, t := range teams {
-		total := 0
-		for _, d := range days {
-			_, score, err := r.ComputeDayScore(t.ID, d.ID)
-			if err != nil {
-				return nil, err
-			}
-			total += score
+	// base points per (player, day), summed over that day's rooms
+	type playerDay struct{ playerID, dayID uint }
+	base := map[playerDay]int{}
+	for _, st := range stats {
+		pts := st.Kills*service.FantasyKillPoints + service.FantasyPlacementPoints(st.Placement)
+		if st.FirstBlood {
+			pts += service.FantasyFirstBloodPoints
 		}
+		base[playerDay{st.PlayerID, st.DayID}] += pts
+	}
+
+	totals := map[uint]int{}
+	for _, sel := range sels {
+		pts := base[playerDay{sel.PlayerID, sel.DayID}]
+		if sel.IsCaptain {
+			pts *= 2
+		}
+		totals[sel.FantasyTeamID] += pts
+	}
+
+	standings := make([]FantasyStanding, 0, len(teams))
+	for _, t := range teams {
 		standings = append(standings, FantasyStanding{
-			FantasyTeamID: t.ID, TeamName: t.TeamName, Country: t.Country, Points: total,
+			FantasyTeamID: t.ID, TeamName: t.TeamName, Country: t.Country, Points: totals[t.ID],
 		})
 	}
-
-	for i := 0; i < len(standings); i++ {
-		for j := i + 1; j < len(standings); j++ {
-			if standings[j].Points > standings[i].Points {
-				standings[i], standings[j] = standings[j], standings[i]
-			}
-		}
-	}
+	// highest points first; equal points keep registration order
+	sort.SliceStable(standings, func(i, j int) bool { return standings[i].Points > standings[j].Points })
 	return standings, nil
 }
 

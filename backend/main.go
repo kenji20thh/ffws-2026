@@ -119,7 +119,7 @@ func main() {
 		api.GET("/teams/:id/staff", teamStaffHandler.List)
 
 		api.GET("/predictions/standings", predictionHandler.GetStandings)
-		api.GET("/predictions/:id", predictionHandler.GetByID)
+		api.GET("/predictions/:id", middleware.OptionalAuth(cfg), predictionHandler.GetByID)
 
 		api.GET("/tournaments", tournamentHandler.List)
 		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
