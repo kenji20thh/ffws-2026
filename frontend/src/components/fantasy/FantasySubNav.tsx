@@ -10,11 +10,15 @@ const FANTASY_TABS = [
   { href: "/fantasy/leaderboard", label: "Leaderboard" },
   { href: "/fantasy/prices", label: "Price Changes" },
   { href: "/fantasy/schedule", label: "Schedule" },
+  { href: "/fantasy/regulation", label: "Regulation" },
 ];
 
 const PREDICT_TABS = [
   { href: "/fantasy/predict/make", label: "Make Prediction" },
+  { href: "/fantasy/predict/points", label: "Points" },
+  { href: "/fantasy/predict/schedule", label: "Schedule" },
   { href: "/fantasy/predict/leaderboard", label: "Leaderboard" },
+  { href: "/fantasy/predict/regulation", label: "Regulation" },
 ];
 
 export default function FantasySubNav() {
@@ -25,7 +29,10 @@ export default function FantasySubNav() {
     <nav className="sticky top-16 z-40 border-b border-bone/10 bg-char/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-5">
         {tabs.map((t) => {
-          const active = pathname.startsWith(t.href);
+          // a single prediction page (/fantasy/predict/<id>) belongs under "Points"
+          const viewingPrediction = /^\/fantasy\/predict\/\d+/.test(pathname);
+          const active =
+            pathname.startsWith(t.href) || (viewingPrediction && t.href === "/fantasy/predict/points");
           return (
             <Link
               key={t.href}
