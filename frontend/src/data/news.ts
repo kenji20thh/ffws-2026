@@ -11,6 +11,17 @@ url: string;
 
 export const NEWS: NewsArticle[] = [
 {
+id: 7,
+slug: "los-loud-snickers-qualify-ffws-bangkok",
+category: "Qualification",
+title: "LOS and LOUD Snickers Qualify for FFWS 2026 Global Finals",
+excerpt:
+"LOS and LOUD Snickers secured their places at the FFWS 2026 Global Finals in Bangkok, joining Brazil's representatives for the global championship.",
+date: "2026-10-04",
+image: "/news/news7.jpeg",
+url: "https://www.pichauarena.com.br/free-fire/ffws-br-passo-mundial/",
+},
+{
 id: 1,
 slug: "tsg-pros-roster-reportedly-leaves-organization",
 category: "Teams",
