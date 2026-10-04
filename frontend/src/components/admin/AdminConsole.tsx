@@ -27,6 +27,7 @@ import type {
 import DayRoomPicker from "./DayRoomPicker";
 import TeamResultRow, { Draft, draftError, emptyDraft } from "./TeamResultRow";
 import DayDeadlineEditor from "./DayDeadlineEditor";
+import ScorePredictionsButton from "./ScorePredictionsButton";
 
 function toPayload(team: Team, d: Draft): SubmitTeamResult {
   return {
@@ -208,12 +209,15 @@ export default function AdminConsole() {
         </div>
       </div>
       {days.find((d) => d.id === dayId) && (
-        <DayDeadlineEditor
-          day={days.find((d) => d.id === dayId)!}
-          onUpdated={(ud) =>
-            setDays((prev) => prev.map((d) => (d.id === ud.id ? ud : d)))
-          }
-        />
+        <>
+          <DayDeadlineEditor
+            day={days.find((d) => d.id === dayId)!}
+            onUpdated={(ud) =>
+              setDays((prev) => prev.map((d) => (d.id === ud.id ? ud : d)))
+            }
+          />
+          <ScorePredictionsButton day={days.find((d) => d.id === dayId)!} />
+        </>
       )}
 
       <p className="border-l-2 border-amber pl-3 text-sm text-bone/70">
