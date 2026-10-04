@@ -21,6 +21,7 @@ func NewPredictionRepository(db *gorm.DB) *PredictionRepository {
 var (
 	ErrPredictionNotFound = errors.New("prediction not found")
 	ErrPredictionLocked   = errors.New("predictions are locked for this day")
+	ErrNoCompetitorTeam   = errors.New("create your team first")
 )
 
 type PlacementInput struct {
@@ -28,8 +29,6 @@ type PlacementInput struct {
 	Placement int
 }
 
-// GetDayLockTime returns the tournament day's deadline. Zero time means open.
-// Reuses the same deadline field the fantasy game locks against.
 func (r *PredictionRepository) GetDayLockTime(dayID uint) (time.Time, error) {
 	var day models.TournamentDay
 	if err := r.db.First(&day, dayID).Error; err != nil {
@@ -38,7 +37,6 @@ func (r *PredictionRepository) GetDayLockTime(dayID uint) (time.Time, error) {
 	return day.Deadline, nil
 }
 
-// GetDayTeamIDs returns the set of team IDs assigned to play on this day.
 func (r *PredictionRepository) GetDayTeamIDs(dayID uint) (map[uint]bool, error) {
 	var ids []uint
 	if err := r.db.Model(&models.TournamentDayTeam{}).
@@ -53,10 +51,31 @@ func (r *PredictionRepository) GetDayTeamIDs(dayID uint) (map[uint]bool, error) 
 	return set, nil
 }
 
-// SubmitPrediction validates and saves a user's 12-team placement prediction for a day,
-// replacing any existing prediction for that user/day. Mirrors SubmitSelection's
-// replace-in-a-transaction pattern from the fantasy game.
+// resolveCompetitorTeam finds the user's shared competitor team (the same one used
+// by Fantasy) for the tournament a given day belongs to.
+func (r *PredictionRepository) resolveCompetitorTeam(userID uint, day models.TournamentDay) (*models.FantasyTeam, error) {
+	var team models.FantasyTeam
+	err := r.db.Where("user_id = ? AND tournament_id = ?", userID, day.TournamentID).First(&team).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrNoCompetitorTeam
+		}
+		return nil, err
+	}
+	return &team, nil
+}
+
 func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []PlacementInput) (*models.Prediction, error) {
+	var day models.TournamentDay
+	if err := r.db.First(&day, dayID).Error; err != nil {
+		return nil, err
+	}
+
+	competitor, err := r.resolveCompetitorTeam(userID, day)
+	if err != nil {
+		return nil, err
+	}
+
 	dayTeams, err := r.GetDayTeamIDs(dayID)
 	if err != nil {
 		return nil, err
@@ -89,29 +108,21 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 		}
 	}
 
-	lockTime, err := r.GetDayLockTime(dayID)
-	if err != nil {
-		return nil, err
-	}
-	if !lockTime.IsZero() && time.Now().After(lockTime) {
+	if !day.Deadline.IsZero() && time.Now().After(day.Deadline) {
 		return nil, ErrPredictionLocked
 	}
 
 	var prediction models.Prediction
 
 	err = r.db.Transaction(func(tx *gorm.DB) error {
-		var day models.TournamentDay
-		if err := tx.First(&day, dayID).Error; err != nil {
-			return err
-		}
-
-		err := tx.Where("user_id = ? AND tournament_day_id = ?", userID, dayID).First(&prediction).Error
+		err := tx.Where("competitor_team_id = ? AND tournament_day_id = ?", competitor.ID, dayID).
+			First(&prediction).Error
 		if err != nil {
 			if err != gorm.ErrRecordNotFound {
 				return err
 			}
 			prediction = models.Prediction{
-				UserID: userID, TournamentID: day.TournamentID, TournamentDayID: dayID,
+				CompetitorTeamID: competitor.ID, TournamentID: day.TournamentID, TournamentDayID: dayID,
 				SubmittedAt: time.Now(),
 			}
 			if err := tx.Create(&prediction).Error; err != nil {
@@ -146,8 +157,18 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 }
 
 func (r *PredictionRepository) GetByUserAndDay(userID, dayID uint) (*models.Prediction, []models.PredictionTeam, error) {
+	var day models.TournamentDay
+	if err := r.db.First(&day, dayID).Error; err != nil {
+		return nil, nil, err
+	}
+
+	competitor, err := r.resolveCompetitorTeam(userID, day)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var prediction models.Prediction
-	err := r.db.Where("user_id = ? AND tournament_day_id = ?", userID, dayID).First(&prediction).Error
+	err = r.db.Where("competitor_team_id = ? AND tournament_day_id = ?", competitor.ID, dayID).First(&prediction).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil, ErrPredictionNotFound
@@ -185,10 +206,6 @@ type dayTeamAgg struct {
 	KillPoints      int
 }
 
-// computeDayActualPlacements derives each team's final rank for a tournament day from
-// that day's rooms: teams are ranked by (placement points + kill points) summed across
-// every room played that day, highest first. Ties break by total kills, then by team ID,
-// so the result is always fully deterministic.
 func (r *PredictionRepository) computeDayActualPlacements(dayID uint) (map[uint]int, error) {
 	var rows []struct {
 		TeamID    uint
@@ -253,8 +270,6 @@ func (r *PredictionRepository) computeDayActualPlacements(dayID uint) (map[uint]
 	return placements, nil
 }
 
-// ScoreDay derives actual placements for every team on a day from that day's room
-// results, then scores every user's prediction for that day against them.
 func (r *PredictionRepository) ScoreDay(dayID uint) (int, error) {
 	actual, err := r.computeDayActualPlacements(dayID)
 	if err != nil {
@@ -304,11 +319,12 @@ func (r *PredictionRepository) ScoreDay(dayID uint) (int, error) {
 }
 
 type PredictionStanding struct {
-	UserID       uint   `json:"user_id"`
-	Username     string `json:"username"`
-	PredictionID uint   `json:"prediction_id"`
-	TotalPoints  int    `json:"total_points"`
-	Scored       bool   `json:"scored"`
+	CompetitorTeamID uint   `json:"competitor_team_id"`
+	TeamName         string `json:"team_name"`
+	Country          string `json:"country"`
+	PredictionID     uint   `json:"prediction_id"`
+	TotalPoints      int    `json:"total_points"`
+	Scored           bool   `json:"scored"`
 }
 
 func sortPredictionStandings(s []PredictionStanding) {
@@ -321,21 +337,20 @@ func sortPredictionStandings(s []PredictionStanding) {
 	}
 }
 
-// GetStandings returns the leaderboard. With dayID, it's that single day's results;
-// without it, it's each user's points summed across every day of the tournament.
 func (r *PredictionRepository) GetStandings(tournamentID uint, dayID *uint) ([]PredictionStanding, error) {
 	if dayID != nil {
 		type row struct {
-			UserID       uint
-			Username     string
-			PredictionID uint
-			TotalPoints  int
-			ScoredAt     *time.Time
+			CompetitorTeamID uint
+			TeamName         string
+			Country          string
+			PredictionID     uint
+			TotalPoints      int
+			ScoredAt         *time.Time
 		}
 		var rows []row
 		if err := r.db.Table("predictions p").
-			Select("p.user_id, u.username, p.id as prediction_id, p.total_points, p.scored_at").
-			Joins("JOIN users u ON u.id = p.user_id").
+			Select("p.competitor_team_id, ft.team_name, ft.country, p.id as prediction_id, p.total_points, p.scored_at").
+			Joins("JOIN fantasy_teams ft ON ft.id = p.competitor_team_id").
 			Where("p.tournament_id = ? AND p.tournament_day_id = ?", tournamentID, *dayID).
 			Scan(&rows).Error; err != nil {
 			return nil, err
@@ -343,8 +358,8 @@ func (r *PredictionRepository) GetStandings(tournamentID uint, dayID *uint) ([]P
 		var out []PredictionStanding
 		for _, rr := range rows {
 			out = append(out, PredictionStanding{
-				UserID: rr.UserID, Username: rr.Username, PredictionID: rr.PredictionID,
-				TotalPoints: rr.TotalPoints, Scored: rr.ScoredAt != nil,
+				CompetitorTeamID: rr.CompetitorTeamID, TeamName: rr.TeamName, Country: rr.Country,
+				PredictionID: rr.PredictionID, TotalPoints: rr.TotalPoints, Scored: rr.ScoredAt != nil,
 			})
 		}
 		sortPredictionStandings(out)
@@ -352,22 +367,25 @@ func (r *PredictionRepository) GetStandings(tournamentID uint, dayID *uint) ([]P
 	}
 
 	type agg struct {
-		UserID      uint
-		Username    string
-		TotalPoints int
+		CompetitorTeamID uint
+		TeamName         string
+		Country          string
+		TotalPoints      int
 	}
 	var aggs []agg
 	if err := r.db.Table("predictions p").
-		Select("p.user_id, u.username, COALESCE(SUM(p.total_points),0) as total_points").
-		Joins("JOIN users u ON u.id = p.user_id").
+		Select("p.competitor_team_id, ft.team_name, ft.country, COALESCE(SUM(p.total_points),0) as total_points").
+		Joins("JOIN fantasy_teams ft ON ft.id = p.competitor_team_id").
 		Where("p.tournament_id = ?", tournamentID).
-		Group("p.user_id, u.username").
+		Group("p.competitor_team_id, ft.team_name, ft.country").
 		Scan(&aggs).Error; err != nil {
 		return nil, err
 	}
 	var out []PredictionStanding
 	for _, a := range aggs {
-		out = append(out, PredictionStanding{UserID: a.UserID, Username: a.Username, TotalPoints: a.TotalPoints, Scored: true})
+		out = append(out, PredictionStanding{
+			CompetitorTeamID: a.CompetitorTeamID, TeamName: a.TeamName, Country: a.Country, TotalPoints: a.TotalPoints, Scored: true,
+		})
 	}
 	sortPredictionStandings(out)
 	return out, nil
