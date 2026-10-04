@@ -19,7 +19,6 @@ const LINKS = [
 { href: "/schedule", label: "Schedule" },
 { href: "/standings", label: "Standings" },
 { href: "/news", label: "News" },
-{ href: "/predictions", label: "Predictions" },
 
 ];
 
