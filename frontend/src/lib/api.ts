@@ -190,3 +190,10 @@ export const submitPrediction = (dayId: number, picks: PredictionPick[]) =>
     { method: "POST", body: JSON.stringify({ picks }) },
     true
   ).then((r) => r.data);
+
+  export const updateTournamentDayDeadline = (dayId: number, deadlineIso: string) =>
+  request<{ data: TournamentDay }>(
+    `/tournament-days/${dayId}`,
+    { method: "PUT", body: JSON.stringify({ deadline: deadlineIso }) },
+    true
+  ).then((r) => r.data);
