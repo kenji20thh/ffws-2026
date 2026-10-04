@@ -7,12 +7,26 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import {
-  ApiError, getDayTeams, getDays, getRoomResults, getRooms, getTeam, getTournament, submitRoomResults,
+  ApiError,
+  getDayTeams,
+  getDays,
+  getRoomResults,
+  getRooms,
+  getTeam,
+  getTournament,
+  submitRoomResults,
 } from "@/lib/api";
 import { clearSession, isAdmin } from "@/lib/auth";
-import type { Room, RoomTeamSummary, SubmitTeamResult, Team, TournamentDay } from "@/types";
+import type {
+  Room,
+  RoomTeamSummary,
+  SubmitTeamResult,
+  Team,
+  TournamentDay,
+} from "@/types";
 import DayRoomPicker from "./DayRoomPicker";
 import TeamResultRow, { Draft, draftError, emptyDraft } from "./TeamResultRow";
+import DayDeadlineEditor from "./DayDeadlineEditor";
 
 function toPayload(team: Team, d: Draft): SubmitTeamResult {
   return {
@@ -20,7 +34,10 @@ function toPayload(team: Team, d: Draft): SubmitTeamResult {
     placement: Number(d.placement),
     players: (team.players ?? []).map((p) => ({
       player_id: p.id,
-      kills: d.kills[p.id] === undefined || d.kills[p.id] === "" ? 0 : Number(d.kills[p.id]),
+      kills:
+        d.kills[p.id] === undefined || d.kills[p.id] === ""
+          ? 0
+          : Number(d.kills[p.id]),
       first_blood: d.firstBloodPlayerId === p.id,
     })),
   };
@@ -39,7 +56,10 @@ export default function AdminConsole() {
   const [busy, setBusy] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{
+    tone: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   const fail = useCallback(
     (e: unknown) => {
@@ -51,10 +71,12 @@ export default function AdminConsole() {
       const text =
         e instanceof ApiError && e.status === 429
           ? "Too many requests. Wait a moment and retry."
-          : e instanceof Error ? e.message : "Something went wrong";
+          : e instanceof Error
+            ? e.message
+            : "Something went wrong";
       setNotice({ tone: "err", text });
     },
-    [router]
+    [router],
   );
 
   // auth guard + initial days
@@ -87,12 +109,16 @@ export default function AdminConsole() {
         setRoomId((r.find((x) => x.status === "live") ?? r[0])?.id ?? null);
       })
       .catch(fail);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dayId, fail]);
 
   const loadSaved = useCallback(() => {
     if (!roomId) return setSaved([]);
-    getRoomResults(roomId).then(setSaved).catch(() => {});
+    getRoomResults(roomId)
+      .then(setSaved)
+      .catch(() => {});
   }, [roomId]);
 
   // room change: reset drafts, load saved
@@ -102,11 +128,18 @@ export default function AdminConsole() {
     loadSaved();
   }, [roomId, loadSaved]);
 
-  const savedByTeam = useMemo(() => new Map(saved.map((s) => [s.team_id, s])), [saved]);
+  const savedByTeam = useMemo(
+    () => new Map(saved.map((s) => [s.team_id, s])),
+    [saved],
+  );
 
   const duplicates = useMemo(() => {
     const count = new Map<string, number>();
-    Object.values(drafts).forEach((d) => d.placement && count.set(d.placement, (count.get(d.placement) ?? 0) + 1));
+    Object.values(drafts).forEach(
+      (d) =>
+        d.placement &&
+        count.set(d.placement, (count.get(d.placement) ?? 0) + 1),
+    );
     return count;
   }, [drafts]);
 
@@ -114,8 +147,14 @@ export default function AdminConsole() {
     if (!roomId || list.length === 0) return;
     setBusy((b) => [...b, ...list.map((t) => t.id)]);
     try {
-      await submitRoomResults(roomId, list.map((t) => toPayload(t, drafts[t.id] ?? emptyDraft)));
-      setNotice({ tone: "ok", text: `Saved ${list.map((t) => t.name).join(", ")}` });
+      await submitRoomResults(
+        roomId,
+        list.map((t) => toPayload(t, drafts[t.id] ?? emptyDraft)),
+      );
+      setNotice({
+        tone: "ok",
+        text: `Saved ${list.map((t) => t.name).join(", ")}`,
+      });
       loadSaved();
     } catch (e) {
       fail(e);
@@ -124,37 +163,76 @@ export default function AdminConsole() {
     }
   }
 
-  const fillable = teams.filter((t) => (drafts[t.id]?.placement ?? "") !== "" && !draftError(t, drafts[t.id]));
+  const fillable = teams.filter(
+    (t) =>
+      (drafts[t.id]?.placement ?? "") !== "" && !draftError(t, drafts[t.id]),
+  );
 
   if (!ready) return null;
   if (error) return <ErrorState message={error} />;
   if (loading) return <Skeleton className="h-40" />;
-  if (days.length === 0) return <EmptyState title="No days yet" hint="Create tournament days first." />;
+  if (days.length === 0)
+    return (
+      <EmptyState title="No days yet" hint="Create tournament days first." />
+    );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <DayRoomPicker days={days} rooms={rooms} dayId={dayId} roomId={roomId} onDay={setDayId} onRoom={setRoomId} />
+        <DayRoomPicker
+          days={days}
+          rooms={rooms}
+          dayId={dayId}
+          roomId={roomId}
+          onDay={setDayId}
+          onRoom={setRoomId}
+        />
         <div className="flex gap-3">
-          <Button type="button" disabled={fillable.length === 0 || busy.length > 0} onClick={() => save(fillable)}>
+          <Button
+            type="button"
+            disabled={fillable.length === 0 || busy.length > 0}
+            onClick={() => save(fillable)}
+          >
             Submit all filled ({fillable.length})
           </Button>
-          <Button type="button" variant="ghost" onClick={() => { clearSession(); router.replace("/login"); }}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              clearSession();
+              router.replace("/login");
+            }}
+          >
             Log out
           </Button>
         </div>
       </div>
+      {days.find((d) => d.id === dayId) && (
+        <DayDeadlineEditor
+          day={days.find((d) => d.id === dayId)!}
+          onUpdated={(ud) =>
+            setDays((prev) => prev.map((d) => (d.id === ud.id ? ud : d)))
+          }
+        />
+      )}
 
       <p className="border-l-2 border-amber pl-3 text-sm text-bone/70">
-        Re-submitting a team replaces its previous result. To correct a team, re-enter <b>every</b> player&apos;s kills.
+        Re-submitting a team replaces its previous result. To correct a team,
+        re-enter <b>every</b> player&apos;s kills.
       </p>
 
-      <p aria-live="polite" className={`min-h-5 font-stat text-xs ${notice?.tone === "ok" ? "text-amber" : "text-danger"}`}>
+      <p
+        aria-live="polite"
+        className={`min-h-5 font-stat text-xs ${notice?.tone === "ok" ? "text-amber" : "text-danger"}`}
+      >
         {notice?.text}
       </p>
 
       {!roomId ? (
-        <EmptyState title="No room selected" hint="Create a room for this day first." />
+        <EmptyState
+          title="No room selected"
+          hint="Create a room for this day first."
+        />
       ) : teams.length === 0 ? (
         <EmptyState title="No teams assigned to this day" />
       ) : (
@@ -167,7 +245,9 @@ export default function AdminConsole() {
                 team={t}
                 draft={d}
                 saved={savedByTeam.get(t.id)}
-                duplicate={!!d.placement && (duplicates.get(d.placement) ?? 0) > 1}
+                duplicate={
+                  !!d.placement && (duplicates.get(d.placement) ?? 0) > 1
+                }
                 busy={busy.includes(t.id)}
                 onChange={(nd) => setDrafts((all) => ({ ...all, [t.id]: nd }))}
                 onSubmit={() => !draftError(t, d) && save([t])}
