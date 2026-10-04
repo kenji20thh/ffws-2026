@@ -281,7 +281,7 @@ export interface TournamentDay {
 
 export interface Prediction {
   id: number;
-  user_id: number;
+  competitor_team_id: number;
   tournament_id: number;
   tournament_day_id: number;
   total_points: number;
@@ -311,8 +311,9 @@ export interface PredictionPick {
 }
 
 export interface PredictionStanding {
-  user_id: number;
-  username: string;
+  competitor_team_id: number;
+  team_name: string;
+  country: string;
   prediction_id: number;
   total_points: number;
   scored: boolean;
