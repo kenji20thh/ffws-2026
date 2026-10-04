@@ -59,21 +59,23 @@ export default function PredictionLeaderboard({
             <thead>
               <tr className="border-b border-bone/15 font-stat text-[10px] uppercase tracking-widest text-ash">
                 <th className="py-3 pr-3">#</th>
-                <th className="py-3">User</th>
+                <th className="py-3">Team</th>
+                <th className="py-3">Country</th>
                 <th className="py-3 text-right text-ember">Points</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={`${r.user_id}-${dayId}`} className="border-b border-bone/5 hover:bg-char-2">
+                <tr key={`${r.competitor_team_id}-${dayId}`} className="border-b border-bone/5 hover:bg-char-2">
                   <td className={`py-3 pr-3 font-display text-3xl font-black ${i === 0 ? "text-amber" : "text-bone/60"}`}>{i + 1}</td>
                   <td className="py-3 font-display text-2xl font-bold uppercase">
                     {dayId !== "overall" && r.prediction_id ? (
-                      <Link href={`/predictions/${r.prediction_id}`} className="hover:text-ember">{r.username}</Link>
+                      <Link href={`/fantasy/predict/${r.prediction_id}`} className="hover:text-ember">{r.team_name}</Link>
                     ) : (
-                      r.username
+                      r.team_name
                     )}
                   </td>
+                  <td className="py-3 text-bone/70">{r.country}</td>
                   <td className="py-3 text-right font-stat text-lg font-bold tabular-nums text-ember">{r.total_points}</td>
                 </tr>
               ))}
