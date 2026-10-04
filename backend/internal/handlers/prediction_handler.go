@@ -51,6 +51,8 @@ func (h *PredictionHandler) Submit(c *gin.Context) {
 		status := http.StatusBadRequest
 		if errors.Is(err, repository.ErrPredictionLocked) {
 			status = http.StatusConflict
+		} else if errors.Is(err, repository.ErrNoCompetitorTeam) {
+			status = http.StatusNotFound
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
