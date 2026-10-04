@@ -1,88 +1,114 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { ApiError, submitFantasySelection } from "@/lib/api";
-import type { FantasyPlayerOption, FantasySelectionEntry } from "@/types";
+import type { FantasySelectionEntry, PoolPlayer } from "@/types";
 import BudgetBar from "./BudgetBar";
-import PlayerPickerCard from "./PlayerPickerCard";
+import FormationBoard, { SlotPlayer } from "./FormationBoard";
+import PlayerDetailCard from "./PlayerDetailCard";
+import PlayerListRow from "./PlayerListRow";
+
+const SQUAD_SIZE = 4;
+const BUDGET = 100;
 
 interface Props {
   tournamentId: number;
   dayId: number;
-  pool: FantasyPlayerOption[];
+  pool: PoolPlayer[];
   existing: FantasySelectionEntry[];
   locked: boolean;
+  lockTime?: string | null;
   onSaved: () => void;
 }
 
-export default function SelectionBuilder({ tournamentId, dayId, pool, existing, locked, onSaved }: Props) {
-  const [picks, setPicks] = useState<Map<number, boolean>>(
-    new Map(existing.map((s) => [s.player_id, s.is_captain]))
+export default function SelectionBuilder({ tournamentId, dayId, pool, existing, locked, lockTime, onSaved }: Props) {
+  const byId = useMemo(() => new Map(pool.map((o) => [o.player_id, o])), [pool]);
+
+  // Four fixed slots (null = empty). Existing picks fill them in order.
+  const [slots, setSlots] = useState<(number | null)[]>(() => {
+    const ids = existing
+      .map((s) => s.player_id)
+      .filter((id) => byId.has(id))
+      .slice(0, SQUAD_SIZE);
+    return Array.from({ length: SQUAD_SIZE }, (_, i) => ids[i] ?? null);
+  });
+  const [captainId, setCaptainId] = useState<number | null>(
+    () => existing.find((s) => s.is_captain)?.player_id ?? null,
   );
   const [search, setSearch] = useState("");
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const selectedOptions = pool.filter((o) => picks.has(o.player_id));
-  const spent = selectedOptions.reduce((s, o) => s + o.fantasy_price, 0);
-  const usedTeamIds = new Set(selectedOptions.map((o) => o.team_id));
-  const hasCaptain = [...picks.values()].some(Boolean);
+  // Esc closes the player card
+  useEffect(() => {
+    if (detailId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDetailId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detailId]);
 
-  const filtered = useMemo(() => {
+  const list = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return pool;
-    return pool.filter((o) => o.ign.toLowerCase().includes(q) || o.team_name.toLowerCase().includes(q));
+    return pool
+      .filter((o) => !q || o.ign.toLowerCase().includes(q) || o.team_name.toLowerCase().includes(q))
+      .sort((a, b) => b.fantasy_price - a.fantasy_price || a.ign.localeCompare(b.ign));
   }, [pool, search]);
 
-  function toggle(o: FantasyPlayerOption) {
+  const picked = slots.filter((id): id is number => id !== null);
+  const pickedOptions = picked.map((id) => byId.get(id)).filter((o): o is PoolPlayer => !!o);
+  const spent = pickedOptions.reduce((s, o) => s + o.fantasy_price, 0);
+  const usedTeamIds = new Set(pickedOptions.map((o) => o.team_id));
+  // The first pick is captain until the user chooses someone else.
+  const captain = captainId !== null && picked.includes(captainId) ? captainId : (picked[0] ?? null);
+
+  function blockedReason(o: PoolPlayer): string | null {
+    if (locked) return "Selections are locked for this day";
+    if (picked.includes(o.player_id)) return null;
+    if (picked.length >= SQUAD_SIZE) return "Your squad is full";
+    if (usedTeamIds.has(o.team_id)) return "You already picked a player from this team";
+    return null;
+  }
+
+  function remove(id: number) {
     if (locked) return;
-    setPicks((prev) => {
-      const next = new Map(prev);
-      if (next.has(o.player_id)) {
-        const wasCaptain = next.get(o.player_id) === true;
-        next.delete(o.player_id);
-        // removing the captain hands the armband to the first remaining pick
-        if (wasCaptain && next.size > 0) {
-          const [firstId] = next.keys();
-          next.set(firstId, true);
-        }
-      } else {
-        if (next.size >= 4) return prev;
-        if (usedTeamIds.has(o.team_id)) return prev;
-        next.set(o.player_id, next.size === 0); // first pick defaults to captain
-      }
+    setSlots((prev) => prev.map((x) => (x === id ? null : x)));
+    if (captainId === id) setCaptainId(null);
+  }
+
+  function toggle(o: PoolPlayer) {
+    if (locked) return;
+    if (picked.includes(o.player_id)) return remove(o.player_id);
+    if (blockedReason(o)) return;
+    setError("");
+    setSlots((prev) => {
+      const i = prev.indexOf(null);
+      if (i === -1) return prev;
+      const next = [...prev];
+      next[i] = o.player_id;
       return next;
     });
   }
 
-  function setCaptain(playerId: number) {
+  function makeCaptain(id: number) {
     if (locked) return;
-    setPicks((prev) => {
-      const next = new Map<number, boolean>();
-      prev.forEach((_, id) => next.set(id, id === playerId));
-      return next;
-    });
-  }
-
-  function isDisabled(o: FantasyPlayerOption) {
-    if (picks.has(o.player_id)) return false;
-    if (picks.size >= 4) return true;
-    if (usedTeamIds.has(o.team_id)) return true;
-    return false;
+    setCaptainId(id);
   }
 
   async function save() {
-    if (picks.size !== 4) {
+    if (picked.length !== SQUAD_SIZE) {
       setError("Pick exactly 4 players.");
       return;
     }
-    if (!hasCaptain) {
+    if (captain === null) {
       setError("Choose a captain.");
       return;
     }
-    if (spent > 100) {
+    if (spent > BUDGET) {
       setError("You're over the $100 budget.");
       return;
     }
@@ -92,11 +118,15 @@ export default function SelectionBuilder({ tournamentId, dayId, pool, existing, 
       await submitFantasySelection(
         tournamentId,
         dayId,
-        [...picks.entries()].map(([player_id, is_captain]) => ({ player_id, is_captain }))
+        picked.map((player_id) => ({ player_id, is_captain: player_id === captain })),
       );
       onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to save selection");
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Your session expired. Please log in again.");
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to save selection");
+      }
     } finally {
       setBusy(false);
     }
@@ -104,47 +134,119 @@ export default function SelectionBuilder({ tournamentId, dayId, pool, existing, 
 
   if (pool.length === 0) return <EmptyState title="No players available" />;
 
+  const slotData: (SlotPlayer | null)[] = slots.map((id) => {
+    const o = id !== null ? byId.get(id) : undefined;
+    if (!o) return null;
+    return {
+      id: o.player_id,
+      name: o.ign,
+      role: o.role,
+      photoUrl: o.photo_url,
+      price: o.fantasy_price,
+      captain: o.player_id === captain,
+    };
+  });
+
+  const detailOption = detailId !== null ? (byId.get(detailId) ?? null) : null;
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
+    <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+      {/* LEFT: players, most expensive first */}
+      <section className="order-2 space-y-3 lg:order-1">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search player or team…"
-          disabled={locked}
-          className="chamfer-sm border border-bone/20 bg-char-2 px-4 py-3 font-stat text-sm placeholder:text-ash focus:border-ember focus:outline-none disabled:opacity-50"
+          className="chamfer-sm w-full border border-bone/20 bg-char-2 px-4 py-3 font-stat text-sm placeholder:text-ash focus:border-ember focus:outline-none"
         />
-        <BudgetBar spent={spent} />
-      </div>
-
-      <p className="font-stat text-xs uppercase tracking-widest text-ash">
-        {picks.size} / 4 selected · {4 - usedTeamIds.size >= 0 ? usedTeamIds.size : 0} teams used
-      </p>
-
-      {locked && (
-        <p className="border-l-2 border-danger pl-3 font-stat text-xs uppercase tracking-widest text-danger">
-          Selections are locked for this day
+        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
+          {list.length} players · highest price first
         </p>
-      )}
+        <div className="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
+          {list.length === 0 ? (
+            <p className="py-6 text-center font-stat text-xs uppercase tracking-widest text-ash">No players match</p>
+          ) : (
+            list.map((o) => (
+              <PlayerListRow
+                key={o.player_id}
+                option={o}
+                selected={picked.includes(o.player_id)}
+                active={detailId === o.player_id}
+                blockedReason={blockedReason(o)}
+                onOpen={() => setDetailId(o.player_id)}
+                onToggle={() => toggle(o)}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((o) => (
-          <PlayerPickerCard
-            key={o.player_id}
-            option={o}
-            selected={picks.has(o.player_id)}
-            isCaptain={picks.get(o.player_id) ?? false}
-            disabled={locked || isDisabled(o)}
-            onToggle={() => toggle(o)}
-            onCaptain={() => setCaptain(o.player_id)}
-          />
-        ))}
-      </div>
+      {/* MIDDLE: your squad */}
+      <section className="order-1 space-y-4 lg:order-2 lg:sticky lg:top-20">
+        <BudgetBar spent={spent} />
+        <p className="font-stat text-xs uppercase tracking-widest text-ash">
+          {picked.length} / {SQUAD_SIZE} selected · {usedTeamIds.size} teams used
+        </p>
 
-      <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
-      <Button type="button" onClick={save} disabled={locked || busy} className="w-full sm:w-auto">
-        {busy ? "Saving…" : "Save selection"}
-      </Button>
+        {locked ? (
+          <p className="border-l-2 border-danger pl-3 font-stat text-xs uppercase tracking-widest text-danger">
+            Selections are locked for this day ·{" "}
+            {lockTime
+              ? `deadline was ${new Date(lockTime).toUTCString()}`
+              : "play has already started and no deadline is set"}
+          </p>
+        ) : lockTime ? (
+          <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
+            Picks lock at {new Date(lockTime).toUTCString()}
+          </p>
+        ) : null}
+
+        <FormationBoard
+          slots={slotData}
+          onSelect={locked ? undefined : makeCaptain}
+          onRemove={locked ? undefined : remove}
+          emptyLabel="Add a player"
+        />
+        <p className="text-center font-stat text-[10px] uppercase tracking-widest text-ash">
+          Click a player to make him captain (2x points)
+        </p>
+
+        <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">
+          {error}
+        </p>
+        <Button type="button" onClick={save} disabled={locked || busy} className="w-full">
+          {busy ? "Saving…" : "Save selection"}
+        </Button>
+      </section>
+
+      {/* RIGHT: player card (full-screen overlay on small screens) */}
+      <section className={`order-3 ${detailOption ? "" : "hidden lg:block"}`}>
+        {detailOption ? (
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setDetailId(null); // click the dark backdrop to close
+            }}
+            className="fixed inset-0 z-50 overflow-y-auto bg-char/95 p-4 lg:static lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0"
+          >
+            <PlayerDetailCard
+              option={detailOption}
+              onClose={() => setDetailId(null)}
+              action={{
+                label: picked.includes(detailOption.player_id) ? "Remove from team" : "Add to team",
+                disabled: locked || (!picked.includes(detailOption.player_id) && !!blockedReason(detailOption)),
+                hint: blockedReason(detailOption) ?? undefined,
+                onClick: () => toggle(detailOption),
+              }}
+            />
+          </div>
+        ) : (
+          <div className="chamfer flex min-h-[16rem] items-center justify-center border border-dashed border-bone/15 bg-char-2/40 p-6 text-center">
+            <p className="font-stat text-xs uppercase tracking-widest text-ash">
+              Click a player to see his stats, fantasy points and history
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -25,7 +25,7 @@ import type {
   TournamentDay,
 } from "@/types";
 import DayRoomPicker from "./DayRoomPicker";
-import TeamResultRow, { Draft, draftError, emptyDraft } from "./TeamResultRow";
+import TeamResultRow, { Draft, draftError, emptyDraft, playing } from "./TeamResultRow";
 import DayDeadlineEditor from "./DayDeadlineEditor";
 import ScorePredictionsButton from "./ScorePredictionsButton";
 
@@ -33,7 +33,8 @@ function toPayload(team: Team, d: Draft): SubmitTeamResult {
   return {
     team_id: team.id,
     placement: Number(d.placement),
-    players: (team.players ?? []).map((p) => ({
+    // Only players who actually played are saved (no stat row = did not play this room).
+    players: playing(team, d).map((p) => ({
       player_id: p.id,
       kills:
         d.kills[p.id] === undefined || d.kills[p.id] === ""
@@ -221,8 +222,10 @@ export default function AdminConsole() {
       )}
 
       <p className="border-l-2 border-amber pl-3 text-sm text-bone/70">
-        Re-submitting a team replaces its previous result. To correct a team,
-        re-enter <b>every</b> player&apos;s kills.
+        Untick <b>Played</b> for anyone who didn&apos;t play: they get no stats for
+        this room and it won&apos;t appear in their profile. Re-submitting a team
+        replaces its previous result, so to correct a team re-enter{" "}
+        <b>every</b> player who played.
       </p>
 
       <p

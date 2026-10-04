@@ -8,7 +8,6 @@ import Skeleton from "@/components/ui/Skeleton";
 import { getDays, getFantasyTeamProfile, getMyFantasyTeam } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import type { FantasyTeamProfile, TournamentDay } from "@/types";
-import DayScoreCard from "./DayScoreCard";
 import ReadOnlySelection from "./ReadOnlySelection";
 
 function defaultDay(days: TournamentDay[]): TournamentDay | null {
@@ -153,18 +152,21 @@ export default function FantasyTeamViewer({
       ) : days.length === 0 ? (
         <EmptyState title="No tournament days yet" hint="Picks will appear here once days are scheduled." />
       ) : profile ? (
-        <>
-          {profile.breakdown && profile.breakdown.length > 0 && (
-            <DayScoreCard breakdown={profile.breakdown} total={profile.total_points ?? 0} />
-          )}
-          {profile.hidden ? (
-            <p className="font-stat text-xs uppercase tracking-widest text-ash">
-              Picks stay hidden until this day locks
-            </p>
-          ) : (
-            <ReadOnlySelection selections={profile.selections ?? []} />
-          )}
-        </>
+        profile.hidden ? (
+          <p className="font-stat text-xs uppercase tracking-widest text-ash">
+            Picks stay hidden until this day locks
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {profile.breakdown?.some((b) => b.final_points !== 0) && (
+              <p className="text-center font-stat text-xs uppercase tracking-widest text-ash">
+                Day score{" "}
+                <span className="ml-2 text-3xl font-black tabular-nums text-ember">{profile.total_points ?? 0}</span>
+              </p>
+            )}
+            <ReadOnlySelection selections={profile.selections ?? []} breakdown={profile.breakdown} />
+          </div>
+        )
       ) : (
         <EmptyState title="No data for this day" />
       )}

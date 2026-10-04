@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import {
-  ApiError, getDays, getFantasyPlayerPool, getMyFantasySelection, getMyFantasyTeam,
+  ApiError, getDays, getFantasyPlayerPool, getMyFantasySelection, getMyFantasyTeam, getPlayers, getTeams,
 } from "@/lib/api";
 import { clearSession, getToken } from "@/lib/auth";
-import type { FantasyPlayerOption, FantasySelectionResponse, FantasyTeam, TournamentDay } from "@/types";
+import type { FantasySelectionResponse, FantasyTeam, Player, PoolPlayer, TournamentDay } from "@/types";
 import CreateFantasyTeamForm from "./CreateFantasyTeamForm";
 import SelectionBuilder from "./SelectionBuilder";
 
@@ -27,13 +27,39 @@ function pickNextOpenDay(days: TournamentDay[]): TournamentDay | null {
   return open ?? sorted[sorted.length - 1];
 }
 
+// The price list from the API has no artwork, so merge in player photos and team logos.
+// If that extra lookup fails the pick screen still works (it falls back to monograms).
+async function loadPool(tournamentId: number): Promise<PoolPlayer[]> {
+  const options = await getFantasyPlayerPool(tournamentId);
+  try {
+    const teams = await getTeams(tournamentId);
+    const lists = await Promise.all(teams.map((t) => getPlayers(t.id).catch(() => [] as Player[])));
+    const photos = new Map<number, string>();
+    lists.flat().forEach((p) => {
+      if (p.photo_url) photos.set(p.id, p.photo_url);
+    });
+    const logos = new Map<number, string>();
+    teams.forEach((t) => {
+      if (t.logo_url) logos.set(t.id, t.logo_url);
+    });
+    return options.map((o) => ({
+      ...o,
+      photo_url: photos.get(o.player_id),
+      team_logo_url: logos.get(o.team_id),
+    }));
+  } catch {
+    return options;
+  }
+}
+
 export default function FantasyConsole({ tournamentId }: { tournamentId: number }) {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined);
   const [day, setDay] = useState<TournamentDay | null>(null);
-  const [pool, setPool] = useState<FantasyPlayerOption[]>([]);
+  const [pool, setPool] = useState<PoolPlayer[]>([]);
+  const [poolLoaded, setPoolLoaded] = useState(false);
   const [sel, setSel] = useState<FantasySelectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +101,12 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
     setError(null);
     loadTeam();
     getDays(tournamentId).then((d) => setDay(pickNextOpenDay(d))).catch(fail);
-    getFantasyPlayerPool(tournamentId).then(setPool).catch(fail);
+    loadPool(tournamentId)
+      .then((p) => {
+        setPool(p);
+        setPoolLoaded(true);
+      })
+      .catch(fail);
   }, [loggedIn, tournamentId, loadTeam, fail]);
 
   const loadSelection = useCallback(() => {
@@ -129,7 +160,7 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
   const locked = sel?.locked ?? false;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-5 py-10">
+    <div className="mx-auto max-w-7xl space-y-8 px-5 py-10">
       <div className="chamfer border border-bone/10 bg-char-2 p-6">
         <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Your fantasy team</p>
         <p className="font-display text-3xl font-black uppercase">{team.team_name}</p>
@@ -137,7 +168,7 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
 
       {!day ? (
         <p className="font-stat text-sm uppercase tracking-widest text-ash">No tournament days scheduled yet.</p>
-      ) : loading ? (
+      ) : loading || !poolLoaded ? (
         <Skeleton className="h-64" />
       ) : (
         <>
@@ -146,6 +177,8 @@ export default function FantasyConsole({ tournamentId }: { tournamentId: number 
             <p className="font-display text-2xl font-black uppercase text-ember">{day.name}</p>
           </div>
           <SelectionBuilder
+            key={day.id}
+            lockTime={sel?.lock_time ?? null}
             tournamentId={tournamentId}
             dayId={day.id}
             pool={pool}

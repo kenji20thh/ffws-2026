@@ -219,6 +219,12 @@ export interface FantasyPlayerOption {
   fantasy_price: number;
 }
 
+// A pool entry plus the artwork needed by the pick screen (merged client-side from teams/players).
+export interface PoolPlayer extends FantasyPlayerOption {
+  photo_url?: string;
+  team_logo_url?: string;
+}
+
 export interface FantasyPick {
   player_id: number;
   is_captain: boolean;

@@ -9,13 +9,25 @@ export interface Draft {
   placement: string;
   kills: Record<number, string>;
   firstBloodPlayerId: number | null;
+  // Players marked "did not play". Anyone not listed here is treated as having played,
+  // so 0 kills on a player who played is still recorded as a real 0.
+  dnp: Record<number, boolean>;
 }
 
 export const emptyDraft: Draft = {
   placement: "",
   kills: {},
   firstBloodPlayerId: null,
+  dnp: {},
 };
+
+// Squads in this game field 4 players; a longer roster means subs are on the list.
+const SQUAD_SIZE = 4;
+
+// The players who actually played this room (only these are saved).
+export function playing(team: Team, d: Draft) {
+  return (team.players ?? []).filter((pl) => !d.dnp[pl.id]);
+}
 
 export function draftError(team: Team, d: Draft): string | null {
   const players = team.players ?? [];
@@ -23,7 +35,8 @@ export function draftError(team: Team, d: Draft): string | null {
   const p = Number(d.placement);
   if (!Number.isInteger(p) || p < 1 || p > 12)
     return "Placement must be 1 to 12";
-  for (const pl of players) {
+  if (playing(team, d).length === 0) return "Mark at least one player as played";
+  for (const pl of playing(team, d)) {
     const raw = d.kills[pl.id] ?? "";
     const k = raw === "" ? 0 : Number(raw);
     if (!Number.isInteger(k) || k < 0) return `Invalid kills for ${pl.ign}`;
@@ -32,7 +45,7 @@ export function draftError(team: Team, d: Draft): string | null {
 }
 
 export function totalKills(team: Team, d: Draft): number {
-  return (team.players ?? []).reduce((sum, pl) => {
+  return playing(team, d).reduce((sum, pl) => {
     const k = Number(d.kills[pl.id] || 0);
     return sum + (Number.isInteger(k) && k > 0 ? k : 0);
   }, 0);
@@ -58,6 +71,7 @@ export default function TeamResultRow({
   onSubmit,
 }: Props) {
   const players = team.players ?? [];
+  const playedCount = playing(team, draft).length;
   const err = draft.placement !== "" ? draftError(team, draft) : null;
   const placement =
     Number.isInteger(Number(draft.placement)) && draft.placement !== ""
@@ -119,7 +133,7 @@ export default function TeamResultRow({
         </div>
         <div>
           <label className="mb-1 block font-stat text-[10px] uppercase tracking-widest text-ash">
-            Kills per player
+            Kills per player · untick “Played” for anyone who didn&apos;t play
           </label>
           {players.length === 0 ? (
             <p className="py-3 font-stat text-xs text-danger">
@@ -127,39 +141,66 @@ export default function TeamResultRow({
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {players.map((pl) => (
-                <div key={pl.id}>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={draft.kills[pl.id] ?? ""}
-                    placeholder="0"
-                    onChange={(e) =>
-                      onChange({
-                        ...draft,
-                        kills: { ...draft.kills, [pl.id]: e.target.value },
-                      })
-                    }
-                    className={`${num} border-bone/20`}
-                    aria-label={`${pl.ign} kills`}
-                  />
-                  <p className="mt-1 truncate text-center font-stat text-[10px] uppercase text-ash">
-                    {pl.ign}
-                  </p>
-                  <label className="mt-1 flex items-center justify-center gap-1 font-stat text-[9px] uppercase text-ash">
+              {players.map((pl) => {
+                const didNotPlay = !!draft.dnp[pl.id];
+                return (
+                  <div key={pl.id} className={didNotPlay ? "opacity-50" : ""}>
                     <input
-                      type="radio"
-                      name={`fb-${team.id}`}
-                      checked={draft.firstBloodPlayerId === pl.id}
-                      onChange={() =>
-                        onChange({ ...draft, firstBloodPlayerId: pl.id })
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={didNotPlay ? "" : (draft.kills[pl.id] ?? "")}
+                      placeholder={didNotPlay ? "DNP" : "0"}
+                      disabled={didNotPlay}
+                      onChange={(e) =>
+                        onChange({
+                          ...draft,
+                          kills: { ...draft.kills, [pl.id]: e.target.value },
+                        })
                       }
+                      className={`${num} border-bone/20 disabled:cursor-not-allowed`}
+                      aria-label={`${pl.ign} kills`}
                     />
-                    First blood
-                  </label>
-                </div>
-              ))}
+                    <p className="mt-1 truncate text-center font-stat text-[10px] uppercase text-ash">
+                      {pl.ign}
+                    </p>
+                    <label className="mt-1 flex items-center justify-center gap-1 font-stat text-[9px] uppercase text-ash">
+                      <input
+                        type="checkbox"
+                        checked={!didNotPlay}
+                        onChange={(e) => {
+                          const played = e.target.checked;
+                          onChange({
+                            ...draft,
+                            dnp: { ...draft.dnp, [pl.id]: !played },
+                            // a player who didn't play can't have kills or first blood
+                            kills: played
+                              ? draft.kills
+                              : { ...draft.kills, [pl.id]: "" },
+                            firstBloodPlayerId:
+                              !played && draft.firstBloodPlayerId === pl.id
+                                ? null
+                                : draft.firstBloodPlayerId,
+                          });
+                        }}
+                      />
+                      Played
+                    </label>
+                    <label className="mt-1 flex items-center justify-center gap-1 font-stat text-[9px] uppercase text-ash">
+                      <input
+                        type="radio"
+                        name={`fb-${team.id}`}
+                        disabled={didNotPlay}
+                        checked={draft.firstBloodPlayerId === pl.id}
+                        onChange={() =>
+                          onChange({ ...draft, firstBloodPlayerId: pl.id })
+                        }
+                      />
+                      First blood
+                    </label>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -171,6 +212,10 @@ export default function TeamResultRow({
             (duplicate ? (
               <span className="text-amber">
                 Another team has this placement
+              </span>
+            ) : playedCount > SQUAD_SIZE ? (
+              <span className="text-amber">
+                {playedCount} players marked as played. Untick anyone who was a sub.
               </span>
             ) : (
               ""
