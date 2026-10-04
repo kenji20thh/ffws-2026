@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import CreateFantasyTeamForm from "@/components/fantasy/CreateFantasyTeamForm";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getDayTeams, getDays, getMyPrediction, submitPrediction } from "@/lib/api";
+import { ApiError, getDayTeams, getDays, getMyFantasyTeam, getMyPrediction, submitPrediction } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import type { PredictionDetail, Team, TournamentDay } from "@/types";
+import type { FantasyTeam, PredictionDetail, Team, TournamentDay } from "@/types";
 import PredictionResultRow from "./PredictionResultRow";
 import PredictionSummary from "./PredictionSummary";
 import TeamRankBuilder from "./TeamRankBuilder";
@@ -29,6 +30,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined);
   const [day, setDay] = useState<TournamentDay | null>(null);
   const [dayTeams, setDayTeams] = useState<Team[]>([]);
   const [existing, setExisting] = useState<PredictionDetail | null | undefined>(undefined);
@@ -43,13 +45,22 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     setAuthChecked(true);
   }, []);
 
+  const loadTeam = useCallback(() => {
+    getMyFantasyTeam(tournamentId)
+      .then(setTeam)
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) setTeam(null);
+      });
+  }, [tournamentId]);
+
   useEffect(() => {
     if (!loggedIn) return;
+    loadTeam();
     getDays(tournamentId).then((d) => setDay(pickOpenDay(d)));
-  }, [loggedIn, tournamentId]);
+  }, [loggedIn, tournamentId, loadTeam]);
 
   const loadDayData = useCallback(() => {
-    if (!day) return;
+    if (!day || !team) return;
     setLoading(true);
     Promise.all([
       getDayTeams(day.id).then((dt) => dt.map((x) => x.team)),
@@ -74,7 +85,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
       })
       .catch(() => setError("Failed to load this day's teams"))
       .finally(() => setLoading(false));
-  }, [day]);
+  }, [day, team]);
 
   useEffect(() => {
     loadDayData();
@@ -85,13 +96,11 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     setBusy(true);
     setError("");
     try {
-      await submitPrediction(
+      const saved = await submitPrediction(
         day.id,
         order.map((t, i) => ({ team_id: t.id, placement: i + 1 }))
       );
-      router.push(`/predictions/${existing?.prediction.id ?? "me"}`);
-      // fallback: reload mine if we don't have the id yet
-      router.refresh();
+      router.push(`/fantasy/predict/${saved.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to submit prediction");
       setConfirming(false);
@@ -113,12 +122,18 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     );
   }
 
-  if (!day) {
+  if (team === undefined) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
+
+  if (team === null) {
     return (
-      <div className="mx-auto max-w-3xl px-5 py-20">
-        <EmptyState title="No tournament days available" />
+      <div className="px-5 py-16">
+        <CreateFantasyTeamForm tournamentId={tournamentId} onCreated={loadTeam} />
       </div>
     );
+  }
+
+  if (!day) {
+    return <div className="mx-auto max-w-3xl px-5 py-20"><EmptyState title="No tournament days available" /></div>;
   }
 
   const lockTime = existing?.lock_time;
@@ -136,7 +151,6 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     );
   }
 
-  // already scored: show the result breakdown instead of the builder
   if (existing?.prediction.scored_at) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
@@ -158,8 +172,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
       <div className="chamfer-sm border border-bone/15 bg-char-2 px-5 py-3">
-        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Predicting for</p>
-        <p className="font-display text-2xl font-black uppercase text-ember">{day.name}</p>
+        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Predicting as</p>
+        <p className="font-display text-2xl font-black uppercase text-ember">{team.team_name}</p>
+        <p className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">for {day.name}</p>
       </div>
 
       {locked ? (
