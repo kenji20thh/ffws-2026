@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"ffws/internal/models"
@@ -106,7 +107,12 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 		}
 	}
 
-	if !day.Deadline.IsZero() && time.Now().After(day.Deadline) {
+	// Same lock rule as Fantasy: deadline if set, otherwise "locked once results exist".
+	locked, err := isDayLocked(r.db, &day)
+	if err != nil {
+		return nil, err
+	}
+	if locked {
 		return nil, ErrPredictionLocked
 	}
 
@@ -154,12 +160,6 @@ func (r *PredictionRepository) SubmitPrediction(userID, dayID uint, picks []Plac
 	return &prediction, nil
 }
 
-type dayTeamAgg struct {
-	TeamID          uint
-	PlacementPoints int
-	KillPoints      int
-}
-
 // computeDayActualPlacements derives each team's final rank for a day live, from
 // whatever room results currently exist. If results are cleared, this returns fewer
 // (or zero) entries, which is exactly what makes prediction points disappear and
@@ -167,11 +167,14 @@ type dayTeamAgg struct {
 func (r *PredictionRepository) computeDayActualPlacements(dayID uint) (map[uint]int, error) {
 	var rows []struct {
 		TeamID    uint
-		RoomID    uint
 		Placement int
+		Kills     int
 	}
+	// Kills are summed in SQL (one query) instead of one query per result row.
 	if err := r.db.Raw(`
-		SELECT rtr.team_id, rtr.room_id, rtr.placement
+		SELECT rtr.team_id, rtr.placement,
+		       COALESCE((SELECT SUM(prs.kills) FROM player_room_stats prs
+		                 WHERE prs.room_id = rtr.room_id AND prs.team_id = rtr.team_id), 0) AS kills
 		FROM room_team_results rtr
 		JOIN rooms r ON r.id = rtr.room_id
 		WHERE r.tournament_day_id = ?
@@ -179,49 +182,38 @@ func (r *PredictionRepository) computeDayActualPlacements(dayID uint) (map[uint]
 		return nil, err
 	}
 
-	agg := map[uint]*dayTeamAgg{}
-	for _, row := range rows {
-		a, ok := agg[row.TeamID]
-		if !ok {
-			a = &dayTeamAgg{TeamID: row.TeamID}
-			agg[row.TeamID] = a
-		}
-		var kills int
-		r.db.Raw(`SELECT COALESCE(SUM(kills),0) FROM player_room_stats WHERE room_id = ? AND team_id = ?`,
-			row.RoomID, row.TeamID).Scan(&kills)
-		a.PlacementPoints += service.PlacementPoints(row.Placement)
-		a.KillPoints += kills
-	}
-
 	type ranked struct {
 		TeamID uint
 		Total  int
 		Kills  int
 	}
-	var list []ranked
-	for _, a := range agg {
-		list = append(list, ranked{TeamID: a.TeamID, Total: a.PlacementPoints + a.KillPoints, Kills: a.KillPoints})
-	}
-
-	for i := 0; i < len(list); i++ {
-		for j := i + 1; j < len(list); j++ {
-			swap := false
-			if list[j].Total > list[i].Total {
-				swap = true
-			} else if list[j].Total == list[i].Total {
-				if list[j].Kills > list[i].Kills {
-					swap = true
-				} else if list[j].Kills == list[i].Kills && list[j].TeamID < list[i].TeamID {
-					swap = true
-				}
-			}
-			if swap {
-				list[i], list[j] = list[j], list[i]
-			}
+	agg := map[uint]*ranked{}
+	for _, row := range rows {
+		a, ok := agg[row.TeamID]
+		if !ok {
+			a = &ranked{TeamID: row.TeamID}
+			agg[row.TeamID] = a
 		}
+		a.Total += service.PlacementPoints(row.Placement) + row.Kills
+		a.Kills += row.Kills
 	}
 
-	placements := map[uint]int{}
+	list := make([]ranked, 0, len(agg))
+	for _, a := range agg {
+		list = append(list, *a)
+	}
+	// total points desc, then kills desc, then team id asc (deterministic).
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].Total != list[j].Total {
+			return list[i].Total > list[j].Total
+		}
+		if list[i].Kills != list[j].Kills {
+			return list[i].Kills > list[j].Kills
+		}
+		return list[i].TeamID < list[j].TeamID
+	})
+
+	placements := make(map[uint]int, len(list))
 	for i, l := range list {
 		placements[l.TeamID] = i + 1
 	}
@@ -242,6 +234,10 @@ type PredictionWithScore struct {
 	Teams       []PredictionTeamScore `json:"teams"`
 	TotalPoints int                   `json:"total_points"`
 	Scored      bool                  `json:"scored"`
+	Locked      bool                  `json:"locked"`
+	// Hidden is true when the picks are withheld: the day is still open and the
+	// viewer is not the owner. Teams is then an empty list.
+	Hidden bool `json:"hidden"`
 }
 
 // computeScoredTeams joins a prediction's stored picks against the day's live
@@ -259,7 +255,7 @@ func (r *PredictionRepository) computeScoredTeams(predictionID, dayID uint) ([]P
 		return nil, 0, err
 	}
 
-	var out []PredictionTeamScore
+	out := make([]PredictionTeamScore, 0, len(rows))
 	total := 0
 	for _, row := range rows {
 		act := actual[row.TeamID] // 0 if the team has no result yet
@@ -291,9 +287,54 @@ func (r *PredictionRepository) buildScored(prediction models.Prediction) (*Predi
 	return &PredictionWithScore{Prediction: prediction, Teams: teams, TotalPoints: total, Scored: scored}, nil
 }
 
+// GetByID returns a prediction for any viewer. Until the day locks, only the owner
+// (viewerID, 0 = anonymous) sees the picks, so nobody can copy another player's
+// prediction by walking prediction ids. Same rule as Fantasy team profiles.
+func (r *PredictionRepository) GetByID(predictionID, viewerID uint) (*PredictionWithScore, error) {
+	var prediction models.Prediction
+	if err := r.db.First(&prediction, predictionID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrPredictionNotFound
+		}
+		return nil, err
+	}
+
+	var day models.TournamentDay
+	if err := r.db.First(&day, prediction.TournamentDayID).Error; err != nil {
+		return nil, err
+	}
+	locked, err := isDayLocked(r.db, &day)
+	if err != nil {
+		return nil, err
+	}
+
+	var owner models.FantasyTeam
+	if err := r.db.First(&owner, prediction.CompetitorTeamID).Error; err != nil {
+		return nil, err
+	}
+	isOwner := viewerID != 0 && owner.UserID == viewerID
+
+	if !locked && !isOwner {
+		return &PredictionWithScore{
+			Prediction: prediction, Teams: []PredictionTeamScore{},
+			Locked: false, Hidden: true,
+		}, nil
+	}
+
+	res, err := r.buildScored(prediction)
+	if err != nil {
+		return nil, err
+	}
+	res.Locked = locked
+	return res, nil
+}
+
 func (r *PredictionRepository) GetByUserAndDay(userID, dayID uint) (*PredictionWithScore, error) {
 	var day models.TournamentDay
 	if err := r.db.First(&day, dayID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrDayNotFound
+		}
 		return nil, err
 	}
 	competitor, err := r.resolveCompetitorTeam(userID, day)
@@ -308,19 +349,14 @@ func (r *PredictionRepository) GetByUserAndDay(userID, dayID uint) (*PredictionW
 		}
 		return nil, err
 	}
-	return r.buildScored(prediction)
-}
-
-func (r *PredictionRepository) GetByID(predictionID uint) (*PredictionWithScore, error) {
-	var prediction models.Prediction
-	err := r.db.First(&prediction, predictionID).Error
+	res, err := r.buildScored(prediction)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, ErrPredictionNotFound
-		}
 		return nil, err
 	}
-	return r.buildScored(prediction)
+	if res.Locked, err = isDayLocked(r.db, &day); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 type PredictionStanding struct {
@@ -332,13 +368,12 @@ type PredictionStanding struct {
 }
 
 func sortPredictionStandings(s []PredictionStanding) {
-	for i := 0; i < len(s); i++ {
-		for j := i + 1; j < len(s); j++ {
-			if s[j].TotalPoints > s[i].TotalPoints {
-				s[i], s[j] = s[j], s[i]
-			}
+	sort.Slice(s, func(i, j int) bool {
+		if s[i].TotalPoints != s[j].TotalPoints {
+			return s[i].TotalPoints > s[j].TotalPoints
 		}
-	}
+		return s[i].CompetitorTeamID < s[j].CompetitorTeamID
+	})
 }
 
 // GetStandings recomputes every competitor's points live, exactly like Fantasy's
