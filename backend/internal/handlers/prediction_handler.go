@@ -71,7 +71,8 @@ func (h *PredictionHandler) GetMine(c *gin.Context) {
 	result, err := h.repo.GetByUserAndDay(userID, uint(dayID))
 	if err != nil {
 		status := http.StatusInternalServerError
-		if errors.Is(err, repository.ErrPredictionNotFound) || errors.Is(err, repository.ErrNoCompetitorTeam) {
+		if errors.Is(err, repository.ErrPredictionNotFound) || errors.Is(err, repository.ErrNoCompetitorTeam) ||
+			errors.Is(err, repository.ErrDayNotFound) {
 			status = http.StatusNotFound
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
@@ -82,19 +83,20 @@ func (h *PredictionHandler) GetMine(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"prediction": result.Prediction, "teams": result.Teams,
 		"total_points": result.TotalPoints, "scored": result.Scored,
+		"locked": result.Locked, "hidden": false,
 		"lock_time": lockTime,
 	}})
 }
 
 func (h *PredictionHandler) GetByID(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid prediction id"})
 		return
 	}
 
-	result, err := h.repo.GetByID(uint(id))
+	// user_id is only set when a valid token was sent (OptionalAuth); 0 = anonymous.
+	result, err := h.repo.GetByID(uint(id), c.GetUint("user_id"))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if errors.Is(err, repository.ErrPredictionNotFound) {
@@ -106,6 +108,7 @@ func (h *PredictionHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"prediction": result.Prediction, "teams": result.Teams,
 		"total_points": result.TotalPoints, "scored": result.Scored,
+		"locked": result.Locked, "hidden": result.Hidden,
 	}})
 }
 
