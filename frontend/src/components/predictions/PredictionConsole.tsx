@@ -139,7 +139,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   // Prefer the server's verdict; before the first prediction exists, fall back to the day's deadline.
   const hasDeadline = !!day.deadline && !day.deadline.startsWith("0001");
   const deadlinePassed = hasDeadline && new Date(day.deadline).getTime() < Date.now();
-  const locked = deadlinePassed;
+  const locked = existing?.locked ?? deadlinePassed;
 
   if (loading) {
     return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-96" /></div>;
