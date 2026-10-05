@@ -102,8 +102,11 @@ return String(value).padStart(2, "0");
 
 // The price list from the API has no artwork, so merge in player photos and team logos.
 // If that extra lookup fails the pick screen still works.
-async function loadPool(tournamentId: number): Promise<PoolPlayer[]> {
-const options = await getFantasyPlayerPool(tournamentId);
+async function loadPool(
+tournamentId: number,
+dayId: number
+): Promise<PoolPlayer[]> {
+const options = await getFantasyPlayerPool(tournamentId, dayId);
 
 try {
 const teams = await getTeams(tournamentId);
@@ -163,7 +166,6 @@ setAuthChecked(true);
 }, []);
 
 /*
-
 Live countdown clock.
 Updates every second so the visible countdown actually ticks.
 */
@@ -171,6 +173,7 @@ useEffect(() => {
 const interval = window.setInterval(() => {
 setNow(Date.now());
 }, 1000);
+
 return () => window.clearInterval(interval);
 
 }, []);
@@ -219,14 +222,25 @@ getDays(tournamentId)
   .then((d) => setDay(pickNextOpenDay(d)))
   .catch(fail);
 
-loadPool(tournamentId)
+}, [loggedIn, tournamentId, loadTeam, fail]);
+
+/*
+Load the player pool only after the active fantasy day is known.
+The backend now filters the pool by tournament + day.
+*/
+useEffect(() => {
+if (!loggedIn || !day) return;
+
+setPoolLoaded(false);
+
+loadPool(tournamentId, day.id)
   .then((p) => {
     setPool(p);
     setPoolLoaded(true);
   })
   .catch(fail);
 
-}, [loggedIn, tournamentId, loadTeam, fail]);
+}, [loggedIn, tournamentId, day, fail]);
 
 const loadSelection = useCallback(() => {
 if (!day) return;
@@ -253,19 +267,12 @@ setLoading(false);
 }, [team, day, loadSelection]);
 
 if (!authChecked) {
-return (
-<div className="mx-auto max-w-7xl px-5 py-10">
-<Skeleton className="h-48" />
-</div>
+return ( <div className="mx-auto max-w-7xl px-5 py-10"> <Skeleton className="h-48" /> </div>
 );
 }
 
 if (!loggedIn) {
-return (
-<div className="relative min-h-[70vh] overflow-hidden px-5 py-20">
-<div className="pointer-events-none absolute inset-0">
-<div className="absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-ember/10 blur-3xl" />
-</div>
+return ( <div className="relative min-h-[70vh] overflow-hidden px-5 py-20"> <div className="pointer-events-none absolute inset-0"> <div className="absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-ember/10 blur-3xl" /> </div>
 
     <div className="relative mx-auto max-w-md">
       <div className="chamfer border border-bone/10 bg-char-2/90 p-10 text-center shadow-2xl">
@@ -303,28 +310,17 @@ return (
 }
 
 if (error) {
-return (
-<div className="mx-auto max-w-3xl px-5 py-16">
-<ErrorState message={error} />
-</div>
+return ( <div className="mx-auto max-w-3xl px-5 py-16"> <ErrorState message={error} /> </div>
 );
 }
 
 if (team === undefined) {
-return (
-<div className="mx-auto max-w-7xl px-5 py-10">
-<Skeleton className="h-48" />
-</div>
+return ( <div className="mx-auto max-w-7xl px-5 py-10"> <Skeleton className="h-48" /> </div>
 );
 }
 
 if (team === null) {
-return (
-<div className="relative min-h-[70vh] overflow-hidden px-5 py-12">
-<div className="pointer-events-none absolute inset-0">
-<div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-ember/10 blur-3xl" />
-<div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-bone/5 blur-3xl" />
-</div>
+return ( <div className="relative min-h-[70vh] overflow-hidden px-5 py-12"> <div className="pointer-events-none absolute inset-0"> <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-ember/10 blur-3xl" /> <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-bone/5 blur-3xl" /> </div>
 
     <div className="relative mx-auto max-w-5xl">
       <div className="mb-10">
@@ -354,7 +350,6 @@ return (
 }
 
 /*
-
 IMPORTANT:
 The selection endpoint may not always have lock_time yet.
 The tournament day itself already has a deadline, so use it
@@ -371,18 +366,13 @@ const backendLocked = sel?.locked ?? false;
 const countdown = getTimeRemaining(lockTime, now);
 
 /*
-
 The frontend locks visually as soon as the countdown reaches zero,
 even if the backend has not refreshed its locked state yet.
 */
 const locked = backendLocked || countdown.expired;
 
-return (
-<div className="relative min-h-screen overflow-hidden">
-{/* Background atmosphere */}
-<div className="pointer-events-none absolute inset-0 overflow-hidden">
-<div className="absolute -right-40 top-20 h-[500px] w-[500px] rounded-full bg-ember/[0.07] blur-[120px]" />
-<div className="absolute -left-40 top-[45%] h-[450px] w-[450px] rounded-full bg-bone/[0.025] blur-[120px]" />
+return ( <div className="relative min-h-screen overflow-hidden">
+{/* Background atmosphere */} <div className="pointer-events-none absolute inset-0 overflow-hidden"> <div className="absolute -right-40 top-20 h-[500px] w-[500px] rounded-full bg-ember/[0.07] blur-[120px]" /> <div className="absolute -left-40 top-[45%] h-[450px] w-[450px] rounded-full bg-bone/[0.025] blur-[120px]" />
 
     <div
       className="absolute inset-0 opacity-[0.025]"
