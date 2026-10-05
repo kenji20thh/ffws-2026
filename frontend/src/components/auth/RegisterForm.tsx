@@ -6,10 +6,12 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { ApiError, login, register } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
+import GoogleButton from "./GoogleButton";
 
 export default function RegisterForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,16 +36,21 @@ export default function RegisterForm() {
       return;
     }
 
+    if (name.includes("@")) {
+      setError("Username cannot contain @.");
+      return;
+    }
+
     setBusy(true);
     try {
-      await register(name, password);
+      await register(name, email.trim(), password);
       const res = await login(name, password);
-      saveSession(res.token, res.role, name);
+      saveSession(res.token, res.role, res.username ?? name);
       router.replace("/");
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) setError("Too many attempts. Please wait a minute and try again.");
-      else if (err instanceof ApiError && err.status === 409) setError("That username is already taken.");
+      else if (err instanceof ApiError && err.status === 409) setError(err.message || "That username or email is already taken.");
       else setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setBusy(false);
@@ -64,6 +71,11 @@ export default function RegisterForm() {
           value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={32} />
       </div>
       <div>
+        <label htmlFor="e" className="sr-only">Email</label>
+        <input id="e" type="email" className={input} placeholder="Email" autoComplete="email"
+          value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={254} />
+      </div>
+      <div>
         <label htmlFor="p" className="sr-only">Password</label>
         <input id="p" type="password" className={input} placeholder="Password (min 8 characters)" autoComplete="new-password"
           value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} maxLength={72} />
@@ -76,6 +88,8 @@ export default function RegisterForm() {
 
       <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
       <Button type="submit" disabled={busy} className="w-full">{busy ? "Creating…" : "Create account"}</Button>
+
+      <GoogleButton />
 
       <p className="text-center font-stat text-xs text-ash">
         Already have an account?{" "}

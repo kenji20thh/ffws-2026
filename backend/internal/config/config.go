@@ -18,6 +18,10 @@ type Config struct {
 	JWTSecret   string
 	Environment string
 
+	// GoogleClientID is the OAuth client id used to verify Google sign-in tokens (GOOGLE_CLIENT_ID).
+	// Empty = Google sign-in disabled.
+	GoogleClientID string
+
 	// AllowedOrigins is the list of browser origins allowed by CORS (CORS_ORIGINS, comma-separated).
 	AllowedOrigins []string
 
@@ -41,6 +45,8 @@ func Load() *Config {
 		DBName:      getEnvNonEmpty("DB_NAME", "ffws"),
 		JWTSecret:   getEnv("JWT_SECRET", ""),
 		Environment: getEnv("ENV", "development"),
+
+		GoogleClientID: strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
 	}
 
 	// A missing or weak secret would let anyone forge valid (even admin) tokens, so refuse to start.

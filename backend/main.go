@@ -113,6 +113,8 @@ func main() {
 	{
 		api.POST("/auth/register", middleware.RateLimit(rate.Every(30*time.Second), 3), authHandler.Register)
 		api.POST("/auth/login", middleware.RateLimit(rate.Every(15*time.Second), 5), authHandler.Login)
+		api.POST("/auth/google", middleware.RateLimit(rate.Every(10*time.Second), 10), authHandler.Google)
+		api.POST("/auth/google/complete", middleware.RateLimit(rate.Every(10*time.Second), 10), authHandler.GoogleComplete)
 
 		api.POST("/subscribe", middleware.RateLimit(rate.Every(10*time.Second), 5), subscriberHandler.Subscribe)
 

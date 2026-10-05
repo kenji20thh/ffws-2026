@@ -6,6 +6,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { ApiError, login } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function LoginForm() {
     try {
       const name = username.trim();
       const res = await login(name, password);
-      saveSession(res.token, res.role, name);
+      saveSession(res.token, res.role, res.username ?? name);
       router.replace(res.role === "admin" ? "/admin" : "/");
       router.refresh();
     } catch (err) {
@@ -54,12 +55,12 @@ export default function LoginForm() {
 
       <div>
         <label htmlFor="u" className="sr-only">
-          Username
+          Username or email
         </label>
         <input
           id="u"
           className={input}
-          placeholder="Username"
+          placeholder="Username or email"
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -93,6 +94,8 @@ export default function LoginForm() {
       <Button type="submit" disabled={busy} className="w-full">
         {busy ? "Checking…" : "Enter"}
       </Button>
+
+      <GoogleButton />
 
       <p className="text-center font-stat text-xs text-ash">
         New here?{" "}
