@@ -203,12 +203,31 @@ func (h *FantasyHandler) GetPlayerPool(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
 		return
 	}
-	pool, err := h.repo.GetPlayerPool(uint(tournamentID))
+
+	dayID, err := strconv.ParseUint(c.Query("day_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "day_id query param is required"})
+		return
+	}
+
+	// Make sure the day actually belongs to this tournament.
+	if _, err := h.repo.GetDayInTournament(uint(dayID), uint(tournamentID)); err != nil {
+		if errors.Is(err, repository.ErrDayNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch tournament day"})
+		return
+	}
+
+	pool, err := h.repo.GetPlayerPool(uint(tournamentID), uint(dayID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player pool"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"data": pool})
+
 }
 
 func (h *FantasyHandler) GetStandings(c *gin.Context) {

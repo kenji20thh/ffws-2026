@@ -465,16 +465,26 @@ type FantasyPlayerOption struct {
 	FantasyPrice int    `json:"fantasy_price"`
 }
 
-func (r *FantasyRepository) GetPlayerPool(tournamentID uint) ([]FantasyPlayerOption, error) {
+func (r *FantasyRepository) GetPlayerPool(tournamentID, dayID uint) ([]FantasyPlayerOption, error) {
 	var options []FantasyPlayerOption
+
 	err := r.db.Raw(`
-		SELECT p.id AS player_id, p.ign, p.role, p.country,
-		       t.id AS team_id, t.name AS team_name, t.tag AS team_tag,
-		       p.fantasy_price
-		FROM players p
-		JOIN teams t ON t.id = p.team_id
-		WHERE t.tournament_id = ?
-		ORDER BY t.name ASC, p.ign ASC
-	`, tournamentID).Scan(&options).Error
+	SELECT p.id AS player_id,
+	       p.ign,
+	       p.role,
+	       p.country,
+	       t.id AS team_id,
+	       t.name AS team_name,
+	       t.tag AS team_tag,
+	       p.fantasy_price
+	FROM players p
+	JOIN teams t ON t.id = p.team_id
+	JOIN tournament_day_teams tdtt ON tdtt.team_id = t.id
+	WHERE t.tournament_id = ?
+	  AND tdtt.tournament_day_id = ?
+	ORDER BY t.name ASC, p.ign ASC
+`, tournamentID, dayID).Scan(&options).Error
+
 	return options, err
+
 }
