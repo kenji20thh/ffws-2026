@@ -84,8 +84,8 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
   if (!rows) return <Skeleton className="h-64" />;
   if (rows.length === 0) return <EmptyState title="No tournament days yet" />;
 
-  const scored = rows.filter((r) => r.detail?.prediction.scored_at);
-  const total = scored.reduce((sum, r) => sum + (r.detail?.prediction.total_points ?? 0), 0);
+  const scored = rows.filter((r) => r.detail?.scored);
+  const total = scored.reduce((sum, r) => sum + (r.detail?.total_points ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -99,7 +99,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
 
       <div className="space-y-3">
         {rows.map(({ day, detail }) => {
-          const isScored = !!detail?.prediction.scored_at;
+          const isScored = !!detail?.scored;
           const content = (
             <div className="chamfer flex items-center justify-between gap-4 border border-bone/10 bg-char-2 p-5 transition-colors hover:border-ember/40">
               <div>
@@ -112,7 +112,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                 {isScored ? (
                   <>
                     <p className="font-display text-3xl font-black tabular-nums text-ember">
-                      {detail?.prediction.total_points}
+                      {detail?.total_points}
                       <span className="text-base text-ash"> / {MAX_DAY_POINTS}</span>
                     </p>
                     <Badge tone="done">Scored</Badge>
