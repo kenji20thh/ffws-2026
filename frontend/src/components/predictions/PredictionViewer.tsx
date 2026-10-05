@@ -55,17 +55,17 @@ export default function PredictionViewer({ predictionId }: { predictionId: numbe
   }
 
   const sorted = [...detail.teams].sort((a, b) => a.predicted_placement - b.predicted_placement);
-  const scored = !!detail.prediction.scored_at;
+  const scored = detail.scored && !detail.hidden;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
       <div className="chamfer border border-bone/10 bg-char-2 p-6">
         <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
-          {scored ? "Final score" : "Submitted prediction"}
+          {scored ? "Live score" : "Submitted prediction"}
         </p>
         {scored && (
           <p className="font-display text-4xl font-black tabular-nums text-ember">
-            {detail.prediction.total_points} / 144
+            {detail.total_points} / 144
           </p>
         )}
       </div>
