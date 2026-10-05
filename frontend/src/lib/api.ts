@@ -1,5 +1,6 @@
 import type {
   DayTeam,
+  GoogleAuthResponse,
   LoginResponse,
   Player,
   PlayerLeaderboardEntry,
@@ -31,9 +32,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Set when the server sends back a free username alternative (HTTP 409). */
+  suggestedUsername?: string;
+  constructor(message: string, status: number, suggestedUsername?: string) {
     super(message);
     this.status = status;
+    this.suggestedUsername = suggestedUsername;
   }
 }
 
@@ -57,7 +61,7 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(body.error ?? "Something went wrong", res.status);
+    throw new ApiError(body.error ?? "Something went wrong", res.status, body.suggested_username);
   }
   return body as T;
 }
@@ -95,18 +99,31 @@ export const subscribe = (email: string) =>
   request<{ message: string }>("/subscribe", { method: "POST", body: JSON.stringify({ email }) });
 
 /* ---------- auth ---------- */
-// login is NOT wrapped in { data }
-export const login = (username: string, password: string) =>
+// login / google responses are NOT wrapped in { data }
+// `identifier` is a username or an email.
+export const login = (identifier: string, password: string) =>
   request<LoginResponse>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ identifier, password }),
   });
 
- export const register = (username: string, password: string) =>
+export const register = (username: string, email: string, password: string) =>
   request<{ message: string; id: number }>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
-  }); 
+    body: JSON.stringify({ username, email, password }),
+  });
+
+export const googleAuth = (credential: string) =>
+  request<GoogleAuthResponse>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
+  });
+
+export const googleComplete = (signupToken: string, username: string) =>
+  request<LoginResponse>("/auth/google/complete", {
+    method: "POST",
+    body: JSON.stringify({ signup_token: signupToken, username }),
+  });
 
 /* ---------- admin ---------- */
 export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>

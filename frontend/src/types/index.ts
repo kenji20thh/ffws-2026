@@ -93,7 +93,17 @@ export interface SubmitTeamResult {
 export interface LoginResponse {
   token: string;
   role: "user" | "admin";
+  username: string;
 }
+
+/** Google sign-in either logs the user in, or asks a new user to confirm a username. */
+export interface GoogleNeedsUsername {
+  needs_username: true;
+  signup_token: string;
+  email: string;
+  suggested_username: string;
+}
+export type GoogleAuthResponse = LoginResponse | GoogleNeedsUsername;
 
 export interface PlayerProfilePlayer {
   id: number;
