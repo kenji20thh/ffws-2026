@@ -318,6 +318,10 @@ export interface PredictionDetail {
   teams: PredictionTeamEntry[];
   total_points: number;
   scored: boolean;
+  locked: boolean;
+  // true when the picks are withheld (day still open and you are not the owner);
+  // `teams` is then empty.
+  hidden: boolean;
   lock_time?: string | null;
 }
 
@@ -332,5 +336,4 @@ export interface PredictionStanding {
   country: string;
   prediction_id: number;
   total_points: number;
-  scored: boolean;
 }
