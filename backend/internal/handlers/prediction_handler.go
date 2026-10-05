@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -49,18 +48,13 @@ func (h *PredictionHandler) Submit(c *gin.Context) {
 
 	prediction, err := h.repo.SubmitPrediction(userID, uint(dayID), picks)
 	if err != nil {
-		var predErr *repository.PredictionError
-		switch {
-		case errors.Is(err, repository.ErrPredictionLocked):
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		case errors.Is(err, repository.ErrNoCompetitorTeam), errors.Is(err, repository.ErrDayNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		case errors.As(err, &predErr):
-			c.JSON(http.StatusBadRequest, gin.H{"error": predErr.Error()})
-		default:
-			log.Printf("submit prediction failed: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save prediction"})
+		status := http.StatusBadRequest
+		if errors.Is(err, repository.ErrPredictionLocked) {
+			status = http.StatusConflict
+		} else if errors.Is(err, repository.ErrNoCompetitorTeam) {
+			status = http.StatusNotFound
 		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"data": prediction})
@@ -74,25 +68,21 @@ func (h *PredictionHandler) GetMine(c *gin.Context) {
 		return
 	}
 
-	prediction, rows, err := h.repo.GetByUserAndDay(userID, uint(dayID))
+	result, err := h.repo.GetByUserAndDay(userID, uint(dayID))
 	if err != nil {
-		if errors.Is(err, repository.ErrPredictionNotFound) ||
-			errors.Is(err, repository.ErrNoCompetitorTeam) ||
-			errors.Is(err, repository.ErrDayNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
+		status := http.StatusInternalServerError
+		if errors.Is(err, repository.ErrPredictionNotFound) || errors.Is(err, repository.ErrNoCompetitorTeam) {
+			status = http.StatusNotFound
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch prediction"})
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	lockTime, _ := h.repo.GetDayLockTime(uint(dayID))
-	locked, err := h.repo.IsDayLocked(uint(dayID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check lock status"})
-		return
-	}
+
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
-		"prediction": prediction, "teams": rows, "lock_time": lockTime, "locked": locked,
+		"prediction": result.Prediction, "teams": result.Teams,
+		"total_points": result.TotalPoints, "scored": result.Scored,
+		"lock_time": lockTime,
 	}})
 }
 
@@ -104,42 +94,19 @@ func (h *PredictionHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	prediction, rows, err := h.repo.GetByID(uint(id))
+	result, err := h.repo.GetByID(uint(id))
 	if err != nil {
+		status := http.StatusInternalServerError
 		if errors.Is(err, repository.ErrPredictionNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
+			status = http.StatusNotFound
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch prediction"})
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Picks stay private until the day locks (so nobody can copy them); the owner,
-	// identified by the optional auth token, can always see their own.
-	canView, err := h.repo.CanView(prediction, c.GetUint("user_id"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check visibility"})
-		return
-	}
-	if !canView {
-		c.JSON(http.StatusOK, gin.H{"data": gin.H{"prediction": prediction, "teams": []any{}, "hidden": true}})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": gin.H{"prediction": prediction, "teams": rows}})
-}
-
-func (h *PredictionHandler) ScoreDay(c *gin.Context) {
-	dayID, err := strconv.ParseUint(c.Param("dayId"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day id"})
-		return
-	}
-	count, err := h.repo.ScoreDay(uint(dayID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "day scored", "predictions_scored": count})
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"prediction": result.Prediction, "teams": result.Teams,
+		"total_points": result.TotalPoints, "scored": result.Scored,
+	}})
 }
 
 func (h *PredictionHandler) GetStandings(c *gin.Context) {
