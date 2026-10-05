@@ -153,13 +153,13 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     );
   }
 
-  if (existing?.prediction.scored_at) {
+  if (existing?.scored) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
         <div className="chamfer border border-bone/10 bg-char-2 p-6">
           <p className="font-stat text-[10px] uppercase tracking-widest text-ash">{day.name} — results</p>
           <p className="font-display text-4xl font-black tabular-nums text-ember">
-            {existing.prediction.total_points} / 144
+            {existing.total_points} / 144
           </p>
         </div>
         <div className="space-y-2">
