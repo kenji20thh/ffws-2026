@@ -204,11 +204,3 @@ export const submitPrediction = (dayId: number, picks: PredictionPick[]) =>
     { method: "PUT", body: JSON.stringify({ deadline: deadlineIso }) },
     true
   ).then((r) => r.data);
-
-/* ---------- admin: score a day's predictions ---------- */
-export const scorePredictionsForDay = (dayId: number) =>
-  request<{ message: string; predictions_scored: number }>(
-    `/predictions/${dayId}/score`,
-    { method: "POST" },
-    true
-  );
