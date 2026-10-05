@@ -176,7 +176,6 @@ func main() {
 				adminOnly.PUT("/rooms/:id", roomHandler.Update)
 				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)
 
-				adminOnly.POST("/predictions/:dayId/score", predictionHandler.ScoreDay)
 			}
 		}
 	}
