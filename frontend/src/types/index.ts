@@ -250,12 +250,21 @@ export interface FantasyPlayerDayScore {
   final_points: number;
 }
 
+export type FantasyChip = "triple_captain" | "limitless" | "same_team";
+
+export interface FantasyChipUse {
+  chip: FantasyChip;
+  tournament_day_id: number;
+}
+
 export interface FantasySelectionResponse {
   selections: FantasySelectionEntry[];
   breakdown: FantasyPlayerDayScore[];
   total_points: number;
   lock_time: string | null;
   locked: boolean;
+  chip?: FantasyChip | ""; // chip played on this day ("" = none)
+  chips_used?: FantasyChipUse[] | null; // every chip this team has played, on any day
 }
 
 export interface FantasyStanding {
@@ -267,6 +276,7 @@ export interface FantasyStanding {
 
 export interface FantasyTeamProfile {
   team: FantasyTeam;
+  chip?: FantasyChip | ""; // chip played on this day; not sent while picks are hidden
   hidden?: boolean; // true while the day is open and you are not the owner
   locked?: boolean;
   selections?: FantasySelectionEntry[];

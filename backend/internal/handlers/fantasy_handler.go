@@ -74,6 +74,7 @@ type pickRequest struct {
 
 type submitSelectionRequest struct {
 	Picks []pickRequest `json:"picks" binding:"required,len=4,dive"`
+	Chip  string        `json:"chip"` // optional: triple_captain, limitless or same_team
 }
 
 func (h *FantasyHandler) SubmitSelection(c *gin.Context) {
@@ -106,7 +107,7 @@ func (h *FantasyHandler) SubmitSelection(c *gin.Context) {
 		picks = append(picks, repository.PickInput{PlayerID: p.PlayerID, IsCaptain: p.IsCaptain})
 	}
 
-	if err := h.repo.SubmitSelection(team.ID, uint(tournamentID), uint(dayID), picks); err != nil {
+	if err := h.repo.SubmitSelection(team.ID, uint(tournamentID), uint(dayID), picks, req.Chip); err != nil {
 		var selErr *repository.SelectionError
 		switch {
 		case errors.Is(err, repository.ErrDayNotFound):
@@ -174,12 +175,25 @@ func (h *FantasyHandler) GetMySelection(c *gin.Context) {
 		lockTime = &day.Deadline
 	}
 
+	chip, err := h.repo.GetDayChip(team.ID, day.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch chip"})
+		return
+	}
+	chipsUsed, err := h.repo.GetChipUses(team.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch chips"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{
 		"selections":   selections,
 		"breakdown":    breakdown,
 		"total_points": total,
 		"lock_time":    lockTime,
 		"locked":       locked,
+		"chip":         chip,
+		"chips_used":   chipsUsed,
 	}})
 }
 
@@ -295,9 +309,15 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to compute score"})
 		return
 	}
+	chip, err := h.repo.GetDayChip(team.ID, day.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch chip"})
+		return
+	}
 	resp["selections"] = selections
 	resp["breakdown"] = breakdown
 	resp["total_points"] = total
+	resp["chip"] = chip
 
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }

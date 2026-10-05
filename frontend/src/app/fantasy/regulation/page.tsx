@@ -30,9 +30,32 @@ const sections: RuleSection[] = [
         <li>Pick exactly 4 players.</li>
         <li>All 4 players must come from different teams.</li>
         <li>The total price of your squad can&apos;t go over $100.</li>
-        <li>Choose one captain. The captain&apos;s points count double.</li>
+        <li>Choose one captain. The captain&apos;s points count double (triple with the Triple Captain chip).</li>
         <li>You need a fantasy team (team name and country) before you can pick. It is shared with Prediction.</li>
       </ul>
+    ),
+  },
+  {
+    title: "Chips",
+    content: (
+      <>
+        <p>
+          Each chip can be played <b>once per tournament</b>, and only <b>one chip per day</b>. Activate it on the pick
+          screen before the day locks. You can switch or remove it until then; a chip only counts as used once its day
+          is locked.
+        </p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <b>Triple Captain:</b> your captain&apos;s points count triple instead of double.
+          </li>
+          <li>
+            <b>Limitless:</b> the $100 budget doesn&apos;t apply to that day&apos;s squad.
+          </li>
+          <li>
+            <b>Same Team:</b> you may pick two players from the same team (one pair only).
+          </li>
+        </ul>
+      </>
     ),
   },
   {
@@ -44,7 +67,7 @@ const sections: RuleSection[] = [
         <p>Placement points depend on where the player&apos;s team finished in that room:</p>
         <RuleTable head={["Team placement", "Points"]} rows={PLACEMENT} />
         <p>
-          Your day score is the sum over all rooms of that day, with the captain&apos;s total doubled. Your overall score
+          Your day score is the sum over all rooms of that day, with the captain&apos;s total doubled (tripled with Triple Captain). Your overall score
           is the sum of all days.
         </p>
       </>

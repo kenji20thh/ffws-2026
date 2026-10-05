@@ -14,6 +14,7 @@ import type {
   Tournament,
   TournamentDay,
   FantasyPick,
+  FantasyChip,
   FantasyPlayerOption,
   FantasySelectionResponse,
   FantasyStanding,
@@ -145,12 +146,18 @@ export const getMyFantasySelection = (tournamentId: number, dayId: number) =>
     ...r.data,
     selections: r.data.selections ?? [],
     breakdown: r.data.breakdown ?? [],
+    chips_used: r.data.chips_used ?? [],
   }));
 
-export const submitFantasySelection = (tournamentId: number, dayId: number, picks: FantasyPick[]) =>
+export const submitFantasySelection = (
+  tournamentId: number,
+  dayId: number,
+  picks: FantasyPick[],
+  chip: FantasyChip | null = null
+) =>
   request<{ message: string }>(
     `/fantasy/team/selections/${dayId}?tournament_id=${tournamentId}`,
-    { method: "POST", body: JSON.stringify({ picks }) },
+    { method: "POST", body: JSON.stringify({ picks, chip: chip ?? "" }) },
     true
   );
 

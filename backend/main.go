@@ -45,6 +45,7 @@ func main() {
 		&models.User{},
 		&models.FantasyTeam{},
 		&models.FantasySelection{},
+		&models.FantasyChipUse{},
 		&models.Prediction{},
 		&models.PredictionTeam{},
 	); err != nil {
@@ -176,6 +177,7 @@ func main() {
 				adminOnly.PUT("/rooms/:id", roomHandler.Update)
 				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)
 
+				adminOnly.POST("/predictions/:dayId/score", predictionHandler.ScoreDay)
 			}
 		}
 	}

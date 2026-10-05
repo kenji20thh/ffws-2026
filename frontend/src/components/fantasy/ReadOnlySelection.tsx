@@ -4,9 +4,11 @@ import FormationBoard, { SlotPlayer } from "./FormationBoard";
 export default function ReadOnlySelection({
   selections,
   breakdown,
+  captainMultiplier = 2,
 }: {
   selections: FantasySelectionEntry[];
   breakdown?: FantasyPlayerDayScore[];
+  captainMultiplier?: number;
 }) {
   if (selections.length === 0) {
     return <p className="font-stat text-xs uppercase tracking-widest text-ash">No selection made for this day</p>;
@@ -32,7 +34,7 @@ export default function ReadOnlySelection({
 
   return (
     <div className="mx-auto max-w-md">
-      <FormationBoard slots={slots} emptyLabel="—" />
+      <FormationBoard slots={slots} emptyLabel="—" captainMultiplier={captainMultiplier} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import { getDays, getFantasyTeamProfile, getMyFantasyTeam } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import { captainMultiplier, chipName } from "@/lib/chips";
 import type { FantasyTeamProfile, TournamentDay } from "@/types";
 import ReadOnlySelection from "./ReadOnlySelection";
 
@@ -164,7 +165,17 @@ export default function FantasyTeamViewer({
                 <span className="ml-2 text-3xl font-black tabular-nums text-ember">{profile.total_points ?? 0}</span>
               </p>
             )}
-            <ReadOnlySelection selections={profile.selections ?? []} breakdown={profile.breakdown} />
+            {profile.chip && (
+              <p className="text-center font-stat text-xs uppercase tracking-widest text-ash">
+                Chip played{" "}
+                <span className="ml-2 bg-amber px-2 py-0.5 font-black text-char">{chipName(profile.chip)}</span>
+              </p>
+            )}
+            <ReadOnlySelection
+              selections={profile.selections ?? []}
+              breakdown={profile.breakdown}
+              captainMultiplier={captainMultiplier(profile.chip)}
+            />
           </div>
         )
       ) : (

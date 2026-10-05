@@ -114,7 +114,8 @@ type PickInput struct {
 }
 
 // SubmitSelection validates and replaces a fantasy team's 4 picks for a day.
-func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID uint, picks []PickInput) error {
+// chip is "" for no chip, otherwise one of the service.Chip* values.
+func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID uint, picks []PickInput, chip string) error {
 	if len(picks) != SelectionSize {
 		return invalidSelection("you must select exactly 4 players")
 	}
@@ -133,6 +134,9 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 	if captainCount != 1 {
 		return invalidSelection("you must select exactly one captain")
 	}
+	if chip != "" && !service.IsValidChip(chip) {
+		return invalidSelection("unknown chip")
+	}
 
 	day, err := r.GetDayInTournament(dayID, tournamentID)
 	if err != nil {
@@ -144,6 +148,19 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 	}
 	if locked {
 		return ErrSelectionLocked
+	}
+
+	// Each chip can be played once per tournament (re-submitting the same day with the same chip is fine).
+	if chip != "" {
+		var usedElsewhere int64
+		if err := r.db.Model(&models.FantasyChipUse{}).
+			Where("fantasy_team_id = ? AND chip = ? AND tournament_day_id <> ?", fantasyTeamID, chip, dayID).
+			Count(&usedElsewhere).Error; err != nil {
+			return err
+		}
+		if usedElsewhere > 0 {
+			return invalidSelection("you already used this chip on another day")
+		}
 	}
 
 	type playerRow struct {
@@ -169,16 +186,29 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 		return invalidSelection("one or more selected players are not available in this tournament")
 	}
 
-	teamSeen := map[uint]bool{}
+	perTeam := map[uint]int{}
 	totalBudget := 0
 	for _, row := range rows {
-		if teamSeen[row.TeamID] {
-			return invalidSelection("all 4 players must be from different teams")
-		}
-		teamSeen[row.TeamID] = true
+		perTeam[row.TeamID]++
 		totalBudget += row.FantasyPrice
 	}
-	if totalBudget > SelectionBudget {
+	maxPerTeam, pairs := 0, 0
+	for _, n := range perTeam {
+		if n > maxPerTeam {
+			maxPerTeam = n
+		}
+		if n == 2 {
+			pairs++
+		}
+	}
+	if chip == service.ChipSameTeam {
+		if maxPerTeam > 2 || pairs > 1 {
+			return invalidSelection("the Same Team chip allows one pair of players from the same team, no more")
+		}
+	} else if maxPerTeam > 1 {
+		return invalidSelection("all 4 players must be from different teams")
+	}
+	if chip != service.ChipLimitless && totalBudget > SelectionBudget {
 		return invalidSelection("selection exceeds the $100 budget")
 	}
 
@@ -196,8 +226,38 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 				return err
 			}
 		}
+
+		// Replace this day's chip (an empty chip frees the one played earlier).
+		if err := tx.Where("fantasy_team_id = ? AND tournament_day_id = ?", fantasyTeamID, dayID).
+			Delete(&models.FantasyChipUse{}).Error; err != nil {
+			return err
+		}
+		if chip != "" {
+			use := models.FantasyChipUse{FantasyTeamID: fantasyTeamID, TournamentDayID: dayID, Chip: chip}
+			if err := tx.Create(&use).Error; err != nil {
+				return err
+			}
+		}
 		return nil
 	})
+}
+
+// GetDayChip returns the chip played on the day ("" if none).
+func (r *FantasyRepository) GetDayChip(fantasyTeamID, dayID uint) (string, error) {
+	var uses []models.FantasyChipUse
+	err := r.db.Where("fantasy_team_id = ? AND tournament_day_id = ?", fantasyTeamID, dayID).
+		Limit(1).Find(&uses).Error
+	if err != nil || len(uses) == 0 {
+		return "", err
+	}
+	return uses[0].Chip, nil
+}
+
+// GetChipUses lists every chip the team has played, across all days.
+func (r *FantasyRepository) GetChipUses(fantasyTeamID uint) ([]models.FantasyChipUse, error) {
+	var uses []models.FantasyChipUse
+	err := r.db.Where("fantasy_team_id = ?", fantasyTeamID).Order("tournament_day_id ASC").Find(&uses).Error
+	return uses, err
 }
 
 func (r *FantasyRepository) GetSelection(fantasyTeamID, dayID uint) ([]models.FantasySelection, error) {
@@ -224,6 +284,12 @@ func (r *FantasyRepository) ComputeDayScore(fantasyTeamID, dayID uint) ([]Player
 	if err != nil {
 		return nil, 0, err
 	}
+
+	chip, err := r.GetDayChip(fantasyTeamID, dayID)
+	if err != nil {
+		return nil, 0, err
+	}
+	captainMult := service.CaptainMultiplier(chip)
 
 	var breakdown []PlayerDayScore
 	total := 0
@@ -257,7 +323,7 @@ func (r *FantasyRepository) ComputeDayScore(fantasyTeamID, dayID uint) ([]Player
 		base := kills*service.FantasyKillPoints + firstBloods*service.FantasyFirstBloodPoints + placementPts
 		final := base
 		if s.IsCaptain {
-			final = base * 2
+			final = base * captainMult
 		}
 
 		breakdown = append(breakdown, PlayerDayScore{
@@ -332,6 +398,31 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]Fant
 		return nil, err
 	}
 
+	// chips played, so the captain multiplier is right for each (team, day)
+	chipQuery := `
+		SELECT cu.fantasy_team_id, cu.tournament_day_id AS day_id, cu.chip
+		FROM fantasy_chip_uses cu
+		JOIN fantasy_teams ft ON ft.id = cu.fantasy_team_id
+		WHERE ft.tournament_id = ?`
+	chipArgs := []any{tournamentID}
+	if dayID != nil {
+		chipQuery += " AND cu.tournament_day_id = ?"
+		chipArgs = append(chipArgs, *dayID)
+	}
+	var chipRows []struct {
+		FantasyTeamID uint
+		DayID         uint
+		Chip          string
+	}
+	if err := r.db.Raw(chipQuery, chipArgs...).Scan(&chipRows).Error; err != nil {
+		return nil, err
+	}
+	type teamDay struct{ teamID, dayID uint }
+	chips := map[teamDay]string{}
+	for _, c := range chipRows {
+		chips[teamDay{c.FantasyTeamID, c.DayID}] = c.Chip
+	}
+
 	// base points per (player, day), summed over that day's rooms
 	type playerDay struct{ playerID, dayID uint }
 	base := map[playerDay]int{}
@@ -347,7 +438,7 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]Fant
 	for _, sel := range sels {
 		pts := base[playerDay{sel.PlayerID, sel.DayID}]
 		if sel.IsCaptain {
-			pts *= 2
+			pts *= service.CaptainMultiplier(chips[teamDay{sel.FantasyTeamID, sel.DayID}])
 		}
 		totals[sel.FantasyTeamID] += pts
 	}

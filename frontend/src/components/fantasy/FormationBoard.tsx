@@ -26,16 +26,21 @@ interface Props {
   onSelect?: (id: number) => void; // click a filled card (used to pick the captain)
   onRemove?: (id: number) => void; // shows an × on filled cards
   emptyLabel?: string;
+  captainMultiplier?: number; // 2 normally, 3 with the Triple Captain chip
 }
 
-export default function FormationBoard({ slots, onSelect, onRemove, emptyLabel = "Empty" }: Props) {
+export default function FormationBoard({ slots, onSelect, onRemove, emptyLabel = "Empty", captainMultiplier = 2 }: Props) {
   return (
     <div className="grid grid-cols-3 grid-rows-3 gap-3">
       {POSITIONS.map((pos, i) => {
         const p = slots[i] ?? null;
         return (
           <div key={i} className={pos}>
-            {p ? <FilledSlot p={p} onSelect={onSelect} onRemove={onRemove} /> : <EmptySlot label={emptyLabel} />}
+            {p ? (
+              <FilledSlot p={p} onSelect={onSelect} onRemove={onRemove} multiplier={captainMultiplier} />
+            ) : (
+              <EmptySlot label={emptyLabel} />
+            )}
           </div>
         );
       })}
@@ -56,10 +61,12 @@ function FilledSlot({
   p,
   onSelect,
   onRemove,
+  multiplier,
 }: {
   p: SlotPlayer;
   onSelect?: (id: number) => void;
   onRemove?: (id: number) => void;
+  multiplier: number;
 }) {
   const interactive = !!onSelect;
   return (
@@ -99,7 +106,7 @@ function FilledSlot({
       )}
       {p.captain && (
         <span className="absolute left-1 top-1 bg-amber px-1.5 py-0.5 font-stat text-[9px] font-black uppercase text-char">
-          C · 2x
+          C · {multiplier}x
         </span>
       )}
       <Monogram label={p.name} imageUrl={p.photoUrl} size={64} />
