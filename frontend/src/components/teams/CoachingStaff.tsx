@@ -50,7 +50,7 @@ onError={() => setImageError(true)}
       </p>
     )}
 
-    <p className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">
+    <p className="mt-1 font-stat text-[14px] uppercase tracking-widest text-ash">
       {staff.role}
       {staff.country && ` · ${countryFlag(staff.country)}`}
     </p>
