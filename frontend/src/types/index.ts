@@ -290,9 +290,7 @@ export interface Prediction {
   competitor_team_id: number;
   tournament_id: number;
   tournament_day_id: number;
-  total_points: number;
   submitted_at: string;
-  scored_at: string | null;
 }
 
 export interface PredictionTeamEntry {
@@ -308,9 +306,9 @@ export interface PredictionTeamEntry {
 export interface PredictionDetail {
   prediction: Prediction;
   teams: PredictionTeamEntry[];
+  total_points: number;
+  scored: boolean;
   lock_time?: string | null;
-  locked?: boolean; // server's verdict on whether predictions are closed (only on "mine")
-  hidden?: boolean; // true while the day is open and you are not the owner
 }
 
 export interface PredictionPick {
