@@ -215,6 +215,7 @@ export interface FantasyTeam {
   tournament_id: number;
   team_name: string;
   country: string;
+  region?: string; // league slug ("" = no region league, Global only); set by the server from country
   created_at: string;
 }
 
@@ -281,7 +282,16 @@ export interface FantasyStanding {
   fantasy_team_id: number;
   team_name: string;
   country: string;
+  region?: string;
   points: number;
+}
+
+// A league the logged-in player belongs to: their own region league and/or Global.
+export interface FantasyLeague {
+  slug: string; // region slug, or "global"
+  name: string;
+  type: "region" | "global";
+  teams: number;
 }
 
 export interface FantasyTeamProfile {

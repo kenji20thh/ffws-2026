@@ -5,9 +5,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"ffws/internal/repository"
+	"ffws/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +25,9 @@ func NewFantasyHandler(repo *repository.FantasyRepository) *FantasyHandler {
 type createFantasyTeamRequest struct {
 	TournamentID uint   `json:"tournament_id" binding:"required"`
 	TeamName     string `json:"team_name" binding:"required"`
-	Country      string `json:"country"`
+
+	// Country decides the region league. The region itself is never accepted from the client.
+	Country string `json:"country" binding:"required"`
 }
 
 func (h *FantasyHandler) CreateTeam(c *gin.Context) {
@@ -35,7 +39,13 @@ func (h *FantasyHandler) CreateTeam(c *gin.Context) {
 		return
 	}
 
-	team, err := h.repo.CreateTeam(userID, req.TournamentID, req.TeamName, req.Country)
+	country := strings.TrimSpace(req.Country)
+	if country == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "country is required"})
+		return
+	}
+
+	team, err := h.repo.CreateTeam(userID, req.TournamentID, req.TeamName, country)
 	if err != nil {
 		if errors.Is(err, repository.ErrFantasyTeamExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -248,7 +258,8 @@ func (h *FantasyHandler) GetStandings(c *gin.Context) {
 		dayIDPtr = &d
 	}
 
-	standings, err := h.repo.GetStandings(uint(tournamentID), dayIDPtr)
+	// This is the Global leaderboard: everyone, no region filter.
+	standings, err := h.repo.GetStandings(uint(tournamentID), dayIDPtr, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch standings"})
 		return
@@ -276,6 +287,7 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 		"tournament_id": team.TournamentID,
 		"team_name":     team.TeamName,
 		"country":       team.Country,
+		"region":        team.Region,
 		"created_at":    team.CreatedAt,
 	}}
 
@@ -339,4 +351,115 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 	resp["chip"] = chip
 
 	c.JSON(http.StatusOK, gin.H{"data": resp})
+}
+
+// leagueResponse describes one league the current user belongs to.
+type leagueResponse struct {
+	Slug  string `json:"slug"`
+	Name  string `json:"name"`
+	Type  string `json:"type"` // "region" or "global"
+	Teams int64  `json:"teams"`
+}
+
+// GetMyLeagues lists the leagues the logged-in user is in: their own region league
+// (if their country belongs to one) and the Global league. Other regions are never
+// listed, so nobody can discover or browse them.
+func (h *FantasyHandler) GetMyLeagues(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
+		return
+	}
+
+	team, err := h.repo.GetTeamByUser(userID, uint(tournamentID))
+	if err != nil {
+		if errors.Is(err, repository.ErrFantasyTeamNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "create a fantasy team first"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch fantasy team"})
+		return
+	}
+
+	leagues := make([]leagueResponse, 0, 2)
+
+	if team.Region != "" {
+		n, err := h.repo.CountTeams(uint(tournamentID), team.Region)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch leagues"})
+			return
+		}
+		leagues = append(leagues, leagueResponse{
+			Slug: team.Region, Name: service.RegionName(team.Region), Type: "region", Teams: n,
+		})
+	}
+
+	n, err := h.repo.CountTeams(uint(tournamentID), "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch leagues"})
+		return
+	}
+	leagues = append(leagues, leagueResponse{
+		Slug: service.GlobalLeagueSlug, Name: "Global", Type: "global", Teams: n,
+	})
+
+	c.JSON(http.StatusOK, gin.H{"data": leagues})
+}
+
+// GetLeagueStandings returns the leaderboard of one league. A user may only open
+// their own region league or the Global league; any other region is refused (403).
+func (h *FantasyHandler) GetLeagueStandings(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	slug := c.Param("slug")
+
+	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
+		return
+	}
+
+	var dayIDPtr *uint
+	if dayIDStr := c.Query("day_id"); dayIDStr != "" {
+		dayID, err := strconv.ParseUint(dayIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day_id"})
+			return
+		}
+		d := uint(dayID)
+		dayIDPtr = &d
+	}
+
+	team, err := h.repo.GetTeamByUser(userID, uint(tournamentID))
+	if err != nil {
+		if errors.Is(err, repository.ErrFantasyTeamNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "create a fantasy team first"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch fantasy team"})
+		return
+	}
+
+	region := ""
+	switch {
+	case slug == service.GlobalLeagueSlug:
+		// everyone is in Global; region stays "" so nothing is filtered
+	case service.RegionName(slug) == "":
+		c.JSON(http.StatusNotFound, gin.H{"error": "league not found"})
+		return
+	case slug != team.Region:
+		// A real region, but not the caller's. Region comes from the stored team,
+		// never from the request, so it cannot be spoofed.
+		c.JSON(http.StatusForbidden, gin.H{"error": "you can only view your own region league"})
+		return
+	default:
+		region = slug
+	}
+
+	standings, err := h.repo.GetStandings(uint(tournamentID), dayIDPtr, region)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch standings"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": standings})
 }

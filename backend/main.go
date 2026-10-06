@@ -109,6 +109,13 @@ func main() {
 	fantasyRepo := repository.NewFantasyRepository(database)
 	fantasyHandler := handlers.NewFantasyHandler(fantasyRepo)
 
+	// Teams created before leagues existed get their region from their country.
+	if n, err := fantasyRepo.BackfillRegions(); err != nil {
+		log.Printf("warning: could not backfill fantasy regions: %v", err)
+	} else if n > 0 {
+		log.Printf("assigned a region league to %d existing fantasy teams", n)
+	}
+
 	api := router.Group("/api/v1")
 	{
 		api.POST("/auth/register", middleware.RateLimit(rate.Every(30*time.Second), 3), authHandler.Register)
@@ -149,6 +156,8 @@ func main() {
 		{
 			protected.POST("/fantasy/team", fantasyHandler.CreateTeam)
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
+			protected.GET("/fantasy/leagues", fantasyHandler.GetMyLeagues)
+			protected.GET("/fantasy/leagues/:slug/standings", fantasyHandler.GetLeagueStandings)
 			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
 			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
 			protected.GET("/predictions/mine/:dayId", predictionHandler.GetMine)

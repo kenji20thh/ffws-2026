@@ -16,6 +16,7 @@ import type {
   TournamentDay,
   FantasyPick,
   FantasyChip,
+  FantasyLeague,
   FantasyPlayerOption,
   FantasySelectionResponse,
   FantasyStanding,
@@ -219,6 +220,26 @@ export const submitFantasySelection = (
     { method: "POST", body: JSON.stringify({ picks, chip: chip ?? "" }) },
     true,
   );
+
+/** The leagues the logged-in player is in (own region + Global). Needs a fantasy team. */
+export const getMyFantasyLeagues = (tournamentId: number) =>
+  request<{ data: FantasyLeague[] | null }>(
+    `/fantasy/leagues?tournament_id=${tournamentId}`,
+    {},
+    true,
+  ).then((r) => r.data ?? []);
+
+/** Leaderboard of one league. The server refuses (403) any region that is not the player's own. */
+export const getFantasyLeagueStandings = (
+  tournamentId: number,
+  leagueSlug: string,
+  dayId?: number,
+) =>
+  request<{ data: FantasyStanding[] | null }>(
+    `/fantasy/leagues/${encodeURIComponent(leagueSlug)}/standings?tournament_id=${tournamentId}${dayId ? `&day_id=${dayId}` : ""}`,
+    {},
+    true,
+  ).then((r) => r.data ?? []);
 
 export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
   request<{ data: FantasyTeamProfile }>(

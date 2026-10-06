@@ -212,6 +212,10 @@ export default function CreateFantasyTeamForm({
         )}
       </div>
 
+      <p className="font-stat text-xs text-bone/50">
+        Your country decides which region league you play in. You can&apos;t change it later.
+      </p>
+
       <p
         aria-live="polite"
         className="min-h-5 font-stat text-xs text-danger"

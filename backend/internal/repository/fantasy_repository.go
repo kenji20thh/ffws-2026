@@ -45,7 +45,11 @@ func (r *FantasyRepository) CreateTeam(userID, tournamentID uint, teamName, coun
 	if count > 0 {
 		return nil, ErrFantasyTeamExists
 	}
-	team := models.FantasyTeam{UserID: userID, TournamentID: tournamentID, TeamName: teamName, Country: country}
+	// The league is decided here from the country, never by the caller.
+	team := models.FantasyTeam{
+		UserID: userID, TournamentID: tournamentID, TeamName: teamName, Country: country,
+		Region: service.RegionForCountry(country),
+	}
 	if err := r.db.Create(&team).Error; err != nil {
 		return nil, err
 	}
@@ -341,15 +345,21 @@ type FantasyStanding struct {
 	FantasyTeamID uint   `json:"fantasy_team_id"`
 	TeamName      string `json:"team_name"`
 	Country       string `json:"country"`
+	Region        string `json:"region"`
 	Points        int    `json:"points"`
 }
 
-// GetStandings totals every fantasy team's points, optionally for a single day.
+// GetStandings totals every fantasy team's points, optionally for a single day
+// and optionally for a single region league (region == "" means everyone, i.e. Global).
 // It runs three queries no matter how many teams or picks exist (no per-team queries),
 // and scores through service.Fantasy* so the rules live in one place.
-func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]FantasyStanding, error) {
+func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint, region string) ([]FantasyStanding, error) {
+	teamQuery := r.db.Where("tournament_id = ?", tournamentID)
+	if region != "" {
+		teamQuery = teamQuery.Where("region = ?", region)
+	}
 	var teams []models.FantasyTeam
-	if err := r.db.Where("tournament_id = ?", tournamentID).Order("id ASC").Find(&teams).Error; err != nil {
+	if err := teamQuery.Order("id ASC").Find(&teams).Error; err != nil {
 		return nil, err
 	}
 	if len(teams) == 0 {
@@ -370,6 +380,10 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]Fant
 		WHERE td.tournament_id = ?`
 	selArgs := []any{tournamentID}
 	statArgs := []any{tournamentID}
+	if region != "" {
+		selQuery += " AND ft.region = ?"
+		selArgs = append(selArgs, region)
+	}
 	if dayID != nil {
 		selQuery += " AND fs.tournament_day_id = ?"
 		statQuery += " AND r.tournament_day_id = ?"
@@ -405,6 +419,10 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]Fant
 		JOIN fantasy_teams ft ON ft.id = cu.fantasy_team_id
 		WHERE ft.tournament_id = ?`
 	chipArgs := []any{tournamentID}
+	if region != "" {
+		chipQuery += " AND ft.region = ?"
+		chipArgs = append(chipArgs, region)
+	}
 	if dayID != nil {
 		chipQuery += " AND cu.tournament_day_id = ?"
 		chipArgs = append(chipArgs, *dayID)
@@ -446,7 +464,7 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint) ([]Fant
 	standings := make([]FantasyStanding, 0, len(teams))
 	for _, t := range teams {
 		standings = append(standings, FantasyStanding{
-			FantasyTeamID: t.ID, TeamName: t.TeamName, Country: t.Country, Points: totals[t.ID],
+			FantasyTeamID: t.ID, TeamName: t.TeamName, Country: t.Country, Region: t.Region, Points: totals[t.ID],
 		})
 	}
 	// highest points first; equal points keep registration order
@@ -487,4 +505,38 @@ func (r *FantasyRepository) GetPlayerPool(tournamentID, dayID uint) ([]FantasyPl
 
 	return options, err
 
+}
+
+// CountTeams returns how many fantasy teams are in a league for a tournament
+// (region == "" counts everyone, i.e. the Global league).
+func (r *FantasyRepository) CountTeams(tournamentID uint, region string) (int64, error) {
+	q := r.db.Model(&models.FantasyTeam{}).Where("tournament_id = ?", tournamentID)
+	if region != "" {
+		q = q.Where("region = ?", region)
+	}
+	var n int64
+	err := q.Count(&n).Error
+	return n, err
+}
+
+// BackfillRegions assigns a region to teams created before leagues existed.
+// It is safe to run on every startup: it only touches teams with no region yet,
+// and teams whose country maps to no region are simply left alone.
+func (r *FantasyRepository) BackfillRegions() (int, error) {
+	var teams []models.FantasyTeam
+	if err := r.db.Where("region = ''").Find(&teams).Error; err != nil {
+		return 0, err
+	}
+	updated := 0
+	for _, t := range teams {
+		region := service.RegionForCountry(t.Country)
+		if region == "" {
+			continue
+		}
+		if err := r.db.Model(&models.FantasyTeam{}).Where("id = ?", t.ID).Update("region", region).Error; err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, nil
 }
