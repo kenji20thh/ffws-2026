@@ -110,7 +110,7 @@ export default function SelectionBuilder({
   const usedTeamIds = new Set(pickedOptions.map((o) => o.team_id));
 
   const unlimited = chip === "limitless";
-  const sameTeamAllowed = chip === "same_team";
+  const sameTeamAllowed = chip === "Duo_stack";
   const multiplier = captainMultiplier(chip);
 
   const teamCounts = new Map<number, number>();
@@ -158,7 +158,7 @@ export default function SelectionBuilder({
     setChip(next);
     setError("");
 
-    if (next === "same_team") return;
+    if (next === "Duo_stack") return;
 
     if (pickedOptions.some((o) => (teamCounts.get(o.team_id) ?? 0) > 1)) {
       setSlots((prev) => {
