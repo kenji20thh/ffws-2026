@@ -1,32 +1,17 @@
 import Link from "next/link";
 import Monogram from "@/components/ui/Monogram";
+import { countryFlag } from "@/lib/flags";
 import type { Team } from "@/types";
 
-const countryFlags: Record<string, string> = {
-  Morocco: "🇲🇦",
-  Mexico: "🇲🇽",
-  Indonesia: "🇮🇩",
-  Vietnam: "🇻🇳",
-  Thailand: "🇹🇭",
-  Malaysia: "🇲🇾",
-  Singapore: "🇸🇬",
-  Philippines: "🇵🇭",
-  India: "🇮🇳",
-  Brazil: "🇧🇷",
-  Pakistan: "🇵🇰",
-  Bangladesh: "🇧🇩",
-  Nepal: "🇳🇵",
-};
-
 export default function TeamCard({ team }: { team: Team }) {
-  const flag = team.country ? countryFlags[team.country] : undefined;
+  const flag = team.country ? countryFlag(team.country) : undefined;
 
   return (
     <Link
       href={`/teams/${team.id}`}
       className="group chamfer relative block border border-bone/10 bg-char-2 p-5 transition-colors hover:border-ember"
     >
-      {/* corner brackets */}
+      {/* Corner brackets */}
       <span className="absolute left-2 top-2 h-3 w-3 border-l border-t border-ember opacity-0 transition-all group-hover:-left-0 group-hover:-top-0 group-hover:opacity-100" />
 
       <span className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-ember opacity-0 transition-all group-hover:bottom-0 group-hover:right-0 group-hover:opacity-100" />
