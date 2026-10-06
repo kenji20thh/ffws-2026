@@ -14,10 +14,7 @@ export default function PlayersHeroMarquee({ players }: Props) {
     return null;
   }
 
-  /*
-   * One player per team.
-   * The first player returned for each team is used.
-   */
+  // Pick one player from each team.
   const byTeam = new Map<number, PlayerWithTeam>();
 
   for (const player of players) {
@@ -32,10 +29,7 @@ export default function PlayersHeroMarquee({ players }: Props) {
     return null;
   }
 
-  /*
-   * Duplicate the complete sequence so the CSS animation
-   * can loop seamlessly.
-   */
+  // Duplicate the sequence for a seamless infinite loop.
   const marqueePlayers = [
     ...featuredPlayers,
     ...featuredPlayers,
@@ -43,11 +37,13 @@ export default function PlayersHeroMarquee({ players }: Props) {
 
   return (
     <div className="relative -mx-5 mt-8 overflow-hidden sm:-mx-6 lg:-mx-8">
-      {/* Fade edges */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-24 bg-gradient-to-r from-char via-char/80 to-transparent sm:w-36" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-24 bg-gradient-to-l from-char via-char/80 to-transparent sm:w-36" />
+      {/* Left fade */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-gradient-to-r from-char via-char/80 to-transparent sm:w-32" />
 
-      {/* Top technical line */}
+      {/* Right fade */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-gradient-to-l from-char via-char/80 to-transparent sm:w-32" />
+
+      {/* Top line */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-bone/10" />
 
       <div className="group overflow-hidden py-5">
@@ -65,14 +61,14 @@ export default function PlayersHeroMarquee({ players }: Props) {
               key={`${player.id}-${index}`}
               className="relative mx-2 h-32 w-28 shrink-0 overflow-hidden border border-bone/10 bg-char-2 sm:mx-3 sm:h-36 sm:w-32"
             >
-              {/* Player image */}
+              {/* Player photo */}
               {player.photo_url ? (
                 <Image
                   src={player.photo_url}
                   alt={player.ign}
                   fill
                   sizes="128px"
-                  className="object-cover object-top opacity-90 grayscale-[15%] transition duration-500 group-hover:opacity-100"
+                  className="object-cover object-top opacity-90 transition duration-500 group-hover:opacity-100"
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -105,7 +101,7 @@ export default function PlayersHeroMarquee({ players }: Props) {
                 </p>
 
                 <p className="mt-1 truncate font-stat text-[7px] uppercase tracking-[0.16em] text-ember">
-                  {player.team.short_name || player.team.name}
+                  {player.team.name}
                 </p>
               </div>
 
@@ -116,7 +112,7 @@ export default function PlayersHeroMarquee({ players }: Props) {
         </div>
       </div>
 
-      {/* Bottom technical line */}
+      {/* Bottom line */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-px bg-bone/10" />
 
       {/* Label */}
