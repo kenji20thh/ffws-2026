@@ -52,7 +52,7 @@ const sections: RuleSection[] = [
             <b>Limitless:</b> the $100 budget doesn&apos;t apply to that day&apos;s squad.
           </li>
           <li>
-            <b>Same Team:</b> you may pick two players from the same team (one pair only).
+            <b>Duo Stack:</b> you may pick two players from the same team (one pair only).
           </li>
         </ul>
       </>

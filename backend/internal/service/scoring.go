@@ -88,12 +88,12 @@ func PredictionPoints(predicted, actual int) int {
 const (
 	ChipTripleCaptain = "triple_captain" // captain scores 3x instead of 2x
 	ChipLimitless     = "limitless"      // the $100 budget does not apply
-	ChipSameTeam      = "same_team"      // one pair of players may come from the same team
+	ChipDuoStack      = "duo_stack"      // one pair of players may come from the same team
 )
 
 func IsValidChip(chip string) bool {
 	switch chip {
-	case ChipTripleCaptain, ChipLimitless, ChipSameTeam:
+	case ChipTripleCaptain, ChipLimitless, ChipDuoStack:
 		return true
 	}
 	return false

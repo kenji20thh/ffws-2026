@@ -145,7 +145,7 @@ export default function SelectionBuilder({
       }
 
       if (pairs >= 1) {
-        return "Same Team allows only one pair";
+        return "Duo Stack allows only one pair";
       }
     }
 

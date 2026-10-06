@@ -205,9 +205,9 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 			pairs++
 		}
 	}
-	if chip == service.ChipSameTeam {
+	if chip == service.ChipDuoStack {
 		if maxPerTeam > 2 || pairs > 1 {
-			return invalidSelection("the Same Team chip allows one pair of players from the same team, no more")
+			return invalidSelection("the Duo Stack chip allows one pair of players from the same team, no more")
 		}
 	} else if maxPerTeam > 1 {
 		return invalidSelection("all 4 players must be from different teams")

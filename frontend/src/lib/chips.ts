@@ -22,8 +22,8 @@ export const CHIPS: ChipInfo[] = [
     description: "The $100 budget doesn't apply: pick any four players.",
   },
   {
-    id: "same_team",
-    name: "Same Team",
+    id: "Duo_stack",
+    name: "Duo Stack",
     short: "2 from one team",
     description: "You may pick two players from the same team (one pair only).",
   },
