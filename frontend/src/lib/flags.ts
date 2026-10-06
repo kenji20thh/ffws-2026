@@ -197,7 +197,14 @@ Zimbabwe: "🇿🇼",
 };
 
 export function countryFlag(country: string): string {
-const normalizedCountry = country.replace(/\s+/g, "");
+  const normalizedCountry = country
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
 
-return COUNTRY_FLAGS[country] ?? COUNTRY_FLAGS[normalizedCountry] ?? "🌐";
+  const match = Object.entries(COUNTRY_FLAGS).find(
+    ([key]) => key.toLowerCase() === normalizedCountry
+  );
+
+  return match?.[1] ?? "🌐";
 }
