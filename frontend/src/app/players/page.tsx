@@ -1,8 +1,13 @@
 import PageHeader from "@/components/layout/PageHeader";
 import PlayersDirectory from "@/components/players/PlayersDirectory";
+import PlayersHeroMarquee from "@/components/players/PlayersHeroMarquee";
 import ErrorState from "@/components/ui/ErrorState";
-import { getPlayerLeaderboard, getPlayers, getTeams, getTournament } from "@/lib/api";
-import type { PlayerLeaderboardEntry, Team } from "@/types";
+import {
+  getPlayerLeaderboard,
+  getPlayers,
+  getTeams,
+  getTournament,
+} from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +54,8 @@ export default async function PlayersPage() {
       <>
         <PageHeader eyebrow="World stage" title="Players">
           Meet the players competing at the FFWS World Cup.
+
+          <PlayersHeroMarquee players={players} />
         </PageHeader>
 
         <PlayersDirectory
@@ -66,7 +73,11 @@ export default async function PlayersPage() {
 
         <div className="mx-auto max-w-6xl px-5 py-10">
           <ErrorState
-            message={e instanceof Error ? e.message : "Failed to load players"}
+            message={
+              e instanceof Error
+                ? e.message
+                : "Failed to load players"
+            }
           />
         </div>
       </>
