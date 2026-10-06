@@ -30,14 +30,22 @@ export default function FantasyLeaderboard({
     let cancelled = false;
     setLoading(true);
     setError("");
+
     const day = dayId === "overall" ? undefined : dayId;
+
     const load = leagueSlug
       ? getFantasyLeagueStandings(tournamentId, leagueSlug, day)
       : getFantasyStandings(tournamentId, day);
+
     load
       .then((r) => !cancelled && setRows(r))
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Failed to load standings"))
+      .catch(
+        (e) =>
+          !cancelled &&
+          setError(e instanceof Error ? e.message : "Failed to load standings"),
+      )
       .finally(() => !cancelled && setLoading(false));
+
     return () => {
       cancelled = true;
     };
@@ -45,26 +53,44 @@ export default function FantasyLeaderboard({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setDayId("overall")}
-          className={`chamfer-sm px-5 py-2 font-display text-lg font-bold uppercase tracking-wider ${
-            dayId === "overall" ? "bg-ember text-char" : "border border-bone/20 text-bone/70 hover:text-ember"
-          }`}
+      {/* Day selector */}
+      <div className="flex items-center gap-4">
+        <label
+          htmlFor="fantasy-leaderboard-day"
+          className="shrink-0 font-stat text-[10px] uppercase tracking-[0.25em] text-ash"
         >
-          Overall
-        </button>
-        {days.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => setDayId(d.id)}
-            className={`chamfer-sm px-5 py-2 font-display text-lg font-bold uppercase tracking-wider ${
-              dayId === d.id ? "bg-ember text-char" : "border border-bone/20 text-bone/70 hover:text-ember"
-            }`}
+          Standings
+        </label>
+
+        <div className="relative w-full max-w-xs">
+          <select
+            id="fantasy-leaderboard-day"
+            value={dayId}
+            onChange={(e) =>
+              setDayId(
+                e.target.value === "overall"
+                  ? "overall"
+                  : Number(e.target.value),
+              )
+            }
+            className="w-full appearance-none chamfer-sm border border-bone/20 bg-char-2 px-5 py-3 pr-12 font-display text-lg font-bold uppercase tracking-wider text-bone outline-none transition focus:border-ember focus:ring-1 focus:ring-ember/40"
           >
-            {d.name}
-          </button>
-        ))}
+            <option value="overall">Overall</option>
+
+            {days.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ember"
+          >
+            ▼
+          </span>
+        </div>
       </div>
 
       {loading ? (
@@ -84,23 +110,45 @@ export default function FantasyLeaderboard({
                 <th className="py-3 text-right text-ember">Points</th>
               </tr>
             </thead>
+
             <tbody>
               {rows.map((r, i) => (
                 <tr
                   key={r.fantasy_team_id}
                   className={`border-b border-bone/5 hover:bg-char-2 ${
-                    r.fantasy_team_id === highlightTeamId ? "bg-ember/10" : ""
+                    r.fantasy_team_id === highlightTeamId
+                      ? "bg-ember/10"
+                      : ""
                   }`}
                 >
-                  <td className={`py-3 pr-3 font-display text-3xl font-black ${i === 0 ? "text-amber" : "text-bone/60"}`}>{i + 1}</td>
+                  <td
+                    className={`py-3 pr-3 font-display text-3xl font-black ${
+                      i === 0 ? "text-amber" : "text-bone/60"
+                    }`}
+                  >
+                    {i + 1}
+                  </td>
+
                   <td className="py-3 font-display text-2xl font-bold uppercase">
-                    <Link href={`/fantasy/${r.fantasy_team_id}`} className="hover:text-ember">{r.team_name}</Link>
+                    <Link
+                      href={`/fantasy/${r.fantasy_team_id}`}
+                      className="hover:text-ember"
+                    >
+                      {r.team_name}
+                    </Link>
+
                     {r.fantasy_team_id === highlightTeamId && (
-                      <span className="ml-3 align-middle font-stat text-[10px] tracking-widest text-ember">YOU</span>
+                      <span className="ml-3 align-middle font-stat text-[10px] tracking-widest text-ember">
+                        YOU
+                      </span>
                     )}
                   </td>
+
                   <td className="py-3 text-bone/70">{r.country}</td>
-                  <td className="py-3 text-right font-stat text-lg font-bold tabular-nums text-ember">{r.points}</td>
+
+                  <td className="py-3 text-right font-stat text-lg font-bold tabular-nums text-ember">
+                    {r.points}
+                  </td>
                 </tr>
               ))}
             </tbody>
