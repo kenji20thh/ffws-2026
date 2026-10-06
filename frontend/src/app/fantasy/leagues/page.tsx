@@ -13,7 +13,7 @@ export default async function FantasyLeaguesPage() {
     return (
       <>
         <PageHeader eyebrow="Compete" title="Leagues">
-          You&apos;re placed in a region league based on your country, and everyone is in Global.
+          You&apos;re placed in a region league based on your country, and everyone is in Global. Start a private league to play your friends.
         </PageHeader>
         <div className="mx-auto max-w-4xl px-5 py-10">
           <FantasyLeagues tournamentId={t.id} days={days} />

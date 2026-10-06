@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getMyFantasyLeagues, getMyFantasyTeam } from "@/lib/api";
+import { ApiError, getMyFantasyLeagues, getMyFantasyTeam, leavePrivateLeague } from "@/lib/api";
 import { clearSession, getToken } from "@/lib/auth";
 import { countryFlag } from "@/lib/flags";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 import FantasyLeaderboard from "./FantasyLeaderboard";
+import LeagueCodeCard from "./LeagueCodeCard";
+import PrivateLeagueTools from "./PrivateLeagueTools";
 
 type State =
   | { kind: "loading" }
@@ -30,6 +32,37 @@ export default function FantasyLeagues({
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [active, setActive] = useState<string>("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [actionError, setActionError] = useState("");
+
+  // An invite link looks like /fantasy/leagues?join=ABCD2345 and prefills the join form.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("join");
+    if (code) setInviteCode(code);
+  }, []);
+
+  /** Reloads the league list (after creating, joining or leaving) and opens `select`. */
+  async function refreshLeagues(select?: string) {
+    try {
+      const leagues = await getMyFantasyLeagues(tournamentId);
+      setState((s) => (s.kind === "ready" ? { ...s, leagues } : s));
+      setActive(
+        select && leagues.some((l) => l.slug === select) ? select : (leagues[0]?.slug ?? ""),
+      );
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to refresh your leagues");
+    }
+  }
+
+  async function leave(slug: string) {
+    setActionError("");
+    try {
+      await leavePrivateLeague(tournamentId, slug);
+      await refreshLeagues();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to leave the league");
+    }
+  }
 
   useEffect(() => {
     if (!getToken()) {
@@ -114,6 +147,22 @@ export default function FantasyLeagues({
         </p>
       </div>
 
+      <PrivateLeagueTools
+        tournamentId={tournamentId}
+        initialCode={inviteCode}
+        onDone={(league) => {
+          setInviteCode("");
+          setActionError("");
+          refreshLeagues(league.slug);
+        }}
+      />
+
+      {actionError && (
+        <p role="alert" className="text-sm text-red-400">
+          {actionError}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {leagues.map((l) => (
           <button
@@ -125,11 +174,21 @@ export default function FantasyLeagues({
                 : "border border-bone/20 text-bone/70 hover:text-ember"
             }`}
           >
+            {l.type === "private" && <span aria-label="Private league" className="mr-2 text-base">🔒</span>}
             {l.name}
             <span className="ml-2 font-stat text-xs font-normal opacity-70">{l.teams}</span>
           </button>
         ))}
       </div>
+
+      {current?.type === "private" && current.code && (
+        <LeagueCodeCard
+          key={`code-${current.slug}`}
+          name={current.name}
+          code={current.code}
+          onLeave={() => leave(current.slug)}
+        />
+      )}
 
       {current && (
         <FantasyLeaderboard

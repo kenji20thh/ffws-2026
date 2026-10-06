@@ -48,6 +48,8 @@ func main() {
 		&models.FantasyChipUse{},
 		&models.Prediction{},
 		&models.PredictionTeam{},
+		&models.PrivateLeague{},
+		&models.PrivateLeagueMember{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
@@ -158,6 +160,9 @@ func main() {
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
 			protected.GET("/fantasy/leagues", fantasyHandler.GetMyLeagues)
 			protected.GET("/fantasy/leagues/:slug/standings", fantasyHandler.GetLeagueStandings)
+			protected.POST("/fantasy/leagues/private", middleware.RateLimit(rate.Every(10*time.Second), 5), fantasyHandler.CreatePrivateLeague)
+			protected.POST("/fantasy/leagues/join", middleware.RateLimit(rate.Every(6*time.Second), 10), fantasyHandler.JoinPrivateLeague)
+			protected.DELETE("/fantasy/leagues/private/:id", fantasyHandler.LeavePrivateLeague)
 			protected.GET("/fantasy/team/selections/:dayId", fantasyHandler.GetMySelection)
 			protected.POST("/fantasy/team/selections/:dayId", fantasyHandler.SubmitSelection)
 			protected.GET("/predictions/mine/:dayId", predictionHandler.GetMine)

@@ -286,12 +286,13 @@ export interface FantasyStanding {
   points: number;
 }
 
-// A league the logged-in player belongs to: their own region league and/or Global.
+// A league the logged-in player belongs to: their own region league, Global, and any private leagues they joined.
 export interface FantasyLeague {
-  slug: string; // region slug, or "global"
+  slug: string; // region slug, "global", or "private-<id>"
   name: string;
-  type: "region" | "global";
+  type: "region" | "global" | "private";
   teams: number;
+  code?: string; // invite code, e.g. "ABCD-2345"; private leagues only
 }
 
 export interface FantasyTeamProfile {

@@ -221,7 +221,7 @@ export const submitFantasySelection = (
     true,
   );
 
-/** The leagues the logged-in player is in (own region + Global). Needs a fantasy team. */
+/** The leagues the logged-in player is in (own region + Global + private leagues joined). Needs a fantasy team. */
 export const getMyFantasyLeagues = (tournamentId: number) =>
   request<{ data: FantasyLeague[] | null }>(
     `/fantasy/leagues?tournament_id=${tournamentId}`,
@@ -229,7 +229,7 @@ export const getMyFantasyLeagues = (tournamentId: number) =>
     true,
   ).then((r) => r.data ?? []);
 
-/** Leaderboard of one league. The server refuses (403) any region that is not the player's own. */
+/** Leaderboard of one league. The server refuses (403) any region that is not the player's own, and 404s private leagues you're not in. */
 export const getFantasyLeagueStandings = (
   tournamentId: number,
   leagueSlug: string,
@@ -240,6 +240,30 @@ export const getFantasyLeagueStandings = (
     {},
     true,
   ).then((r) => r.data ?? []);
+
+/** Create a private league. The server returns it with its invite code. */
+export const createPrivateLeague = (tournamentId: number, name: string) =>
+  request<{ data: FantasyLeague }>(
+    `/fantasy/leagues/private`,
+    { method: "POST", body: JSON.stringify({ tournament_id: tournamentId, name }) },
+    true,
+  ).then((r) => r.data);
+
+/** Join a private league with its invite code (dashes/spaces/case don't matter). */
+export const joinPrivateLeague = (tournamentId: number, code: string) =>
+  request<{ data: FantasyLeague }>(
+    `/fantasy/leagues/join`,
+    { method: "POST", body: JSON.stringify({ tournament_id: tournamentId, code }) },
+    true,
+  ).then((r) => r.data);
+
+/** Leave a private league, given its slug ("private-<id>"). */
+export const leavePrivateLeague = (tournamentId: number, leagueSlug: string) =>
+  request<{ message: string }>(
+    `/fantasy/leagues/private/${encodeURIComponent(leagueSlug.replace(/^private-/, ""))}?tournament_id=${tournamentId}`,
+    { method: "DELETE" },
+    true,
+  );
 
 export const getFantasyTeamProfile = (fantasyTeamId: number, dayId?: number) =>
   request<{ data: FantasyTeamProfile }>(

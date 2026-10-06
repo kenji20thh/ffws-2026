@@ -354,9 +354,21 @@ type FantasyStanding struct {
 // It runs three queries no matter how many teams or picks exist (no per-team queries),
 // and scores through service.Fantasy* so the rules live in one place.
 func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint, region string) ([]FantasyStanding, error) {
+	return r.getStandings(tournamentID, dayID, region, nil)
+}
+
+// getStandings is the shared implementation. When teamIDs is non-nil only those fantasy
+// teams are ranked (used by private leagues); region and teamIDs may be combined.
+func (r *FantasyRepository) getStandings(tournamentID uint, dayID *uint, region string, teamIDs []uint) ([]FantasyStanding, error) {
+	if teamIDs != nil && len(teamIDs) == 0 {
+		return []FantasyStanding{}, nil
+	}
 	teamQuery := r.db.Where("tournament_id = ?", tournamentID)
 	if region != "" {
 		teamQuery = teamQuery.Where("region = ?", region)
+	}
+	if teamIDs != nil {
+		teamQuery = teamQuery.Where("id IN ?", teamIDs)
 	}
 	var teams []models.FantasyTeam
 	if err := teamQuery.Order("id ASC").Find(&teams).Error; err != nil {
@@ -383,6 +395,10 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint, region 
 	if region != "" {
 		selQuery += " AND ft.region = ?"
 		selArgs = append(selArgs, region)
+	}
+	if teamIDs != nil {
+		selQuery += " AND ft.id IN ?"
+		selArgs = append(selArgs, teamIDs)
 	}
 	if dayID != nil {
 		selQuery += " AND fs.tournament_day_id = ?"
@@ -422,6 +438,10 @@ func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint, region 
 	if region != "" {
 		chipQuery += " AND ft.region = ?"
 		chipArgs = append(chipArgs, region)
+	}
+	if teamIDs != nil {
+		chipQuery += " AND ft.id IN ?"
+		chipArgs = append(chipArgs, teamIDs)
 	}
 	if dayID != nil {
 		chipQuery += " AND cu.tournament_day_id = ?"

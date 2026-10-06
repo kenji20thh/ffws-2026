@@ -357,8 +357,9 @@ func (h *FantasyHandler) GetTeamProfile(c *gin.Context) {
 type leagueResponse struct {
 	Slug  string `json:"slug"`
 	Name  string `json:"name"`
-	Type  string `json:"type"` // "region" or "global"
+	Type  string `json:"type"` // "region", "global" or "private"
 	Teams int64  `json:"teams"`
+	Code  string `json:"code,omitempty"` // invite code; private leagues only, and only shown to members
 }
 
 // GetMyLeagues lists the leagues the logged-in user is in: their own region league
@@ -404,6 +405,15 @@ func (h *FantasyHandler) GetMyLeagues(c *gin.Context) {
 		Slug: service.GlobalLeagueSlug, Name: "Global", Type: "global", Teams: n,
 	})
 
+	privates, err := h.repo.GetMyPrivateLeagues(team.ID, uint(tournamentID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch leagues"})
+		return
+	}
+	for _, p := range privates {
+		leagues = append(leagues, privateLeagueResponse(p.League, p.Members))
+	}
+
 	c.JSON(http.StatusOK, gin.H{"data": leagues})
 }
 
@@ -437,6 +447,27 @@ func (h *FantasyHandler) GetLeagueStandings(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch fantasy team"})
+		return
+	}
+
+	// Private leagues: only members may open them. Everyone else gets a plain 404,
+	// the same answer as for a league that does not exist.
+	if leagueID, isPrivate := parsePrivateLeagueSlug(slug); isPrivate {
+		league, err := h.repo.GetPrivateLeagueForMember(leagueID, team.ID)
+		if err != nil {
+			if errors.Is(err, repository.ErrLeagueNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "league not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch league"})
+			return
+		}
+		standings, err := h.repo.GetPrivateLeagueStandings(league, dayIDPtr)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch standings"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"data": standings})
 		return
 	}
 
