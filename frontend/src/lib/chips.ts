@@ -16,21 +16,21 @@ export const CHIPS: ChipInfo[] = [
     name: "Triple Captain",
     short: "Captain scores 3x",
     description: "Your captain's points count triple instead of double.",
-    image: "/images/fantasy/triple_captain.png",
+    image: "/images/chips/triple_captain.png",
   },
   {
     id: "limitless",
     name: "Limitless",
     short: "No budget limit",
     description: "The $100 budget doesn't apply: pick any four players.",
-    image: "/images/fantasy/limitless.png",
+    image: "/images/chips/limitless.png",
   },
   {
     id: "Duo_stack",
     name: "Duo Stack",
     short: "2 from one team",
     description: "You may pick two players from the same team (one pair only).",
-    image: "/images/fantasy/duo_stack.png",
+    image: "/images/chips/duo_stack.png",
   },
 ];
 
