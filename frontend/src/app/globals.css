@@ -123,3 +123,20 @@ body::before {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes players-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-players-marquee {
+  animation-name: players-marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
