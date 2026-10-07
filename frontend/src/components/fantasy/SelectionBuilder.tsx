@@ -13,6 +13,7 @@ import type {
 } from "@/types";
 import BudgetBar from "./BudgetBar";
 import ChipPicker from "./ChipPicker";
+import FantasyPlayerCard from "./FantasyPlayerCard";
 import PlayerDetailCard from "./PlayerDetailCard";
 import PlayerListRow from "./PlayerListRow";
 
@@ -511,7 +512,7 @@ export default function SelectionBuilder({
               </div>
 
               {/* Four cards */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {slots.map((id, index) => {
                   const player =
                     id !== null ? byId.get(id) : undefined;
@@ -529,7 +530,8 @@ export default function SelectionBuilder({
                             )
                             ?.focus();
                         }}
-                        className="group relative aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="group relative w-full overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ aspectRatio: "932 / 1480" }}
                       >
                         <div className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char-2 font-stat text-[10px] font-bold text-ash">
                           0{index + 1}
@@ -558,162 +560,59 @@ export default function SelectionBuilder({
 
                   const isCaptain = player.player_id === captain;
 
+                  /*
+                   * The new FIFA-style card is intentionally kept separate from
+                   * the remove/captain controls. This prevents nested <button>
+                   * elements and lets FantasyPlayerCard handle its own scaling,
+                   * artwork and selected state cleanly.
+                   */
                   return (
                     <div
                       key={player.player_id}
-                      className={`group relative aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border bg-char transition duration-300 ${
+                      className={`relative min-w-0 ${
                         isCaptain
-                          ? "border-ember/70 shadow-[0_0_35px_rgba(255,100,40,.14)]"
-                          : "border-bone/15 hover:border-ember/40"
+                          ? "drop-shadow-[0_0_22px_rgba(255,90,31,0.16)]"
+                          : ""
                       }`}
                     >
-                      <div
-                        className={`absolute inset-0 bg-gradient-to-br ${
-                          isCaptain
-                            ? "from-ember/20 via-transparent to-ember/[0.03]"
-                            : "from-bone/[0.07] via-transparent to-transparent"
-                        }`}
+                      {/* Player card */}
+                      <FantasyPlayerCard
+                        size="fluid"
+                        player={{
+                          ign: player.ign,
+                          role: player.role,
+                          country: player.country,
+                          photo_url: player.photo_url,
+                        }}
+                        team={{
+                          name: player.team_name,
+                          tag: player.team_tag,
+                          logo_url: player.team_logo_url,
+                        }}
+                        overall={Math.min(
+                          99,
+                          Math.max(
+                            70,
+                            Math.round(
+                              80 +
+                                player.fantasy_price * 0.35,
+                            ),
+                          ),
+                        )}
+                        price={player.fantasy_price}
+                        selected={true}
+                        captain={isCaptain}
+                        onClick={() =>
+                          setDetailId(player.player_id)
+                        }
+                        disabled={locked}
                       />
 
-                      {player.photo_url ? (
-                        <img
-                          src={player.photo_url}
-                          alt={player.ign}
-                          className="absolute inset-0 h-full w-full object-cover object-top opacity-90 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-bone/[0.04] to-transparent">
-                          <span className="font-display text-7xl font-black text-bone/10">
-                            {player.ign.slice(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-char via-char/60 to-transparent" />
-
-                      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-char/70 to-transparent" />
-
-                      {/* Rating */}
-                      <div className="absolute left-4 top-4 z-10">
-                        <div className="font-display text-4xl font-black leading-none text-bone drop-shadow-lg">
-                          {Math.min(
-                            99,
-                            Math.max(
-                              70,
-                              Math.round(
-                                80 +
-                                  player.fantasy_price * 0.35,
-                              ),
-                            ),
-                          )}
-                        </div>
-
-                        <p className="mt-0.5 font-stat text-[8px] font-bold uppercase tracking-widest text-ember">
-                          {player.role || "PLAYER"}
-                        </p>
-                      </div>
-
-                      {/* Card number */}
-                      <div className="absolute right-3 top-3 z-10 flex h-7 min-w-7 items-center justify-center border border-bone/15 bg-char/70 px-2 backdrop-blur-sm">
+                      {/* Slot number */}
+                      <div className="pointer-events-none absolute left-[7%] top-[6%] z-20 flex h-7 min-w-7 items-center justify-center border border-bone/15 bg-char/70 px-2 backdrop-blur-sm">
                         <span className="font-stat text-[8px] font-bold text-ash">
                           0{index + 1}
                         </span>
-                      </div>
-
-                      {/* Captain badge */}
-                      {isCaptain && (
-                        <div className="absolute right-3 top-12 z-10 flex items-center gap-1 border border-ember/50 bg-ember px-2 py-1 shadow-lg">
-                          <span className="text-[9px] text-char">
-                            ★
-                          </span>
-
-                          <span className="font-stat text-[8px] font-black uppercase tracking-wider text-char">
-                            Captain
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Player information */}
-                      <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                        <div className="flex items-end justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-display text-xl font-black uppercase leading-none text-bone drop-shadow-lg">
-                              {player.ign}
-                            </p>
-
-                            <div className="mt-2 flex items-center gap-2">
-                              {player.team_logo_url ? (
-                                <img
-                                  src={player.team_logo_url}
-                                  alt=""
-                                  className="h-5 w-5 object-contain"
-                                />
-                              ) : (
-                                <div className="h-5 w-5 rounded-full border border-bone/20 bg-bone/5" />
-                              )}
-
-                              <span className="truncate font-stat text-[8px] uppercase tracking-wider text-ash">
-                                {player.team_name}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0 text-right">
-                            <p className="font-stat text-[7px] uppercase tracking-widest text-ash">
-                              Price
-                            </p>
-
-                            <p className="font-display text-sm font-black text-ember">
-                              $
-                              {player.fantasy_price.toFixed(
-                                1,
-                              )}
-                              M
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-3 border-t border-bone/10 pt-3">
-                          <div>
-                            <p className="font-stat text-[7px] uppercase tracking-widest text-ash/70">
-                              Role
-                            </p>
-
-                            <p className="mt-0.5 truncate font-stat text-[8px] font-bold uppercase text-bone">
-                              {player.role || "—"}
-                            </p>
-                          </div>
-
-                          <div className="border-l border-bone/10 pl-3">
-                            <p className="font-stat text-[7px] uppercase tracking-widest text-ash/70">
-                              Value
-                            </p>
-
-                            <p className="mt-0.5 font-stat text-[8px] font-bold text-bone">
-                              {player.fantasy_price.toFixed(
-                                1,
-                              )}
-                            </p>
-                          </div>
-
-                          <div className="border-l border-bone/10 pl-3 text-right">
-                            <p className="font-stat text-[7px] uppercase tracking-widest text-ash/70">
-                              Mult
-                            </p>
-
-                            <p
-                              className={`mt-0.5 font-stat text-[8px] font-bold ${
-                                isCaptain
-                                  ? "text-ember"
-                                  : "text-bone"
-                              }`}
-                            >
-                              {isCaptain
-                                ? `${multiplier}x`
-                                : "1x"}
-                            </p>
-                          </div>
-                        </div>
                       </div>
 
                       {/* Remove */}
@@ -723,27 +622,27 @@ export default function SelectionBuilder({
                           onClick={() =>
                             remove(player.player_id)
                           }
-                          className="absolute bottom-3 right-3 z-20 flex h-7 w-7 items-center justify-center border border-bone/15 bg-char/70 text-ash opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:border-danger/50 hover:text-danger"
+                          className="absolute bottom-[5%] right-[5%] z-30 flex h-8 w-8 items-center justify-center border border-bone/15 bg-char/80 text-ash opacity-0 backdrop-blur-sm transition hover:border-danger/50 hover:text-danger group-hover:opacity-100"
                           aria-label={`Remove ${player.ign}`}
                         >
                           ×
                         </button>
                       )}
 
-                      {/* Captain */}
+                      {/* Captain control */}
                       {!locked && (
                         <button
                           type="button"
                           onClick={() =>
                             makeCaptain(player.player_id)
                           }
-                          className={`absolute left-4 top-4 z-20 flex items-center gap-2 chamfer-sm border px-3 py-2 font-stat text-[9px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
+                          className={`absolute left-[7%] top-[14%] z-30 flex items-center gap-1.5 chamfer-sm border px-2.5 py-1.5 font-stat text-[8px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
                             isCaptain
-                              ? "border-ember bg-ember text-char shadow-[0_0_20px_rgba(255,100,40,.35)]"
+                              ? "border-ember bg-ember text-char shadow-[0_0_18px_rgba(255,100,40,.35)]"
                               : "border-bone/25 bg-char/80 text-bone hover:border-ember hover:bg-ember/15 hover:text-ember"
                           }`}
                         >
-                          <span className="text-sm leading-none">
+                          <span className="text-xs leading-none">
                             ★
                           </span>
 
@@ -754,14 +653,6 @@ export default function SelectionBuilder({
                           </span>
                         </button>
                       )}
-
-                      <div
-                        className={`absolute bottom-0 left-0 right-0 h-[2px] ${
-                          isCaptain
-                            ? "bg-ember"
-                            : "bg-bone/10"
-                        }`}
-                      />
                     </div>
                   );
                 })}
