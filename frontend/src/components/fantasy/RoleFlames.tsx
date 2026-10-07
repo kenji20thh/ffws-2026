@@ -7,116 +7,100 @@ type RoleFlamesProps = {
   captain?: boolean;
 };
 
-type SmokeParticle = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-  alpha: number;
-  phase: number;
-  rotation: number;
-  rotationSpeed: number;
-};
-
 type SmokeTheme = {
-  core: string;
   main: string;
-  deep: string;
+  light: string;
+  dark: string;
 };
 
-function getTheme(
-  role: string,
-  captain: boolean,
-): SmokeTheme {
-  const normalized = role
-    .toLowerCase()
-    .trim();
+type Wisp = {
+  offset: number;
+  speed: number;
+  width: number;
+  length: number;
+  phase: number;
+  alpha: number;
+  drift: number;
+};
 
-  let theme: SmokeTheme;
+function getTheme(role: string): SmokeTheme {
+  const normalized = role.toLowerCase().trim();
 
   if (
     normalized.includes("support") ||
     normalized.includes("utility")
   ) {
-    theme = {
-      core: "#d8ffe5",
+    return {
       main: "#22d66f",
-      deep: "#087a3b",
+      light: "#caffdc",
+      dark: "#087a3b",
     };
-  } else if (
+  }
+
+  if (
     normalized.includes("sniper") ||
     normalized.includes("igl")
   ) {
-    theme = {
-      core: "#d8ecff",
+    return {
       main: "#238cff",
-      deep: "#0751a5",
+      light: "#d0e8ff",
+      dark: "#0751a5",
     };
-  } else if (
+  }
+
+  if (
     normalized.includes("rusher") ||
     normalized.includes("entry") ||
     normalized.includes("fragger")
   ) {
-    theme = {
-      core: "#ffdcd6",
+    return {
       main: "#ff3b30",
-      deep: "#9d0904",
-    };
-  } else if (
-    normalized.includes("bomber") ||
-    normalized.includes("bomb")
-  ) {
-    theme = {
-      core: "#fff4b8",
-      main: "#ffb000",
-      deep: "#d85a00",
-    };
-  } else {
-    theme = {
-      core: "#ffe8cf",
-      main: "#ff7a18",
-      deep: "#a92c00",
+      light: "#ffd5d0",
+      dark: "#9d0904",
     };
   }
 
-  return theme;
+  if (
+    normalized.includes("bomber") ||
+    normalized.includes("bomb")
+  ) {
+    return {
+      main: "#ffb000",
+      light: "#fff3b5",
+      dark: "#d85a00",
+    };
+  }
+
+  return {
+    main: "#ff7a18",
+    light: "#ffe2c5",
+    dark: "#a92c00",
+  };
 }
 
 export default function RoleFlames({
   role,
   captain = false,
 }: RoleFlamesProps) {
-  const canvasRef =
-    useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvasElement =
-      canvasRef.current;
+    const canvasElement = canvasRef.current;
 
     if (!canvasElement) {
       return;
     }
 
-    const context =
-      canvasElement.getContext("2d");
+    const context = canvasElement.getContext("2d");
 
     if (!context) {
       return;
     }
 
-    const canvas: HTMLCanvasElement =
-      canvasElement;
+    const canvas: HTMLCanvasElement = canvasElement;
+    const ctx: CanvasRenderingContext2D = context;
 
-    const ctx: CanvasRenderingContext2D =
-      context;
-
-    const theme = getTheme(
-      role,
-      captain,
-    );
+    const theme = getTheme(role);
 
     let width = 0;
     let height = 0;
@@ -124,30 +108,17 @@ export default function RoleFlames({
     let animationFrame = 0;
     let running = true;
 
-    const particles: SmokeParticle[] =
-      [];
+    const wisps: Wisp[] = [];
 
     function hexToRgba(
       hex: string,
       alpha: number,
     ): string {
-      const clean =
-        hex.replace("#", "");
+      const clean = hex.replace("#", "");
 
-      const r = parseInt(
-        clean.slice(0, 2),
-        16,
-      );
-
-      const g = parseInt(
-        clean.slice(2, 4),
-        16,
-      );
-
-      const b = parseInt(
-        clean.slice(4, 6),
-        16,
-      );
+      const r = parseInt(clean.slice(0, 2), 16);
+      const g = parseInt(clean.slice(2, 4), 16);
+      const b = parseInt(clean.slice(4, 6), 16);
 
       return `rgba(${r}, ${g}, ${b}, ${Math.max(
         0,
@@ -156,16 +127,12 @@ export default function RoleFlames({
     }
 
     function resize() {
-      const rect =
-        canvas.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();
 
       width = rect.width;
       height = rect.height;
 
-      dpr = Math.min(
-        window.devicePixelRatio || 1,
-        2,
-      );
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.max(
         1,
@@ -177,578 +144,663 @@ export default function RoleFlames({
         Math.floor(height * dpr),
       );
 
-      ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0,
-      );
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    function createParticle(
-      initial = false,
-    ): SmokeParticle {
-      const maxLife =
-        1400 +
-        Math.random() * 1500;
+    function createWisps() {
+      wisps.length = 0;
 
-      const startX =
-        width *
-        (0.68 +
-          Math.random() * 0.42);
+      /*
+       * More wisps, but each one remains thin
+       * and irregular instead of becoming a blob.
+       */
+      const count = captain ? 19 : 15;
 
-      const startY =
-        height *
-        (-0.05 +
-          Math.random() * 0.45);
+      for (let i = 0; i < count; i++) {
+        wisps.push({
+          offset: Math.random(),
+          speed:
+            0.000025 +
+            Math.random() * 0.000035,
 
-      return {
-        x: initial
-          ? startX -
+          width:
+            9 +
+            Math.random() * 20,
+
+          length:
+            0.18 +
+            Math.random() * 0.26,
+
+          phase:
             Math.random() *
-              width *
-              0.55
-          : startX,
+            Math.PI *
+            2,
 
-        y: initial
-          ? startY +
-            Math.random() *
-              height *
-              0.55
-          : startY,
+          /*
+           * Increased substantially.
+           */
+          alpha:
+            0.075 +
+            Math.random() * 0.065,
 
-        /*
-         * TOP RIGHT -> BOTTOM LEFT
-         */
-        vx:
-          -(
-            0.16 +
-            Math.random() * 0.32
-          ),
-
-        vy:
-          0.12 +
-          Math.random() * 0.26,
-
-        life: initial
-          ? Math.random() * maxLife
-          : 0,
-
-        maxLife,
-
-        /*
-         * Larger smoke clouds.
-         */
-        size:
-          24 +
-          Math.random() * 52,
-
-        /*
-         * Increased particle opacity.
-         */
-        alpha:
-          0.08 +
-          Math.random() * 0.12,
-
-        phase:
-          Math.random() *
-          Math.PI *
-          2,
-
-        rotation:
-          Math.random() *
-          Math.PI *
-          2,
-
-        rotationSpeed:
-          (Math.random() - 0.5) *
-          0.002,
-      };
-    }
-
-    function resetParticle(
-      particle: SmokeParticle,
-    ) {
-      Object.assign(
-        particle,
-        createParticle(false),
-      );
-    }
-
-    function seedParticles() {
-      particles.length = 0;
-
-      const count = captain
-        ? 50
-        : 40;
-
-      for (
-        let i = 0;
-        i < count;
-        i++
-      ) {
-        particles.push(
-          createParticle(true),
-        );
+          drift:
+            10 +
+            Math.random() * 24,
+        });
       }
     }
 
-    function drawSmokeRibbon(
-      time: number,
-    ) {
-      const steps = 15;
-
-      for (
-        let i = 0;
-        i < steps;
-        i++
-      ) {
-        const progress =
-          i / (steps - 1);
-
-        /*
-         * TOP RIGHT
-         *      \
-         *       \
-         *        \
-         *         \
-         *          BOTTOM LEFT
-         */
-        const baseX =
-          width *
-          (0.98 -
-            progress * 1.15);
-
-        const baseY =
-          height *
-          (-0.02 +
-            progress * 1.05);
-
-        const waveA =
-          Math.sin(
-            time * 0.0008 +
-              i * 0.75,
-          ) *
-          width *
-          0.055;
-
-        const waveB =
-          Math.sin(
-            time * 0.0013 +
-              i * 1.2,
-          ) *
-          height *
-          0.035;
-
-        const x =
-          baseX + waveA;
-
-        const y =
-          baseY + waveB;
-
-        const radius =
-          width *
-          (0.11 +
-            Math.sin(
-              time * 0.0007 +
-                i * 0.9,
-            ) *
-              0.018);
-
-        const centerDistance =
-          Math.abs(
-            progress - 0.5,
-          );
-
-        const edgeBias =
-          0.55 +
-          centerDistance *
-            0.45;
-
-        const gradient =
-          ctx.createRadialGradient(
-            x,
-            y,
-            0,
-            x,
-            y,
-            radius,
-          );
-
-        /*
-         * Much more visible than before.
-         */
-        gradient.addColorStop(
-          0,
-          hexToRgba(
-            theme.main,
-            (captain
-              ? 0.17
-              : 0.12) *
-              edgeBias,
-          ),
-        );
-
-        gradient.addColorStop(
-          0.28,
-          hexToRgba(
-            theme.main,
-            (captain
-              ? 0.11
-              : 0.075) *
-              edgeBias,
-          ),
-        );
-
-        gradient.addColorStop(
-          0.52,
-          hexToRgba(
-            theme.deep,
-            (captain
-              ? 0.075
-              : 0.05) *
-              edgeBias,
-          ),
-        );
-
-        gradient.addColorStop(
-          0.78,
-          hexToRgba(
-            theme.deep,
-            0.025 *
-              edgeBias,
-          ),
-        );
-
-        gradient.addColorStop(
-          1,
-          hexToRgba(
-            theme.deep,
-            0,
-          ),
-        );
-
-        ctx.fillStyle =
-          gradient;
-
-        ctx.beginPath();
-
-        ctx.ellipse(
-          x,
-          y,
-          radius,
-          radius * 0.46,
-          -0.75,
-          0,
-          Math.PI * 2,
-        );
-
-        ctx.fill();
-      }
-    }
-
-    function drawParticle(
-      particle: SmokeParticle,
+    function drawWisp(
+      wisp: Wisp,
       time: number,
     ) {
       const progress =
-        particle.life /
-        particle.maxLife;
+        (wisp.offset +
+          time * wisp.speed) %
+        1.25;
 
+      if (progress > 1) {
+        return;
+      }
+
+      /*
+       * TOP RIGHT -> BOTTOM LEFT
+       */
+      const centerX =
+        width *
+        (0.98 -
+          progress * 1.05);
+
+      const centerY =
+        height *
+        (-0.04 +
+          progress * 1.08);
+
+      /*
+       * Organic movement.
+       */
+      const wave =
+        Math.sin(
+          time * 0.0007 +
+            wisp.phase +
+            progress * 9,
+        ) *
+        wisp.drift;
+
+      const x = centerX + wave;
+
+      const y =
+        centerY +
+        Math.cos(
+          time * 0.0009 +
+            wisp.phase,
+        ) *
+          10;
+
+      /*
+       * Fade the ends, but keep the
+       * middle very visible.
+       */
       const fadeIn = Math.min(
-        progress * 4,
+        progress / 0.1,
         1,
       );
 
       const fadeOut = Math.min(
-        (1 - progress) * 3,
+        (1 - progress) / 0.14,
         1,
       );
 
-      const alpha =
-        particle.alpha *
-        fadeIn *
-        fadeOut;
+      const lifeAlpha =
+        fadeIn * fadeOut;
 
-      if (alpha <= 0) {
+      if (lifeAlpha <= 0) {
         return;
       }
 
-      const movement =
-        particle.life * 0.001;
-
-      const wobbleX =
+      const widthMultiplier =
+        0.8 +
         Math.sin(
           time * 0.001 +
-            particle.phase +
-            movement,
+            wisp.phase,
         ) *
-        10;
+          0.2;
 
-      const wobbleY =
-        Math.cos(
-          time * 0.0008 +
-            particle.phase,
-        ) *
-        7;
-
-      const x =
-        particle.x +
-        wobbleX;
-
-      const y =
-        particle.y +
-        wobbleY;
-
-      const pulse =
-        1 +
-        Math.sin(
-          time * 0.0015 +
-            particle.phase,
-        ) *
-          0.15;
-
-      const size =
-        particle.size *
-        pulse;
-
-      ctx.save();
-
-      ctx.translate(
-        x,
-        y,
-      );
-
-      ctx.rotate(
-        particle.rotation,
-      );
-
-      const gradient =
-        ctx.createRadialGradient(
-          0,
-          0,
-          0,
-          0,
-          0,
-          size,
-        );
+      const strokeWidth =
+        wisp.width *
+        widthMultiplier;
 
       /*
-       * Bright center so the smoke
-       * doesn't disappear against
-       * dark player photos.
+       * Direction of the smoke.
+       */
+      const angle =
+        Math.PI * 0.75 +
+        Math.sin(
+          time * 0.0005 +
+            wisp.phase,
+        ) *
+          0.1;
+
+      const gradientLength =
+        Math.min(width, height) *
+        wisp.length;
+
+      const startX =
+        x -
+        Math.cos(angle) *
+          gradientLength *
+          0.5;
+
+      const startY =
+        y -
+        Math.sin(angle) *
+          gradientLength *
+          0.5;
+
+      const endX =
+        x +
+        Math.cos(angle) *
+          gradientLength *
+          0.5;
+
+      const endY =
+        y +
+        Math.sin(angle) *
+          gradientLength *
+          0.5;
+
+      const gradient =
+        ctx.createLinearGradient(
+          startX,
+          startY,
+          endX,
+          endY,
+        );
+
+      const strength =
+        lifeAlpha *
+        wisp.alpha *
+        (captain ? 1.35 : 1);
+
+      /*
+       * Stronger color core.
        */
       gradient.addColorStop(
         0,
         hexToRgba(
-          theme.core,
-          alpha * 0.72,
+          theme.dark,
+          0,
         ),
       );
 
       gradient.addColorStop(
-        0.16,
+        0.12,
         hexToRgba(
-          theme.main,
-          alpha * 0.58,
+          theme.dark,
+          strength * 0.35,
         ),
       );
 
       gradient.addColorStop(
-        0.38,
+        0.32,
         hexToRgba(
           theme.main,
-          alpha * 0.32,
+          strength * 1.15,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.5,
+        hexToRgba(
+          theme.light,
+          strength * 1.15,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.66,
+        hexToRgba(
+          theme.main,
+          strength * 0.95,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.84,
+        hexToRgba(
+          theme.dark,
+          strength * 0.35,
+        ),
+      );
+
+      gradient.addColorStop(
+        1,
+        hexToRgba(
+          theme.dark,
+          0,
+        ),
+      );
+
+      ctx.save();
+
+      ctx.globalCompositeOperation = "screen";
+
+      ctx.lineCap = "round";
+
+      /*
+       * LARGE SOFT OUTER SMOKE
+       *
+       * This is what makes the effect
+       * visible without looking like
+       * individual particles.
+       */
+      ctx.strokeStyle = gradient;
+
+      ctx.lineWidth =
+        strokeWidth * 4.5;
+
+      ctx.globalAlpha = 0.42;
+
+      ctx.beginPath();
+
+      const curveAmount =
+        Math.sin(
+          time * 0.0006 +
+            wisp.phase,
+        ) *
+        24;
+
+      ctx.moveTo(
+        startX,
+        startY,
+      );
+
+      ctx.quadraticCurveTo(
+        x + curveAmount,
+        y -
+          curveAmount *
+            0.4,
+        endX,
+        endY,
+      );
+
+      ctx.stroke();
+
+      /*
+       * MAIN SMOKE BODY
+       */
+      ctx.globalAlpha = 0.95;
+
+      ctx.lineWidth =
+        strokeWidth;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        startX,
+        startY,
+      );
+
+      ctx.quadraticCurveTo(
+        x + curveAmount,
+        y -
+          curveAmount *
+            0.4,
+        endX,
+        endY,
+      );
+
+      ctx.stroke();
+
+      /*
+       * THIN HOT CENTER
+       *
+       * Gives the smoke definition
+       * without turning it into fire.
+       */
+      const coreGradient =
+        ctx.createLinearGradient(
+          startX,
+          startY,
+          endX,
+          endY,
+        );
+
+      coreGradient.addColorStop(
+        0,
+        hexToRgba(
+          theme.main,
+          0,
+        ),
+      );
+
+      coreGradient.addColorStop(
+        0.35,
+        hexToRgba(
+          theme.main,
+          strength * 0.55,
+        ),
+      );
+
+      coreGradient.addColorStop(
+        0.52,
+        hexToRgba(
+          theme.light,
+          strength * 0.8,
+        ),
+      );
+
+      coreGradient.addColorStop(
+        0.7,
+        hexToRgba(
+          theme.main,
+          strength * 0.45,
+        ),
+      );
+
+      coreGradient.addColorStop(
+        1,
+        hexToRgba(
+          theme.main,
+          0,
+        ),
+      );
+
+      ctx.strokeStyle =
+        coreGradient;
+
+      ctx.lineWidth =
+        Math.max(
+          2,
+          strokeWidth * 0.22,
+        );
+
+      ctx.globalAlpha = 0.8;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        startX,
+        startY,
+      );
+
+      ctx.quadraticCurveTo(
+        x +
+          curveAmount *
+            0.7,
+        y -
+          curveAmount *
+            0.35,
+        endX,
+        endY,
+      );
+
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawAtmosphericTrail(
+      time: number,
+    ) {
+      /*
+       * Broad diagonal atmosphere.
+       */
+      const gradient =
+        ctx.createLinearGradient(
+          width * 0.94,
+          height * 0.02,
+          width * 0.02,
+          height * 0.96,
+        );
+
+      const strength =
+        captain ? 0.115 : 0.085;
+
+      gradient.addColorStop(
+        0,
+        hexToRgba(
+          theme.main,
+          strength,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.18,
+        hexToRgba(
+          theme.main,
+          strength * 0.8,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.4,
+        hexToRgba(
+          theme.main,
+          strength * 0.52,
         ),
       );
 
       gradient.addColorStop(
         0.62,
         hexToRgba(
-          theme.deep,
-          alpha * 0.16,
+          theme.dark,
+          strength * 0.3,
         ),
       );
 
       gradient.addColorStop(
         0.82,
         hexToRgba(
-          theme.deep,
-          alpha * 0.05,
+          theme.dark,
+          strength * 0.12,
         ),
       );
 
       gradient.addColorStop(
         1,
         hexToRgba(
-          theme.deep,
+          theme.dark,
           0,
         ),
+      );
+
+      const drift =
+        Math.sin(
+          time * 0.0004,
+        ) * 12;
+
+      ctx.save();
+
+      ctx.globalCompositeOperation =
+        "screen";
+
+      ctx.translate(
+        drift,
+        -drift * 0.4,
       );
 
       ctx.fillStyle =
         gradient;
 
-      ctx.beginPath();
-
-      ctx.ellipse(
-        0,
-        0,
-        size,
-        size * 0.48,
-        0,
-        0,
-        Math.PI * 2,
-      );
-
-      ctx.fill();
-
-      /*
-       * Secondary soft wisp.
-       */
-      ctx.globalAlpha =
-        0.7;
+      ctx.globalAlpha = 0.9;
 
       ctx.beginPath();
 
-      ctx.ellipse(
-        size * 0.28,
-        -size * 0.16,
-        size * 0.62,
-        size * 0.25,
-        -0.25,
+      ctx.moveTo(
+        width * 0.46,
         0,
-        Math.PI * 2,
       );
+
+      ctx.lineTo(
+        width,
+        0,
+      );
+
+      ctx.lineTo(
+        width,
+        height * 0.42,
+      );
+
+      ctx.lineTo(
+        width * 0.16,
+        height,
+      );
+
+      ctx.lineTo(
+        0,
+        height,
+      );
+
+      ctx.lineTo(
+        width * 0.35,
+        height * 0.48,
+      );
+
+      ctx.closePath();
 
       ctx.fill();
 
       ctx.restore();
     }
 
-    function drawEdgeHaze() {
-      /*
-       * TOP-RIGHT source.
-       */
-      const sourceGradient =
-        ctx.createRadialGradient(
-          width * 0.92,
-          height * 0.04,
-          0,
-          width * 0.92,
-          height * 0.04,
-          width * 0.55,
-        );
-
-      sourceGradient.addColorStop(
-        0,
-        hexToRgba(
-          theme.main,
-          captain
-            ? 0.2
-            : 0.14,
-        ),
-      );
-
-      sourceGradient.addColorStop(
-        0.3,
-        hexToRgba(
-          theme.main,
-          captain
-            ? 0.09
-            : 0.06,
-        ),
-      );
-
-      sourceGradient.addColorStop(
-        0.65,
-        hexToRgba(
-          theme.deep,
-          0.025,
-        ),
-      );
-
-      sourceGradient.addColorStop(
-        1,
-        hexToRgba(
-          theme.main,
-          0,
-        ),
-      );
-
-      ctx.fillStyle =
-        sourceGradient;
-
-      ctx.fillRect(
-        width * 0.45,
-        0,
-        width * 0.55,
-        height * 0.5,
-      );
-
-      /*
-       * BOTTOM-LEFT trail.
-       */
-      const trailGradient =
-        ctx.createRadialGradient(
-          width * 0.05,
-          height * 0.9,
-          0,
-          width * 0.05,
-          height * 0.9,
-          width * 0.5,
-        );
-
-      trailGradient.addColorStop(
-        0,
-        hexToRgba(
-          theme.deep,
-          captain
-            ? 0.11
-            : 0.075,
-        ),
-      );
-
-      trailGradient.addColorStop(
-        0.35,
-        hexToRgba(
-          theme.deep,
-          0.045,
-        ),
-      );
-
-      trailGradient.addColorStop(
-        0.7,
-        hexToRgba(
-          theme.deep,
-          0.015,
-        ),
-      );
-
-      trailGradient.addColorStop(
-        1,
-        hexToRgba(
-          theme.deep,
-          0,
-        ),
-      );
-
-      ctx.fillStyle =
-        trailGradient;
-
-      ctx.fillRect(
-        0,
-        height * 0.55,
-        width * 0.45,
-        height * 0.45,
-      );
-    }
-
-    function animate(
+    function drawFineSmoke(
       time: number,
     ) {
+      /*
+       * Fine wisps break up the main
+       * ribbons and make the smoke
+       * feel less geometric.
+       */
+      const count = captain ? 11 : 8;
+
+      for (let i = 0; i < count; i++) {
+        const phase =
+          i * 1.8 +
+          role.length;
+
+        const progress =
+          (time * 0.000025 +
+            i / count) %
+          1;
+
+        const baseX =
+          width *
+          (0.98 -
+            progress * 1.04);
+
+        const baseY =
+          height *
+          (-0.03 +
+            progress * 1.05);
+
+        const wave =
+          Math.sin(
+            time * 0.001 +
+              phase,
+          ) *
+          34;
+
+        const x =
+          baseX + wave;
+
+        const y =
+          baseY +
+          Math.cos(
+            time * 0.0008 +
+              phase,
+          ) *
+            16;
+
+        const length =
+          Math.min(width, height) *
+          (0.13 +
+            i * 0.01);
+
+        const gradient =
+          ctx.createLinearGradient(
+            x,
+            y,
+            x - length,
+            y + length,
+          );
+
+        const alpha =
+          captain ? 0.065 : 0.045;
+
+        gradient.addColorStop(
+          0,
+          hexToRgba(
+            theme.light,
+            alpha,
+          ),
+        );
+
+        gradient.addColorStop(
+          0.3,
+          hexToRgba(
+            theme.main,
+            alpha * 0.9,
+          ),
+        );
+
+        gradient.addColorStop(
+          0.7,
+          hexToRgba(
+            theme.main,
+            alpha * 0.45,
+          ),
+        );
+
+        gradient.addColorStop(
+          1,
+          hexToRgba(
+            theme.main,
+            0,
+          ),
+        );
+
+        ctx.save();
+
+        ctx.globalCompositeOperation =
+          "screen";
+
+        ctx.strokeStyle =
+          gradient;
+
+        ctx.lineWidth =
+          1.5 +
+          i * 0.3;
+
+        ctx.lineCap = "round";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          x,
+          y,
+        );
+
+        ctx.bezierCurveTo(
+          x -
+            length * 0.2,
+          y +
+            length * 0.1,
+          x -
+            length * 0.55,
+          y +
+            length * 0.18,
+          x - length,
+          y + length,
+        );
+
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    function animate(time: number) {
       if (!running) {
         return;
       }
@@ -760,64 +812,15 @@ export default function RoleFlames({
         height,
       );
 
-      ctx.globalCompositeOperation =
-        "source-over";
+      drawAtmosphericTrail(time);
 
-      drawEdgeHaze();
+      drawFineSmoke(time);
 
-      drawSmokeRibbon(time);
-
-      for (
-        const particle of particles
-      ) {
-        particle.life += 16;
-
-        /*
-         * Diagonal:
-         * top-right -> bottom-left
-         */
-        particle.x +=
-          particle.vx;
-
-        particle.y +=
-          particle.vy;
-
-        /*
-         * Organic movement.
-         */
-        particle.x +=
-          Math.sin(
-            time * 0.0015 +
-              particle.phase,
-          ) *
-          0.12;
-
-        particle.y +=
-          Math.cos(
-            time * 0.0011 +
-              particle.phase,
-          ) *
-          0.06;
-
-        particle.rotation +=
-          particle.rotationSpeed;
-
-        drawParticle(
-          particle,
+      for (const wisp of wisps) {
+        drawWisp(
+          wisp,
           time,
         );
-
-        if (
-          particle.life >=
-            particle.maxLife ||
-          particle.x < -100 ||
-          particle.y >
-            height + 100
-        ) {
-          resetParticle(
-            particle,
-          );
-        }
       }
 
       animationFrame =
@@ -828,37 +831,32 @@ export default function RoleFlames({
 
     resize();
 
-    seedParticles();
+    createWisps();
 
     const resizeObserver =
-      new ResizeObserver(
-        resize,
-      );
+      new ResizeObserver(resize);
 
-    resizeObserver.observe(
-      canvas,
-    );
+    resizeObserver.observe(canvas);
 
-    const visibilityHandler =
-      () => {
-        if (
-          document.visibilityState ===
-          "hidden"
-        ) {
-          running = false;
+    const visibilityHandler = () => {
+      if (
+        document.visibilityState ===
+        "hidden"
+      ) {
+        running = false;
 
-          cancelAnimationFrame(
-            animationFrame,
+        cancelAnimationFrame(
+          animationFrame,
+        );
+      } else if (!running) {
+        running = true;
+
+        animationFrame =
+          requestAnimationFrame(
+            animate,
           );
-        } else if (!running) {
-          running = true;
-
-          animationFrame =
-            requestAnimationFrame(
-              animate,
-            );
-        }
-      };
+      }
+    };
 
     document.addEventListener(
       "visibilitychange",
