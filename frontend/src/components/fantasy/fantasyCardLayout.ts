@@ -22,7 +22,7 @@ export const CARD_ZONES = {
   // black angular panel at the top left
   overall: { x: 66, y: 186, w: 132, h: 96 },
   role: { x: 76, y: 284, w: 112, h: 70 },
-  captainBadge: { x: 772, y: 128, w: 62, h: 62 },
+  captainBadge: { x: 772, y: 128, w: 162, h: 162 },
   // lower plate, upper band
   name: { x: 150, y: 1034, w: 632, h: 66 },
   // lower plate, lower band (team / flag / price row, then the four stats)
