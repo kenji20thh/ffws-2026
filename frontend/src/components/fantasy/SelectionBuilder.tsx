@@ -61,9 +61,7 @@ export default function SelectionBuilder({
     () => existing.find((s) => s.is_captain)?.player_id ?? null,
   );
 
-  const [chip, setChip] = useState<FantasyChip | null>(
-    () => savedChip || null,
-  );
+  const [chip, setChip] = useState<FantasyChip | null>(() => savedChip || null);
 
   const [search, setSearch] = useState("");
   const [detailId, setDetailId] = useState<number | null>(null);
@@ -123,10 +121,7 @@ export default function SelectionBuilder({
     .map((id) => byId.get(id))
     .filter((o): o is PoolPlayer => !!o);
 
-  const spent = pickedOptions.reduce(
-    (sum, o) => sum + o.fantasy_price,
-    0,
-  );
+  const spent = pickedOptions.reduce((sum, o) => sum + o.fantasy_price, 0);
 
   const remaining = BUDGET - spent;
 
@@ -183,11 +178,7 @@ export default function SelectionBuilder({
 
     if (next === "Duo_stack") return;
 
-    if (
-      pickedOptions.some(
-        (o) => (teamCounts.get(o.team_id) ?? 0) > 1,
-      )
-    ) {
+    if (pickedOptions.some((o) => (teamCounts.get(o.team_id) ?? 0) > 1)) {
       setSlots((prev) => {
         const seen = new Set<number>();
 
@@ -287,9 +278,7 @@ export default function SelectionBuilder({
         setError("Your session expired. Please log in again.");
       } else {
         setError(
-          err instanceof ApiError
-            ? err.message
-            : "Failed to save selection",
+          err instanceof ApiError ? err.message : "Failed to save selection",
         );
       }
     } finally {
@@ -301,8 +290,7 @@ export default function SelectionBuilder({
     return <EmptyState title="No players available" />;
   }
 
-  const detailOption =
-    detailId !== null ? (byId.get(detailId) ?? null) : null;
+  const detailOption = detailId !== null ? (byId.get(detailId) ?? null) : null;
 
   return (
     <>
@@ -433,10 +421,7 @@ export default function SelectionBuilder({
 
                 <p className="mt-1 font-display text-3xl font-black leading-none">
                   <span className="text-ember">{picked.length}</span>
-                  <span className="text-ash/40">
-                    {" "}
-                    / {SQUAD_SIZE}
-                  </span>
+                  <span className="text-ash/40"> / {SQUAD_SIZE}</span>
                 </p>
               </div>
             </div>
@@ -462,9 +447,7 @@ export default function SelectionBuilder({
               <p className="font-stat text-[9px] uppercase tracking-widest text-danger">
                 Selections are locked for this day
                 {lockTime
-                  ? ` · deadline was ${new Date(
-                      lockTime,
-                    ).toUTCString()}`
+                  ? ` · deadline was ${new Date(lockTime).toUTCString()}`
                   : " · play has already started"}
               </p>
             </div>
@@ -514,8 +497,7 @@ export default function SelectionBuilder({
               {/* Four cards */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {slots.map((id, index) => {
-                  const player =
-                    id !== null ? byId.get(id) : undefined;
+                  const player = id !== null ? byId.get(id) : undefined;
 
                   if (!player) {
                     return (
@@ -593,18 +575,13 @@ export default function SelectionBuilder({
                           99,
                           Math.max(
                             70,
-                            Math.round(
-                              80 +
-                                player.fantasy_price * 0.35,
-                            ),
+                            Math.round(80 + player.fantasy_price * 0.35),
                           ),
                         )}
                         price={player.fantasy_price}
                         selected={true}
                         captain={isCaptain}
-                        onClick={() =>
-                          setDetailId(player.player_id)
-                        }
+                        onClick={() => setDetailId(player.player_id)}
                         disabled={locked}
                       />
 
@@ -619,9 +596,7 @@ export default function SelectionBuilder({
                       {!locked && (
                         <button
                           type="button"
-                          onClick={() =>
-                            remove(player.player_id)
-                          }
+                          onClick={() => remove(player.player_id)}
                           className="absolute bottom-[5%] right-[5%] z-30 flex h-8 w-8 items-center justify-center border border-bone/15 bg-char/80 text-ash opacity-0 backdrop-blur-sm transition hover:border-danger/50 hover:text-danger group-hover:opacity-100"
                           aria-label={`Remove ${player.ign}`}
                         >
@@ -633,24 +608,16 @@ export default function SelectionBuilder({
                       {!locked && (
                         <button
                           type="button"
-                          onClick={() =>
-                            makeCaptain(player.player_id)
-                          }
-                          className={`absolute left-[7%] top-[14%] z-30 flex items-center gap-1.5 chamfer-sm border px-2.5 py-1.5 font-stat text-[8px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
+                          onClick={() => makeCaptain(player.player_id)}
+                          className={`absolute bottom-[5%] left-[5%] z-30 flex items-center gap-1.5 chamfer-sm border px-2.5 py-1.5 font-stat text-[8px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
                             isCaptain
                               ? "border-ember bg-ember text-char shadow-[0_0_18px_rgba(255,100,40,.35)]"
                               : "border-bone/25 bg-char/80 text-bone hover:border-ember hover:bg-ember/15 hover:text-ember"
                           }`}
                         >
-                          <span className="text-xs leading-none">
-                            ★
-                          </span>
+                          <span className="text-xs leading-none">★</span>
 
-                          <span>
-                            {isCaptain
-                              ? "Captain"
-                              : "Make Captain"}
-                          </span>
+                          <span>{isCaptain ? "Captain" : "Make Captain"}</span>
                         </button>
                       )}
                     </div>
@@ -663,9 +630,7 @@ export default function SelectionBuilder({
 
                 <p className="font-stat text-[9px] uppercase tracking-[0.18em] text-ash">
                   Select a captain for{" "}
-                  <span className="text-ember">
-                    {multiplier}x points
-                  </span>
+                  <span className="text-ember">{multiplier}x points</span>
                 </p>
               </div>
             </div>
@@ -707,9 +672,7 @@ export default function SelectionBuilder({
                       : "text-bone"
                 }`}
               >
-                {unlimited
-                  ? "∞"
-                  : `$${remaining.toFixed(1)}M`}
+                {unlimited ? "∞" : `$${remaining.toFixed(1)}M`}
               </p>
             </div>
           </div>
@@ -734,9 +697,7 @@ export default function SelectionBuilder({
               : locked
                 ? "Selection locked"
                 : picked.length < SQUAD_SIZE
-                  ? `Select ${
-                      SQUAD_SIZE - picked.length
-                    } more`
+                  ? `Select ${SQUAD_SIZE - picked.length} more`
                   : "Confirm squad →"}
           </Button>
         </section>
@@ -771,29 +732,21 @@ export default function SelectionBuilder({
                 className="absolute -right-2 -top-2 z-[110] flex h-10 w-10 items-center justify-center chamfer-sm border border-bone/20 bg-char-2 text-bone shadow-xl transition hover:border-ember hover:bg-ember hover:text-char"
                 aria-label="Close player details"
               >
-                <span className="text-xl leading-none">
-                  ×
-                </span>
+                <span className="text-xl leading-none">×</span>
               </button>
 
               <PlayerDetailCard
                 option={detailOption}
                 onClose={() => setDetailId(null)}
                 action={{
-                  label: picked.includes(
-                    detailOption.player_id,
-                  )
+                  label: picked.includes(detailOption.player_id)
                     ? "Remove from team"
                     : "Add to team",
                   disabled:
                     locked ||
-                    (!picked.includes(
-                      detailOption.player_id,
-                    ) &&
+                    (!picked.includes(detailOption.player_id) &&
                       !!blockedReason(detailOption)),
-                  hint:
-                    blockedReason(detailOption) ??
-                    undefined,
+                  hint: blockedReason(detailOption) ?? undefined,
                   onClick: () => toggle(detailOption),
                 }}
               />
