@@ -42,7 +42,7 @@ function getTheme(
     normalized.includes("utility")
   ) {
     theme = {
-      core: "#b8ffcf",
+      core: "#d8ffe5",
       main: "#22d66f",
       deep: "#087a3b",
     };
@@ -51,7 +51,7 @@ function getTheme(
     normalized.includes("igl")
   ) {
     theme = {
-      core: "#c7e5ff",
+      core: "#d8ecff",
       main: "#238cff",
       deep: "#0751a5",
     };
@@ -61,7 +61,7 @@ function getTheme(
     normalized.includes("fragger")
   ) {
     theme = {
-      core: "#ffd0c7",
+      core: "#ffdcd6",
       main: "#ff3b30",
       deep: "#9d0904",
     };
@@ -70,27 +70,19 @@ function getTheme(
     normalized.includes("bomb")
   ) {
     theme = {
-      core: "#fff1a8",
+      core: "#fff4b8",
       main: "#ffb000",
       deep: "#d85a00",
     };
   } else {
     theme = {
-      core: "#ffe2c2",
+      core: "#ffe8cf",
       main: "#ff7a18",
       deep: "#a92c00",
     };
   }
 
-  if (!captain) {
-    return theme;
-  }
-
-  return {
-    core: theme.core,
-    main: theme.main,
-    deep: theme.deep,
-  };
+  return theme;
 }
 
 export default function RoleFlames({
@@ -195,16 +187,6 @@ export default function RoleFlames({
       );
     }
 
-    /*
-     * Smoke travels diagonally:
-     *
-     * TOP RIGHT
-     *      \
-     *       \
-     *        \
-     *         \
-     *          BOTTOM LEFT
-     */
     function createParticle(
       initial = false,
     ): SmokeParticle {
@@ -212,10 +194,6 @@ export default function RoleFlames({
         1400 +
         Math.random() * 1500;
 
-      /*
-       * Start primarily around the top-right.
-       * A little variation keeps the smoke organic.
-       */
       const startX =
         width *
         (0.68 +
@@ -242,7 +220,7 @@ export default function RoleFlames({
           : startY,
 
         /*
-         * Move LEFT and DOWN.
+         * TOP RIGHT -> BOTTOM LEFT
          */
         vx:
           -(
@@ -260,13 +238,19 @@ export default function RoleFlames({
 
         maxLife,
 
+        /*
+         * Larger smoke clouds.
+         */
         size:
-          18 +
-          Math.random() * 42,
+          24 +
+          Math.random() * 52,
 
+        /*
+         * Increased particle opacity.
+         */
         alpha:
-          0.035 +
-          Math.random() * 0.075,
+          0.08 +
+          Math.random() * 0.12,
 
         phase:
           Math.random() *
@@ -297,8 +281,8 @@ export default function RoleFlames({
       particles.length = 0;
 
       const count = captain
-        ? 42
-        : 32;
+        ? 50
+        : 40;
 
       for (
         let i = 0;
@@ -311,12 +295,6 @@ export default function RoleFlames({
       }
     }
 
-    /*
-     * Large, very soft diagonal smoke.
-     *
-     * This is deliberately subtle.
-     * There are no sharp flame tongues.
-     */
     function drawSmokeRibbon(
       time: number,
     ) {
@@ -331,9 +309,12 @@ export default function RoleFlames({
           i / (steps - 1);
 
         /*
-         * Main diagonal path:
-         *
-         * right/top -> left/bottom
+         * TOP RIGHT
+         *      \
+         *       \
+         *        \
+         *         \
+         *          BOTTOM LEFT
          */
         const baseX =
           width *
@@ -376,19 +357,15 @@ export default function RoleFlames({
             ) *
               0.018);
 
-        /*
-         * Keep smoke subtle around the
-         * central player area.
-         */
         const centerDistance =
           Math.abs(
             progress - 0.5,
           );
 
         const edgeBias =
-          0.35 +
+          0.55 +
           centerDistance *
-            0.65;
+            0.45;
 
         const gradient =
           ctx.createRadialGradient(
@@ -400,10 +377,35 @@ export default function RoleFlames({
             radius,
           );
 
+        /*
+         * Much more visible than before.
+         */
         gradient.addColorStop(
           0,
           hexToRgba(
             theme.main,
+            (captain
+              ? 0.17
+              : 0.12) *
+              edgeBias,
+          ),
+        );
+
+        gradient.addColorStop(
+          0.28,
+          hexToRgba(
+            theme.main,
+            (captain
+              ? 0.11
+              : 0.075) *
+              edgeBias,
+          ),
+        );
+
+        gradient.addColorStop(
+          0.52,
+          hexToRgba(
+            theme.deep,
             (captain
               ? 0.075
               : 0.05) *
@@ -412,21 +414,10 @@ export default function RoleFlames({
         );
 
         gradient.addColorStop(
-          0.32,
+          0.78,
           hexToRgba(
             theme.deep,
-            (captain
-              ? 0.055
-              : 0.038) *
-              edgeBias,
-          ),
-        );
-
-        gradient.addColorStop(
-          0.68,
-          hexToRgba(
-            theme.deep,
-            0.018 *
+            0.025 *
               edgeBias,
           ),
         );
@@ -458,12 +449,6 @@ export default function RoleFlames({
       }
     }
 
-    /*
-     * Individual wisps.
-     *
-     * These are soft translucent clouds,
-     * not flames.
-     */
     function drawParticle(
       particle: SmokeParticle,
       time: number,
@@ -540,9 +525,6 @@ export default function RoleFlames({
         particle.rotation,
       );
 
-      /*
-       * Very soft smoke cloud.
-       */
       const gradient =
         ctx.createRadialGradient(
           0,
@@ -553,35 +535,48 @@ export default function RoleFlames({
           size,
         );
 
+      /*
+       * Bright center so the smoke
+       * doesn't disappear against
+       * dark player photos.
+       */
       gradient.addColorStop(
         0,
         hexToRgba(
           theme.core,
-          alpha * 0.45,
+          alpha * 0.72,
         ),
       );
 
       gradient.addColorStop(
-        0.18,
+        0.16,
         hexToRgba(
           theme.main,
-          alpha * 0.34,
+          alpha * 0.58,
         ),
       );
 
       gradient.addColorStop(
-        0.48,
+        0.38,
         hexToRgba(
           theme.main,
-          alpha * 0.14,
+          alpha * 0.32,
         ),
       );
 
       gradient.addColorStop(
-        0.75,
+        0.62,
         hexToRgba(
           theme.deep,
-          alpha * 0.06,
+          alpha * 0.16,
+        ),
+      );
+
+      gradient.addColorStop(
+        0.82,
+        hexToRgba(
+          theme.deep,
+          alpha * 0.05,
         ),
       );
 
@@ -611,10 +606,10 @@ export default function RoleFlames({
       ctx.fill();
 
       /*
-       * Secondary wisp.
+       * Secondary soft wisp.
        */
       ctx.globalAlpha =
-        alpha * 0.55;
+        0.7;
 
       ctx.beginPath();
 
@@ -633,11 +628,9 @@ export default function RoleFlames({
       ctx.restore();
     }
 
-    function drawEdgeHaze(
-      time: number,
-    ) {
+    function drawEdgeHaze() {
       /*
-       * Top-right source.
+       * TOP-RIGHT source.
        */
       const sourceGradient =
         ctx.createRadialGradient(
@@ -654,18 +647,26 @@ export default function RoleFlames({
         hexToRgba(
           theme.main,
           captain
-            ? 0.1
-            : 0.065,
+            ? 0.2
+            : 0.14,
         ),
       );
 
       sourceGradient.addColorStop(
-        0.35,
+        0.3,
         hexToRgba(
           theme.main,
           captain
-            ? 0.045
-            : 0.03,
+            ? 0.09
+            : 0.06,
+        ),
+      );
+
+      sourceGradient.addColorStop(
+        0.65,
+        hexToRgba(
+          theme.deep,
+          0.025,
         ),
       );
 
@@ -688,7 +689,7 @@ export default function RoleFlames({
       );
 
       /*
-       * Bottom-left trailing haze.
+       * BOTTOM-LEFT trail.
        */
       const trailGradient =
         ctx.createRadialGradient(
@@ -705,16 +706,24 @@ export default function RoleFlames({
         hexToRgba(
           theme.deep,
           captain
-            ? 0.06
-            : 0.035,
+            ? 0.11
+            : 0.075,
         ),
       );
 
       trailGradient.addColorStop(
-        0.45,
+        0.35,
         hexToRgba(
           theme.deep,
-          0.018,
+          0.045,
+        ),
+      );
+
+      trailGradient.addColorStop(
+        0.7,
+        hexToRgba(
+          theme.deep,
+          0.015,
         ),
       );
 
@@ -751,13 +760,10 @@ export default function RoleFlames({
         height,
       );
 
-      /*
-       * Keep everything soft.
-       */
       ctx.globalCompositeOperation =
         "source-over";
 
-      drawEdgeHaze(time);
+      drawEdgeHaze();
 
       drawSmokeRibbon(time);
 
@@ -767,8 +773,8 @@ export default function RoleFlames({
         particle.life += 16;
 
         /*
-         * Diagonal movement:
-         * left + down.
+         * Diagonal:
+         * top-right -> bottom-left
          */
         particle.x +=
           particle.vx;
@@ -777,7 +783,7 @@ export default function RoleFlames({
           particle.vy;
 
         /*
-         * Add organic sideways movement.
+         * Organic movement.
          */
         particle.x +=
           Math.sin(
