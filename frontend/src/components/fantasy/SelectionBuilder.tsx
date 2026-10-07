@@ -15,6 +15,7 @@ import BudgetBar from "./BudgetBar";
 import ChipPicker from "./ChipPicker";
 import PlayerDetailCard from "./PlayerDetailCard";
 import PlayerListRow from "./PlayerListRow";
+import RoleFlames from "./RoleFlames";
 
 const SQUAD_SIZE = 4;
 const BUDGET = 100;
@@ -29,25 +30,6 @@ interface Props {
   chip?: FantasyChip | "" | null;
   chipsUsed?: FantasyChipUse[];
   onSaved: () => void;
-}
-
-function getRoleFlameClass(role?: string | null) {
-  switch (role?.trim().toLowerCase()) {
-    case "sniper":
-      return "selection-flame-sniper";
-
-    case "rusher":
-      return "selection-flame-rusher";
-
-    case "support":
-      return "selection-flame-support";
-
-    case "bomber":
-      return "selection-flame-bomber";
-
-    default:
-      return "selection-flame-default";
-  }
 }
 
 export default function SelectionBuilder({
@@ -347,195 +329,6 @@ export default function SelectionBuilder({
 
   return (
     <>
-      <style jsx>{`
-        .selection-flame {
-          --flame-color: #ff5a1f;
-          --flame-glow: rgba(255, 90, 31, 0.35);
-
-          position: absolute;
-          inset: auto 0 0;
-          height: 54%;
-          overflow: hidden;
-          pointer-events: none;
-          opacity: 0.8;
-          mix-blend-mode: screen;
-          filter: saturate(1.15);
-        }
-
-        .selection-flame::before {
-          content: "";
-          position: absolute;
-          left: -10%;
-          right: -10%;
-          bottom: -25%;
-          height: 70%;
-          background: var(--flame-color);
-          opacity: 0.2;
-          filter: blur(35px);
-          transform: scaleX(1.15);
-        }
-
-        .selection-flame::after {
-          content: "";
-          position: absolute;
-          left: 5%;
-          right: 5%;
-          bottom: -5%;
-          height: 35%;
-          background: linear-gradient(
-            to top,
-            var(--flame-color),
-            transparent
-          );
-          opacity: 0.18;
-          filter: blur(18px);
-        }
-
-        .selection-flame-tongue {
-          position: absolute;
-          bottom: -8%;
-          width: 20%;
-          height: 80%;
-          transform-origin: bottom center;
-          opacity: 0.72;
-          background: linear-gradient(
-            to top,
-            var(--flame-color) 0%,
-            color-mix(
-              in srgb,
-              var(--flame-color) 70%,
-              transparent
-            )
-              38%,
-            transparent 100%
-          );
-          clip-path: polygon(
-            50% 100%,
-            20% 82%,
-            31% 65%,
-            7% 50%,
-            38% 58%,
-            29% 31%,
-            53% 49%,
-            58% 5%,
-            73% 45%,
-            94% 29%,
-            83% 66%,
-            100% 54%,
-            80% 88%,
-            70% 100%
-          );
-          filter: drop-shadow(
-            0 0 12px var(--flame-glow)
-          );
-          animation: selection-flame-flicker 1.25s
-            ease-in-out infinite;
-        }
-
-        .selection-flame-tongue:nth-child(1) {
-          left: 0%;
-          height: 78%;
-          animation-delay: -0.15s;
-        }
-
-        .selection-flame-tongue:nth-child(2) {
-          left: 18%;
-          width: 25%;
-          height: 105%;
-          animation-delay: -0.65s;
-        }
-
-        .selection-flame-tongue:nth-child(3) {
-          left: 39%;
-          width: 21%;
-          height: 88%;
-          animation-delay: -0.35s;
-        }
-
-        .selection-flame-tongue:nth-child(4) {
-          left: 58%;
-          width: 26%;
-          height: 108%;
-          animation-delay: -0.9s;
-        }
-
-        .selection-flame-tongue:nth-child(5) {
-          left: 81%;
-          width: 20%;
-          height: 76%;
-          animation-delay: -0.45s;
-        }
-
-        .selection-flame-sniper {
-          --flame-color: #2196ff;
-          --flame-glow: rgba(33, 150, 255, 0.65);
-        }
-
-        .selection-flame-rusher {
-          --flame-color: #ff3030;
-          --flame-glow: rgba(255, 48, 48, 0.65);
-        }
-
-        .selection-flame-support {
-          --flame-color: #35d06f;
-          --flame-glow: rgba(53, 208, 111, 0.65);
-        }
-
-        .selection-flame-bomber {
-          --flame-color: #ff9d00;
-          --flame-glow: rgba(255, 157, 0, 0.7);
-        }
-
-        .selection-flame-default {
-          --flame-color: #ff5a1f;
-          --flame-glow: rgba(255, 90, 31, 0.6);
-        }
-
-        @keyframes selection-flame-flicker {
-          0%,
-          100% {
-            transform: translateY(7%)
-              scaleX(0.9)
-              rotate(-2deg);
-            opacity: 0.52;
-          }
-
-          20% {
-            transform: translateY(-5%)
-              scaleX(1.08)
-              rotate(3deg);
-            opacity: 0.78;
-          }
-
-          42% {
-            transform: translateY(4%)
-              scaleX(0.82)
-              rotate(-4deg);
-            opacity: 0.58;
-          }
-
-          65% {
-            transform: translateY(-11%)
-              scaleX(1.14)
-              rotate(2deg);
-            opacity: 0.86;
-          }
-
-          82% {
-            transform: translateY(1%)
-              scaleX(0.96)
-              rotate(-3deg);
-            opacity: 0.68;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .selection-flame-tongue {
-            animation: none;
-          }
-        }
-      `}</style>
-
       <div className="grid gap-8 lg:grid-cols-[minmax(260px,0.85fr)_minmax(560px,1.5fr)] lg:items-start">
         {/* PLAYER MARKET */}
         <section className="order-2 min-w-0 lg:order-1">
@@ -813,21 +606,11 @@ export default function SelectionBuilder({
                           : "border-bone/15 hover:border-ember/40"
                       }`}
                     >
-                      {/* =====================================================
-                          ANIMATED ROLE FLAMES
-                          ===================================================== */}
-                      <div
-                        className={`selection-flame ${getRoleFlameClass(
-                          player.role,
-                        )}`}
-                        aria-hidden="true"
-                      >
-                        <div className="selection-flame-tongue" />
-                        <div className="selection-flame-tongue" />
-                        <div className="selection-flame-tongue" />
-                        <div className="selection-flame-tongue" />
-                        <div className="selection-flame-tongue" />
-                      </div>
+                      {/* Animated role fire */}
+                      <RoleFlames
+                        role={player.role}
+                        captain={isCaptain}
+                      />
 
                       {/* Card background gradient */}
                       <div
