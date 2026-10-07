@@ -31,6 +31,25 @@ interface Props {
   onSaved: () => void;
 }
 
+function getRoleFlameClass(role?: string | null) {
+  switch (role?.trim().toLowerCase()) {
+    case "sniper":
+      return "selection-flame-sniper";
+
+    case "rusher":
+      return "selection-flame-rusher";
+
+    case "support":
+      return "selection-flame-support";
+
+    case "bomber":
+      return "selection-flame-bomber";
+
+    default:
+      return "selection-flame-default";
+  }
+}
+
 export default function SelectionBuilder({
   tournamentId,
   dayId,
@@ -53,7 +72,10 @@ export default function SelectionBuilder({
       .filter((id) => byId.has(id))
       .slice(0, SQUAD_SIZE);
 
-    return Array.from({ length: SQUAD_SIZE }, (_, i) => ids[i] ?? null);
+    return Array.from(
+      { length: SQUAD_SIZE },
+      (_, i) => ids[i] ?? null,
+    );
   });
 
   const [captainId, setCaptainId] = useState<number | null>(
@@ -112,11 +134,14 @@ export default function SelectionBuilder({
       )
       .sort(
         (a, b) =>
-          b.fantasy_price - a.fantasy_price || a.ign.localeCompare(b.ign),
+          b.fantasy_price - a.fantasy_price ||
+          a.ign.localeCompare(b.ign),
       );
   }, [pool, search]);
 
-  const picked = slots.filter((id): id is number => id !== null);
+  const picked = slots.filter(
+    (id): id is number => id !== null,
+  );
 
   const pickedOptions = picked
     .map((id) => byId.get(id))
@@ -129,7 +154,9 @@ export default function SelectionBuilder({
 
   const remaining = BUDGET - spent;
 
-  const usedTeamIds = new Set(pickedOptions.map((o) => o.team_id));
+  const usedTeamIds = new Set(
+    pickedOptions.map((o) => o.team_id),
+  );
 
   const unlimited = chip === "limitless";
   const sameTeamAllowed = chip === "Duo_stack";
@@ -138,10 +165,15 @@ export default function SelectionBuilder({
   const teamCounts = new Map<number, number>();
 
   pickedOptions.forEach((o) => {
-    teamCounts.set(o.team_id, (teamCounts.get(o.team_id) ?? 0) + 1);
+    teamCounts.set(
+      o.team_id,
+      (teamCounts.get(o.team_id) ?? 0) + 1,
+    );
   });
 
-  const pairs = [...teamCounts.values()].filter((n) => n === 2).length;
+  const pairs = [...teamCounts.values()].filter(
+    (n) => n === 2,
+  ).length;
 
   const captain =
     captainId !== null && picked.includes(captainId)
@@ -149,9 +181,13 @@ export default function SelectionBuilder({
       : (picked[0] ?? null);
 
   function blockedReason(o: PoolPlayer): string | null {
-    if (locked) return "Selections are locked for this day";
+    if (locked) {
+      return "Selections are locked for this day";
+    }
 
-    if (picked.includes(o.player_id)) return null;
+    if (picked.includes(o.player_id)) {
+      return null;
+    }
 
     if (picked.length >= SQUAD_SIZE) {
       return "Your squad is full";
@@ -213,7 +249,9 @@ export default function SelectionBuilder({
   function remove(id: number) {
     if (locked) return;
 
-    setSlots((prev) => prev.map((x) => (x === id ? null : x)));
+    setSlots((prev) =>
+      prev.map((x) => (x === id ? null : x)),
+    );
 
     if (captainId === id) {
       setCaptainId(null);
@@ -283,7 +321,9 @@ export default function SelectionBuilder({
       onSaved();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Your session expired. Please log in again.");
+        setError(
+          "Your session expired. Please log in again.",
+        );
       } else {
         setError(
           err instanceof ApiError
@@ -301,10 +341,201 @@ export default function SelectionBuilder({
   }
 
   const detailOption =
-    detailId !== null ? (byId.get(detailId) ?? null) : null;
+    detailId !== null
+      ? (byId.get(detailId) ?? null)
+      : null;
 
   return (
     <>
+      <style jsx>{`
+        .selection-flame {
+          --flame-color: #ff5a1f;
+          --flame-glow: rgba(255, 90, 31, 0.35);
+
+          position: absolute;
+          inset: auto 0 0;
+          height: 54%;
+          overflow: hidden;
+          pointer-events: none;
+          opacity: 0.8;
+          mix-blend-mode: screen;
+          filter: saturate(1.15);
+        }
+
+        .selection-flame::before {
+          content: "";
+          position: absolute;
+          left: -10%;
+          right: -10%;
+          bottom: -25%;
+          height: 70%;
+          background: var(--flame-color);
+          opacity: 0.2;
+          filter: blur(35px);
+          transform: scaleX(1.15);
+        }
+
+        .selection-flame::after {
+          content: "";
+          position: absolute;
+          left: 5%;
+          right: 5%;
+          bottom: -5%;
+          height: 35%;
+          background: linear-gradient(
+            to top,
+            var(--flame-color),
+            transparent
+          );
+          opacity: 0.18;
+          filter: blur(18px);
+        }
+
+        .selection-flame-tongue {
+          position: absolute;
+          bottom: -8%;
+          width: 20%;
+          height: 80%;
+          transform-origin: bottom center;
+          opacity: 0.72;
+          background: linear-gradient(
+            to top,
+            var(--flame-color) 0%,
+            color-mix(
+              in srgb,
+              var(--flame-color) 70%,
+              transparent
+            )
+              38%,
+            transparent 100%
+          );
+          clip-path: polygon(
+            50% 100%,
+            20% 82%,
+            31% 65%,
+            7% 50%,
+            38% 58%,
+            29% 31%,
+            53% 49%,
+            58% 5%,
+            73% 45%,
+            94% 29%,
+            83% 66%,
+            100% 54%,
+            80% 88%,
+            70% 100%
+          );
+          filter: drop-shadow(
+            0 0 12px var(--flame-glow)
+          );
+          animation: selection-flame-flicker 1.25s
+            ease-in-out infinite;
+        }
+
+        .selection-flame-tongue:nth-child(1) {
+          left: 0%;
+          height: 78%;
+          animation-delay: -0.15s;
+        }
+
+        .selection-flame-tongue:nth-child(2) {
+          left: 18%;
+          width: 25%;
+          height: 105%;
+          animation-delay: -0.65s;
+        }
+
+        .selection-flame-tongue:nth-child(3) {
+          left: 39%;
+          width: 21%;
+          height: 88%;
+          animation-delay: -0.35s;
+        }
+
+        .selection-flame-tongue:nth-child(4) {
+          left: 58%;
+          width: 26%;
+          height: 108%;
+          animation-delay: -0.9s;
+        }
+
+        .selection-flame-tongue:nth-child(5) {
+          left: 81%;
+          width: 20%;
+          height: 76%;
+          animation-delay: -0.45s;
+        }
+
+        .selection-flame-sniper {
+          --flame-color: #2196ff;
+          --flame-glow: rgba(33, 150, 255, 0.65);
+        }
+
+        .selection-flame-rusher {
+          --flame-color: #ff3030;
+          --flame-glow: rgba(255, 48, 48, 0.65);
+        }
+
+        .selection-flame-support {
+          --flame-color: #35d06f;
+          --flame-glow: rgba(53, 208, 111, 0.65);
+        }
+
+        .selection-flame-bomber {
+          --flame-color: #ff9d00;
+          --flame-glow: rgba(255, 157, 0, 0.7);
+        }
+
+        .selection-flame-default {
+          --flame-color: #ff5a1f;
+          --flame-glow: rgba(255, 90, 31, 0.6);
+        }
+
+        @keyframes selection-flame-flicker {
+          0%,
+          100% {
+            transform: translateY(7%)
+              scaleX(0.9)
+              rotate(-2deg);
+            opacity: 0.52;
+          }
+
+          20% {
+            transform: translateY(-5%)
+              scaleX(1.08)
+              rotate(3deg);
+            opacity: 0.78;
+          }
+
+          42% {
+            transform: translateY(4%)
+              scaleX(0.82)
+              rotate(-4deg);
+            opacity: 0.58;
+          }
+
+          65% {
+            transform: translateY(-11%)
+              scaleX(1.14)
+              rotate(2deg);
+            opacity: 0.86;
+          }
+
+          82% {
+            transform: translateY(1%)
+              scaleX(0.96)
+              rotate(-3deg);
+            opacity: 0.68;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .selection-flame-tongue {
+            animation: none;
+          }
+        }
+      `}</style>
+
       <div className="grid gap-8 lg:grid-cols-[minmax(260px,0.85fr)_minmax(560px,1.5fr)] lg:items-start">
         {/* PLAYER MARKET */}
         <section className="order-2 min-w-0 lg:order-1">
@@ -341,7 +572,9 @@ export default function SelectionBuilder({
               <div className="relative mt-5">
                 <input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
                   placeholder="SEARCH PLAYER OR TEAM..."
                   className="w-full chamfer-sm border border-bone/15 bg-char px-4 py-3.5 pr-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition placeholder:text-ash/50 focus:border-ember"
                 />
@@ -380,10 +613,14 @@ export default function SelectionBuilder({
                     <PlayerListRow
                       key={o.player_id}
                       option={o}
-                      selected={picked.includes(o.player_id)}
+                      selected={picked.includes(
+                        o.player_id,
+                      )}
                       active={false}
                       blockedReason={blockedReason(o)}
-                      onOpen={() => setDetailId(o.player_id)}
+                      onOpen={() =>
+                        setDetailId(o.player_id)
+                      }
                       onToggle={() => toggle(o)}
                     />
                   ))
@@ -397,7 +634,10 @@ export default function SelectionBuilder({
         <section className="order-1 min-w-0 space-y-5 lg:order-2 lg:sticky lg:top-20">
           {/* Budget + chips */}
           <div className="space-y-3">
-            <BudgetBar spent={spent} unlimited={unlimited} />
+            <BudgetBar
+              spent={spent}
+              unlimited={unlimited}
+            />
 
             <ChipPicker
               chip={chip}
@@ -431,7 +671,10 @@ export default function SelectionBuilder({
                 </p>
 
                 <p className="mt-1 font-display text-3xl font-black leading-none">
-                  <span className="text-ember">{picked.length}</span>
+                  <span className="text-ember">
+                    {picked.length}
+                  </span>
+
                   <span className="text-ash/40">
                     {" "}
                     / {SQUAD_SIZE}
@@ -514,7 +757,9 @@ export default function SelectionBuilder({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {slots.map((id, index) => {
                   const player =
-                    id !== null ? byId.get(id) : undefined;
+                    id !== null
+                      ? byId.get(id)
+                      : undefined;
 
                   if (!player) {
                     return (
@@ -556,7 +801,8 @@ export default function SelectionBuilder({
                     );
                   }
 
-                  const isCaptain = player.player_id === captain;
+                  const isCaptain =
+                    player.player_id === captain;
 
                   return (
                     <div
@@ -567,31 +813,53 @@ export default function SelectionBuilder({
                           : "border-bone/15 hover:border-ember/40"
                       }`}
                     >
+                      {/* =====================================================
+                          ANIMATED ROLE FLAMES
+                          ===================================================== */}
                       <div
-                        className={`absolute inset-0 bg-gradient-to-br ${
+                        className={`selection-flame ${getRoleFlameClass(
+                          player.role,
+                        )}`}
+                        aria-hidden="true"
+                      >
+                        <div className="selection-flame-tongue" />
+                        <div className="selection-flame-tongue" />
+                        <div className="selection-flame-tongue" />
+                        <div className="selection-flame-tongue" />
+                        <div className="selection-flame-tongue" />
+                      </div>
+
+                      {/* Card background gradient */}
+                      <div
+                        className={`absolute inset-0 z-[2] bg-gradient-to-br ${
                           isCaptain
                             ? "from-ember/20 via-transparent to-ember/[0.03]"
                             : "from-bone/[0.07] via-transparent to-transparent"
                         }`}
                       />
 
+                      {/* Player photo */}
                       {player.photo_url ? (
                         <img
                           src={player.photo_url}
                           alt={player.ign}
-                          className="absolute inset-0 h-full w-full object-cover object-top opacity-90 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100"
+                          className="absolute inset-0 z-0 h-full w-full object-cover object-top opacity-90 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-bone/[0.04] to-transparent">
+                        <div className="absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-b from-bone/[0.04] to-transparent">
                           <span className="font-display text-7xl font-black text-bone/10">
-                            {player.ign.slice(0, 2).toUpperCase()}
+                            {player.ign
+                              .slice(0, 2)
+                              .toUpperCase()}
                           </span>
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-char via-char/60 to-transparent" />
+                      {/* Main image readability gradient */}
+                      <div className="absolute inset-0 z-[3] bg-gradient-to-t from-char via-char/60 to-transparent" />
 
-                      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-char/70 to-transparent" />
+                      {/* Top readability gradient */}
+                      <div className="absolute inset-x-0 top-0 z-[3] h-28 bg-gradient-to-b from-char/70 to-transparent" />
 
                       {/* Rating */}
                       <div className="absolute left-4 top-4 z-10">
@@ -602,7 +870,8 @@ export default function SelectionBuilder({
                               70,
                               Math.round(
                                 80 +
-                                  player.fantasy_price * 0.35,
+                                  player.fantasy_price *
+                                    0.35,
                               ),
                             ),
                           )}
@@ -735,7 +1004,9 @@ export default function SelectionBuilder({
                         <button
                           type="button"
                           onClick={() =>
-                            makeCaptain(player.player_id)
+                            makeCaptain(
+                              player.player_id,
+                            )
                           }
                           className={`absolute left-4 top-4 z-20 flex items-center gap-2 chamfer-sm border px-3 py-2 font-stat text-[9px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
                             isCaptain
@@ -756,7 +1027,7 @@ export default function SelectionBuilder({
                       )}
 
                       <div
-                        className={`absolute bottom-0 left-0 right-0 h-[2px] ${
+                        className={`absolute bottom-0 left-0 right-0 z-20 h-[2px] ${
                           isCaptain
                             ? "bg-ember"
                             : "bg-bone/10"
@@ -870,7 +1141,9 @@ export default function SelectionBuilder({
           {/* Modal card */}
           <div
             className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
           >
             <div className="relative">
               {/* Close button */}
@@ -899,11 +1172,14 @@ export default function SelectionBuilder({
                     (!picked.includes(
                       detailOption.player_id,
                     ) &&
-                      !!blockedReason(detailOption)),
+                      !!blockedReason(
+                        detailOption,
+                      )),
                   hint:
                     blockedReason(detailOption) ??
                     undefined,
-                  onClick: () => toggle(detailOption),
+                  onClick: () =>
+                    toggle(detailOption),
                 }}
               />
             </div>
