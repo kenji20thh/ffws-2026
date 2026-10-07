@@ -551,7 +551,7 @@ export default function SelectionBuilder({
                   return (
                     <div
                       key={player.player_id}
-                      className={`relative min-w-0 ${
+                      className={`relative mx-auto w-full max-w-[240px] min-w-0 ${
                         isCaptain
                           ? "drop-shadow-[0_0_22px_rgba(255,90,31,0.16)]"
                           : ""
