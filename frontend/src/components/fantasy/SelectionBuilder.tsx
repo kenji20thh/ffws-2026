@@ -15,7 +15,6 @@ import BudgetBar from "./BudgetBar";
 import ChipPicker from "./ChipPicker";
 import PlayerDetailCard from "./PlayerDetailCard";
 import PlayerListRow from "./PlayerListRow";
-import RoleFlames from "./RoleFlames";
 
 const SQUAD_SIZE = 4;
 const BUDGET = 100;
@@ -54,10 +53,7 @@ export default function SelectionBuilder({
       .filter((id) => byId.has(id))
       .slice(0, SQUAD_SIZE);
 
-    return Array.from(
-      { length: SQUAD_SIZE },
-      (_, i) => ids[i] ?? null,
-    );
+    return Array.from({ length: SQUAD_SIZE }, (_, i) => ids[i] ?? null);
   });
 
   const [captainId, setCaptainId] = useState<number | null>(
@@ -116,14 +112,11 @@ export default function SelectionBuilder({
       )
       .sort(
         (a, b) =>
-          b.fantasy_price - a.fantasy_price ||
-          a.ign.localeCompare(b.ign),
+          b.fantasy_price - a.fantasy_price || a.ign.localeCompare(b.ign),
       );
   }, [pool, search]);
 
-  const picked = slots.filter(
-    (id): id is number => id !== null,
-  );
+  const picked = slots.filter((id): id is number => id !== null);
 
   const pickedOptions = picked
     .map((id) => byId.get(id))
@@ -136,9 +129,7 @@ export default function SelectionBuilder({
 
   const remaining = BUDGET - spent;
 
-  const usedTeamIds = new Set(
-    pickedOptions.map((o) => o.team_id),
-  );
+  const usedTeamIds = new Set(pickedOptions.map((o) => o.team_id));
 
   const unlimited = chip === "limitless";
   const sameTeamAllowed = chip === "Duo_stack";
@@ -147,15 +138,10 @@ export default function SelectionBuilder({
   const teamCounts = new Map<number, number>();
 
   pickedOptions.forEach((o) => {
-    teamCounts.set(
-      o.team_id,
-      (teamCounts.get(o.team_id) ?? 0) + 1,
-    );
+    teamCounts.set(o.team_id, (teamCounts.get(o.team_id) ?? 0) + 1);
   });
 
-  const pairs = [...teamCounts.values()].filter(
-    (n) => n === 2,
-  ).length;
+  const pairs = [...teamCounts.values()].filter((n) => n === 2).length;
 
   const captain =
     captainId !== null && picked.includes(captainId)
@@ -163,13 +149,9 @@ export default function SelectionBuilder({
       : (picked[0] ?? null);
 
   function blockedReason(o: PoolPlayer): string | null {
-    if (locked) {
-      return "Selections are locked for this day";
-    }
+    if (locked) return "Selections are locked for this day";
 
-    if (picked.includes(o.player_id)) {
-      return null;
-    }
+    if (picked.includes(o.player_id)) return null;
 
     if (picked.length >= SQUAD_SIZE) {
       return "Your squad is full";
@@ -231,9 +213,7 @@ export default function SelectionBuilder({
   function remove(id: number) {
     if (locked) return;
 
-    setSlots((prev) =>
-      prev.map((x) => (x === id ? null : x)),
-    );
+    setSlots((prev) => prev.map((x) => (x === id ? null : x)));
 
     if (captainId === id) {
       setCaptainId(null);
@@ -303,9 +283,7 @@ export default function SelectionBuilder({
       onSaved();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError(
-          "Your session expired. Please log in again.",
-        );
+        setError("Your session expired. Please log in again.");
       } else {
         setError(
           err instanceof ApiError
@@ -323,9 +301,7 @@ export default function SelectionBuilder({
   }
 
   const detailOption =
-    detailId !== null
-      ? (byId.get(detailId) ?? null)
-      : null;
+    detailId !== null ? (byId.get(detailId) ?? null) : null;
 
   return (
     <>
@@ -365,9 +341,7 @@ export default function SelectionBuilder({
               <div className="relative mt-5">
                 <input
                   value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="SEARCH PLAYER OR TEAM..."
                   className="w-full chamfer-sm border border-bone/15 bg-char px-4 py-3.5 pr-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition placeholder:text-ash/50 focus:border-ember"
                 />
@@ -406,14 +380,10 @@ export default function SelectionBuilder({
                     <PlayerListRow
                       key={o.player_id}
                       option={o}
-                      selected={picked.includes(
-                        o.player_id,
-                      )}
+                      selected={picked.includes(o.player_id)}
                       active={false}
                       blockedReason={blockedReason(o)}
-                      onOpen={() =>
-                        setDetailId(o.player_id)
-                      }
+                      onOpen={() => setDetailId(o.player_id)}
                       onToggle={() => toggle(o)}
                     />
                   ))
@@ -427,10 +397,7 @@ export default function SelectionBuilder({
         <section className="order-1 min-w-0 space-y-5 lg:order-2 lg:sticky lg:top-20">
           {/* Budget + chips */}
           <div className="space-y-3">
-            <BudgetBar
-              spent={spent}
-              unlimited={unlimited}
-            />
+            <BudgetBar spent={spent} unlimited={unlimited} />
 
             <ChipPicker
               chip={chip}
@@ -464,10 +431,7 @@ export default function SelectionBuilder({
                 </p>
 
                 <p className="mt-1 font-display text-3xl font-black leading-none">
-                  <span className="text-ember">
-                    {picked.length}
-                  </span>
-
+                  <span className="text-ember">{picked.length}</span>
                   <span className="text-ash/40">
                     {" "}
                     / {SQUAD_SIZE}
@@ -550,9 +514,7 @@ export default function SelectionBuilder({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {slots.map((id, index) => {
                   const player =
-                    id !== null
-                      ? byId.get(id)
-                      : undefined;
+                    id !== null ? byId.get(id) : undefined;
 
                   if (!player) {
                     return (
@@ -594,55 +556,42 @@ export default function SelectionBuilder({
                     );
                   }
 
-                  const isCaptain =
-                    player.player_id === captain;
+                  const isCaptain = player.player_id === captain;
 
                   return (
                     <div
                       key={player.player_id}
-                      className={`group relative isolate aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border bg-char transition duration-300 ${
+                      className={`group relative aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border bg-char transition duration-300 ${
                         isCaptain
                           ? "border-ember/70 shadow-[0_0_35px_rgba(255,100,40,.14)]"
                           : "border-bone/15 hover:border-ember/40"
                       }`}
                     >
-                      {/* Animated role fire */}
-                      <RoleFlames
-                        role={player.role}
-                        captain={isCaptain}
-                      />
-
-                      {/* Card background gradient */}
                       <div
-                        className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br ${
+                        className={`absolute inset-0 bg-gradient-to-br ${
                           isCaptain
                             ? "from-ember/20 via-transparent to-ember/[0.03]"
                             : "from-bone/[0.07] via-transparent to-transparent"
                         }`}
                       />
 
-                      {/* Player photo */}
                       {player.photo_url ? (
                         <img
                           src={player.photo_url}
                           alt={player.ign}
-                          className="absolute inset-0 z-0 h-full w-full object-cover object-top opacity-90 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100"
+                          className="absolute inset-0 h-full w-full object-cover object-top opacity-90 transition duration-500 group-hover:scale-[1.035] group-hover:opacity-100"
                         />
                       ) : (
-                        <div className="absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-b from-bone/[0.04] to-transparent">
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-bone/[0.04] to-transparent">
                           <span className="font-display text-7xl font-black text-bone/10">
-                            {player.ign
-                              .slice(0, 2)
-                              .toUpperCase()}
+                            {player.ign.slice(0, 2).toUpperCase()}
                           </span>
                         </div>
                       )}
 
-                      {/* Main image readability gradient */}
-                      <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-char via-char/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-char via-char/60 to-transparent" />
 
-                      {/* Top readability gradient */}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-28 bg-gradient-to-b from-char/70 to-transparent" />
+                      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-char/70 to-transparent" />
 
                       {/* Rating */}
                       <div className="absolute left-4 top-4 z-10">
@@ -653,8 +602,7 @@ export default function SelectionBuilder({
                               70,
                               Math.round(
                                 80 +
-                                  player.fantasy_price *
-                                    0.35,
+                                  player.fantasy_price * 0.35,
                               ),
                             ),
                           )}
@@ -787,9 +735,7 @@ export default function SelectionBuilder({
                         <button
                           type="button"
                           onClick={() =>
-                            makeCaptain(
-                              player.player_id,
-                            )
+                            makeCaptain(player.player_id)
                           }
                           className={`absolute left-4 top-4 z-20 flex items-center gap-2 chamfer-sm border px-3 py-2 font-stat text-[9px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
                             isCaptain
@@ -810,7 +756,7 @@ export default function SelectionBuilder({
                       )}
 
                       <div
-                        className={`pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] ${
+                        className={`absolute bottom-0 left-0 right-0 h-[2px] ${
                           isCaptain
                             ? "bg-ember"
                             : "bg-bone/10"
@@ -924,9 +870,7 @@ export default function SelectionBuilder({
           {/* Modal card */}
           <div
             className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
-            onMouseDown={(e) =>
-              e.stopPropagation()
-            }
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="relative">
               {/* Close button */}
@@ -955,14 +899,11 @@ export default function SelectionBuilder({
                     (!picked.includes(
                       detailOption.player_id,
                     ) &&
-                      !!blockedReason(
-                        detailOption,
-                      )),
+                      !!blockedReason(detailOption)),
                   hint:
                     blockedReason(detailOption) ??
                     undefined,
-                  onClick: () =>
-                    toggle(detailOption),
+                  onClick: () => toggle(detailOption),
                 }}
               />
             </div>
