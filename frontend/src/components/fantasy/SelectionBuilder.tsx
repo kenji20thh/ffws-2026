@@ -600,7 +600,7 @@ export default function SelectionBuilder({
                   return (
                     <div
                       key={player.player_id}
-                      className={`group relative aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border bg-char transition duration-300 ${
+                      className={`group relative isolate aspect-[0.78] min-h-[300px] overflow-hidden chamfer-sm border bg-char transition duration-300 ${
                         isCaptain
                           ? "border-ember/70 shadow-[0_0_35px_rgba(255,100,40,.14)]"
                           : "border-bone/15 hover:border-ember/40"
@@ -614,7 +614,7 @@ export default function SelectionBuilder({
 
                       {/* Card background gradient */}
                       <div
-                        className={`absolute inset-0 z-[2] bg-gradient-to-br ${
+                        className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br ${
                           isCaptain
                             ? "from-ember/20 via-transparent to-ember/[0.03]"
                             : "from-bone/[0.07] via-transparent to-transparent"
@@ -639,10 +639,10 @@ export default function SelectionBuilder({
                       )}
 
                       {/* Main image readability gradient */}
-                      <div className="absolute inset-0 z-[3] bg-gradient-to-t from-char via-char/60 to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-char via-char/60 to-transparent" />
 
                       {/* Top readability gradient */}
-                      <div className="absolute inset-x-0 top-0 z-[3] h-28 bg-gradient-to-b from-char/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-28 bg-gradient-to-b from-char/70 to-transparent" />
 
                       {/* Rating */}
                       <div className="absolute left-4 top-4 z-10">
@@ -810,7 +810,7 @@ export default function SelectionBuilder({
                       )}
 
                       <div
-                        className={`absolute bottom-0 left-0 right-0 z-20 h-[2px] ${
+                        className={`pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] ${
                           isCaptain
                             ? "bg-ember"
                             : "bg-bone/10"
