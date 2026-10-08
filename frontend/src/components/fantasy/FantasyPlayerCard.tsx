@@ -303,7 +303,7 @@ export default function FantasyPlayerCard({
 
       {captain && (
         <span
-          style={{ ...zoneStyle(CARD_ZONES.captainBadge), zIndex: 3, fontSize: cq(36) }}
+          style={{ ...zoneStyle(CARD_ZONES.captainBadge), zIndex: 3, fontSize: cq(66) }}
           className="flex items-center justify-center rounded-full bg-amber font-display font-black leading-none text-char"
         >
           <span aria-hidden="true">C</span>
