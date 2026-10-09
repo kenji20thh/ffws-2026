@@ -8,7 +8,7 @@ export type CardTier = "basic" | "bronze" | "silver" | "gold" | "elite";
 
 export const CARD_TIERS: readonly CardTier[] = ["basic", "bronze", "silver", "gold", "elite"];
 
-const BASIC_ARTWORK = "/cards/ffws-card-basic.png";
+const BASIC_ARTWORK = "/cards/bronze-card.png";
 
 /**
  * Artwork per tier. Only tiers whose file actually exists are listed; every other tier
