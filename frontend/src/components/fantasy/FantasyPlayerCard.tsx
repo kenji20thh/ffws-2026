@@ -141,7 +141,7 @@ export default function FantasyPlayerCard({
 
       {/* Middle nameplate: nationality flag and IGN. */}
       <div
-        className="absolute z-[3] flex items-center justify-center gap-[3%] px-[8%]"
+        className="absolute z-[3] flex items-center justify-center gap-[20%] px-[8%]"
         style={{
           left: "12%",
           top: "65.3%",
@@ -180,7 +180,7 @@ export default function FantasyPlayerCard({
           top: "80.5%",
           width: "20%",
           height: "5.2%",
-          fontSize: "clamp(12px, 6.4cqw, 52px)",
+          fontSize: "clamp(10px, 4.8cqw, 40px)",
           lineHeight: 1,
           textShadow,
         }}
@@ -194,7 +194,7 @@ export default function FantasyPlayerCard({
           top: "80.5%",
           width: "20%",
           height: "5.9%",
-          fontSize: "clamp(12px, 6.4cqw, 52px)",
+          fontSize: "clamp(10px, 4.8cqw, 40px)",
           lineHeight: 1,
           textShadow,
         }}
