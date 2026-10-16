@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
-import type { FantasyPlayerDayScore } from "@/types";
 import {
 ApiError,
 getDays,

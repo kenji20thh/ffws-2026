@@ -190,10 +190,10 @@ export default function FantasyPlayerCard({
       <div
         className="absolute z-[3] flex items-center justify-center font-stat font-black tabular-nums text-bone"
         style={{
-          left: "59%",
+          left: "58%",
           top: "80.5%",
           width: "20%",
-          height: "5.2%",
+          height: "5.9%",
           fontSize: "clamp(12px, 6.4cqw, 52px)",
           lineHeight: 1,
           textShadow,
