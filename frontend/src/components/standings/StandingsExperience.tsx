@@ -10,6 +10,14 @@ import {
   getTeams,
 } from "@/lib/api";
 import { countryFlag } from "@/lib/flags";
+import {
+  GROUP_BY_KEY,
+  groupForTeam,
+  phaseOneSlot,
+  phaseOneZone,
+  sessionGroups,
+  type GroupKey,
+} from "@/lib/tournamentFormat";
 import type {
   DayTeam,
   Room,
@@ -22,7 +30,7 @@ type Stage = "knockout" | "last-chance" | "grand-finals";
 type Phase = "phase-1" | "phase-2";
 type Week = "week-1" | "week-2" | "week-3";
 type Session = "overall" | "session-1" | "session-2";
-type ViewMode = "overall" | "day" | "session";
+type ViewMode = "overall" | "week" | "day" | "session";
 
 type RoomData = {
   room: Room;
@@ -37,6 +45,7 @@ type DayData = {
 
 type StandingRow = {
   team: Team;
+  group?: GroupKey;
   roomsPlayed: number;
   placementPoints: number;
   killPoints: number;
@@ -98,6 +107,41 @@ function splitSessionRooms(rooms: RoomData[], session: Session) {
     : sorted.slice(midpoint);
 }
 
+type Qualification = { label: string; tone: "good" | "mid" | "bad" } | null;
+
+/** What a team's rank means in the current view, per the official FFWS 2026 format. */
+function qualificationFor(
+  stage: Stage,
+  phase: Phase,
+  viewMode: ViewMode,
+  day: TournamentDay | null,
+  rank: number,
+): Qualification {
+  if (stage === "knockout" && phase === "phase-1") {
+    if (viewMode !== "overall") return null;
+    const zone = phaseOneZone(rank);
+    return {
+      label: zone.label,
+      tone: zone.tone === "pool1" ? "good" : zone.tone === "out" ? "bad" : "mid",
+    };
+  }
+
+  if (stage === "knockout" && phase === "phase-2") {
+    if (viewMode === "overall" || !day) return null;
+    if (rank <= 2) return { label: "Grand Finals", tone: "good" };
+    if (day.day_order >= 10) return { label: "Last Chance", tone: "bad" };
+    return { label: "Next day", tone: "mid" };
+  }
+
+  if (stage === "last-chance") {
+    return rank <= 4
+      ? { label: "Grand Finals", tone: "good" }
+      : { label: "Eliminated", tone: "bad" };
+  }
+
+  return null;
+}
+
 function calculateStandings(
   teams: Team[],
   rooms: RoomData[],
@@ -112,6 +156,7 @@ function calculateStandings(
 
     totals.set(team.id, {
       team,
+      group: groupForTeam(team),
       roomsPlayed: 0,
       placementPoints: 0,
       killPoints: 0,
@@ -305,15 +350,20 @@ export default function StandingsExperience({
   const activeRows = useMemo(() => {
     let sourceDays: DayData[] = [];
     let allowedTeamIds: number[] | undefined;
-    let rooms: RoomData[] = [];
 
-    if (stage === "knockout" && phase === "phase-1") {
+    const isPhaseOne = stage === "knockout" && phase === "phase-1";
+    const sessionKey =
+      viewMode === "session" && session !== "overall" ? session : null;
+
+    if (isPhaseOne) {
       if (viewMode === "overall") {
         sourceDays = allPhaseOneDays;
+      } else if (viewMode === "week") {
+        sourceDays = weekDays;
       } else if (selectedDay) {
         sourceDays = [selectedDay];
       }
-    } else if (stage === "knockout" && phase === "phase-2") {
+    } else if (stage === "knockout") {
       if (viewMode === "overall") {
         sourceDays = allPhaseTwoDays;
       } else if (selectedDay) {
@@ -328,7 +378,8 @@ export default function StandingsExperience({
         allowedTeamIds = [...participantIds];
       }
     } else {
-      sourceDays = viewMode === "overall" ? stageDays : selectedDay ? [selectedDay] : [];
+      sourceDays =
+        viewMode === "overall" ? stageDays : selectedDay ? [selectedDay] : [];
 
       const participantIds = new Set(
         sourceDays.flatMap((item) => item.teamIds),
@@ -339,12 +390,32 @@ export default function StandingsExperience({
       }
     }
 
-    rooms = sourceDays.flatMap((item) =>
-      splitSessionRooms(
-        item.rooms,
-        viewMode === "session" ? session : "overall",
-      ),
+    const rooms = sourceDays.flatMap((item) =>
+      splitSessionRooms(item.rooms, sessionKey ?? "overall"),
     );
+
+    // Phase 1 sessions: only the 12 teams of the two groups playing that session.
+    if (isPhaseOne && sessionKey && selectedDay) {
+      const pair = sessionGroups(selectedDay.day.day_order, sessionKey);
+      const groupIds = pair
+        ? teams
+            .filter((team) => {
+              const g = groupForTeam(team);
+              return g !== undefined && pair.includes(g);
+            })
+            .map((team) => team.id)
+        : [];
+
+      if (groupIds.length === 12) {
+        allowedTeamIds = groupIds;
+      } else {
+        // Team names didn't match the group list: fall back to who actually played the session rooms.
+        const played = new Set(
+          rooms.flatMap((r) => r.results.map((res) => res.team_id)),
+        );
+        if (played.size > 0) allowedTeamIds = [...played];
+      }
+    }
 
     return calculateStandings(teams, rooms, allowedTeamIds);
   }, [
@@ -354,6 +425,7 @@ export default function StandingsExperience({
     session,
     selectedDay,
     stageDays,
+    weekDays,
     allPhaseOneDays,
     allPhaseTwoDays,
     teams,
@@ -373,13 +445,14 @@ export default function StandingsExperience({
   function choosePhase(nextPhase: Phase) {
     setPhase(nextPhase);
     setWeek(nextPhase === "phase-1" ? "week-1" : "week-3");
-    setViewMode("overall");
+    // Phase 2 is played day by day (each day is its own 12-team knockout), so open on a day.
+    setViewMode(nextPhase === "phase-1" ? "overall" : "day");
     setSession("overall");
   }
 
   function chooseWeek(nextWeek: Week) {
     setWeek(nextWeek);
-    setViewMode("overall");
+    setViewMode(phase === "phase-1" ? "week" : "day");
     setSession("overall");
   }
 
@@ -410,6 +483,13 @@ export default function StandingsExperience({
 
   const visibleDayOptions =
     stage === "knockout" ? weekDays : stageDays;
+
+  const isPhaseOne = stage === "knockout" && phase === "phase-1";
+  const showGroup = isPhaseOne;
+  const showQualification =
+    (isPhaseOne && viewMode === "overall") ||
+    (stage === "knockout" && phase === "phase-2" && viewMode !== "overall") ||
+    stage === "last-chance";
 
   return (
     <div className="space-y-6">
@@ -508,12 +588,14 @@ export default function StandingsExperience({
               <SelectButton
                 key={day.id}
                 active={
-                  viewMode !== "overall" && selectedDayId === day.id
+                  (viewMode === "day" || viewMode === "session") &&
+                  selectedDayId === day.id
                 }
                 onClick={() => {
                   setSelectedDayId(day.id);
-                  setViewMode("day");
-                  setSession("overall");
+                  // keep the chosen session when hopping between days
+                  setViewMode(viewMode === "session" ? "session" : "day");
+                  if (viewMode !== "session") setSession("overall");
                 }}
               >
                 {day.name}
@@ -533,15 +615,30 @@ export default function StandingsExperience({
           Standings view
         </p>
         <div className="flex flex-wrap gap-2">
-          <SelectButton
-            active={viewMode === "overall"}
-            onClick={() => {
-              setViewMode("overall");
-              setSession("overall");
-            }}
-          >
-            Overall
-          </SelectButton>
+          {(stage !== "knockout" || phase === "phase-1") && (
+            <SelectButton
+              active={viewMode === "overall"}
+              onClick={() => {
+                setViewMode("overall");
+                setSession("overall");
+              }}
+            >
+              {stage === "knockout" ? "Phase 1 Overall" : "Overall"}
+            </SelectButton>
+          )}
+
+          {stage === "knockout" && phase === "phase-1" && (
+            <SelectButton
+              active={viewMode === "week"}
+              onClick={() => {
+                setViewMode("week");
+                setSession("overall");
+              }}
+            >
+              {week === "week-1" ? "Week 1" : "Week 2"} Overall
+            </SelectButton>
+          )}
+
           <SelectButton
             active={viewMode === "day"}
             onClick={() => {
@@ -549,7 +646,9 @@ export default function StandingsExperience({
               setSession("overall");
             }}
           >
-            Selected Day
+            {stage === "knockout" && phase === "phase-1"
+              ? "Selected Day (24 teams)"
+              : "Selected Day"}
           </SelectButton>
 
           {stage === "knockout" && phase === "phase-1" && (
@@ -575,6 +674,8 @@ export default function StandingsExperience({
             </>
           )}
         </div>
+
+        {isPhaseOne && selectedDay && <SessionLineup day={selectedDay.day} active={viewMode === "session" ? session : null} />}
       </section>
 
       {/* TABLE */}
@@ -593,9 +694,11 @@ export default function StandingsExperience({
             <p className="mt-1 font-stat text-[10px] uppercase tracking-wider text-ash">
               {viewMode === "overall"
                 ? "Cumulative standings"
-                : viewMode === "session"
-                  ? `${selectedDay?.day.name ?? "Selected day"} · ${session === "session-1" ? "Session 1" : "Session 2"}`
-                  : selectedDay?.day.name ?? "Selected day"}
+                : viewMode === "week"
+                  ? `${week === "week-1" ? "Week 1" : "Week 2"} · cumulative standings`
+                  : viewMode === "session"
+                    ? `${selectedDay?.day.name ?? "Selected day"} · ${session === "session-1" ? "Session 1" : "Session 2"}`
+                    : selectedDay?.day.name ?? "Selected day"}
             </p>
           </div>
 
@@ -615,23 +718,39 @@ export default function StandingsExperience({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left">
+            <table className="w-full min-w-[760px] text-left">
               <thead>
                 <tr className="border-b border-bone/10 bg-char-2 font-stat text-[10px] uppercase tracking-wider text-ash">
                   <th className="px-4 py-3">#</th>
                   <th className="py-3">Team</th>
+                  {showGroup && <th className="px-3 py-3">Group</th>}
                   <th className="px-3 py-3 text-right">Rooms</th>
                   <th className="px-3 py-3 text-right">Placement</th>
                   <th className="px-3 py-3 text-right">Kills</th>
                   <th className="px-4 py-3 text-right text-ember">Points</th>
+                  {showQualification && <th className="px-4 py-3">Advances to</th>}
                 </tr>
               </thead>
 
               <tbody>
-                {activeRows.map((row, index) => (
+                {activeRows.map((row, index) => {
+                  const qualification = showQualification
+                    ? qualificationFor(
+                        stage,
+                        phase,
+                        viewMode,
+                        selectedDay?.day ?? null,
+                        index + 1,
+                      )
+                    : null;
+                  const prev = index > 0 && showQualification
+                    ? qualificationFor(stage, phase, viewMode, selectedDay?.day ?? null, index)
+                    : null;
+                  const cutLine = qualification && prev && qualification.label !== prev.label;
+                  return (
                   <tr
                     key={row.team.id}
-                    className="border-b border-bone/5 transition-colors hover:bg-char-2"
+                    className={`border-b border-bone/5 transition-colors hover:bg-char-2 ${cutLine ? "border-t-2 border-t-ember/40" : ""}`}
                   >
                     <td
                       className={`px-4 py-3 font-display text-2xl font-black ${
@@ -670,6 +789,20 @@ export default function StandingsExperience({
                       </div>
                     </td>
 
+                    {showGroup && (
+                      <td className="px-3 py-3">
+                        {row.group ? (
+                          <span
+                            className="inline-flex h-6 min-w-6 items-center justify-center px-1.5 font-stat text-[10px] font-bold uppercase text-char"
+                            style={{ backgroundColor: GROUP_BY_KEY[row.group].color }}
+                          >
+                            {row.group}
+                          </span>
+                        ) : (
+                          <span className="text-bone/30">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-3 py-3 text-right font-stat tabular-nums text-bone/70">
                       {row.roomsPlayed}
                     </td>
@@ -682,13 +815,79 @@ export default function StandingsExperience({
                     <td className="px-4 py-3 text-right font-stat text-lg font-bold tabular-nums text-ember">
                       {row.totalPoints}
                     </td>
+                    {showQualification && (
+                      <td className="px-4 py-3">
+                        {qualification && (
+                          <span
+                            className={`font-stat text-[10px] font-bold uppercase tracking-wider ${
+                              qualification.tone === "good"
+                                ? "text-ember"
+                                : qualification.tone === "mid"
+                                  ? "text-amber"
+                                  : "text-danger"
+                            }`}
+                          >
+                            {qualification.label}
+                          </span>
+                        )}
+                      </td>
+                    )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+/** Shows which group pairs play each session of a Phase 1 match day. */
+function SessionLineup({
+  day,
+  active,
+}: {
+  day: TournamentDay;
+  active: Session | null;
+}) {
+  const slot = phaseOneSlot(day.day_order);
+  if (!slot) return null;
+
+  return (
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      {(["session-1", "session-2"] as const).map((key, i) => {
+        const pair = sessionGroups(day.day_order, key);
+        if (!pair) return null;
+        const isActive = active === key;
+        return (
+          <div
+            key={key}
+            className={`flex items-center justify-between gap-3 border px-3 py-2 ${
+              isActive ? "border-ember bg-char-2" : "border-bone/10 bg-char"
+            }`}
+          >
+            <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
+              {day.name} · Session {i + 1}
+            </span>
+            <span className="flex items-center gap-1.5">
+              {pair.map((g, idx) => (
+                <span key={g} className="flex items-center gap-1.5">
+                  {idx === 1 && <span className="text-xs text-ash">×</span>}
+                  <span
+                    className="inline-flex h-6 items-center px-2 font-stat text-[10px] font-bold uppercase text-char"
+                    style={{ backgroundColor: GROUP_BY_KEY[g].color }}
+                  >
+                    Group {g}
+                  </span>
+                </span>
+              ))}
+              <span className="ml-1 font-stat text-[10px] text-ash">12 teams</span>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
