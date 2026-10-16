@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
+import type { FantasyPlayerDayScore } from "@/types";
 import {
 ApiError,
 getDays,
@@ -638,6 +639,7 @@ return ( <div className="relative min-h-screen overflow-hidden">
             dayId={day.id}
             pool={pool}
             existing={sel?.selections ?? []}
+            breakdown={sel?.breakdown ?? []}
             locked={locked}
             onSaved={() => router.push(`/fantasy/${team.id}`)}
           />

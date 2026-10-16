@@ -8,6 +8,7 @@ import { captainMultiplier } from "@/lib/chips";
 import type {
   FantasyChip,
   FantasyChipUse,
+  FantasyPlayerDayScore,
   FantasySelectionEntry,
   PoolPlayer,
 } from "@/types";
@@ -25,6 +26,7 @@ interface Props {
   dayId: number;
   pool: PoolPlayer[];
   existing: FantasySelectionEntry[];
+  breakdown: FantasyPlayerDayScore[];
   locked: boolean;
   lockTime?: string | null;
   chip?: FantasyChip | "" | null;
@@ -37,6 +39,7 @@ export default function SelectionBuilder({
   dayId,
   pool,
   existing,
+  breakdown,
   locked,
   lockTime,
   chip: savedChip,
@@ -46,6 +49,11 @@ export default function SelectionBuilder({
   const byId = useMemo(
     () => new Map(pool.map((o) => [o.player_id, o])),
     [pool],
+  );
+
+  const scoreByPlayerId = useMemo(
+    () => new Map(breakdown.map((score) => [score.player_id, score])),
+    [breakdown],
   );
 
   const [slots, setSlots] = useState<(number | null)[]>(() => {
@@ -68,9 +76,6 @@ export default function SelectionBuilder({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  /*
-   * Close player detail with Escape.
-   */
   useEffect(() => {
     if (detailId === null) return;
 
@@ -85,9 +90,6 @@ export default function SelectionBuilder({
     return () => window.removeEventListener("keydown", onKey);
   }, [detailId]);
 
-  /*
-   * Prevent the page behind the player detail modal from scrolling.
-   */
   useEffect(() => {
     if (detailId === null) return;
 
@@ -295,38 +297,31 @@ export default function SelectionBuilder({
   return (
     <>
       <div className="grid gap-8 lg:grid-cols-[minmax(260px,0.85fr)_minmax(560px,1.5fr)] lg:items-start">
-        {/* PLAYER MARKET */}
         <section className="order-2 min-w-0 lg:order-1">
           <div className="overflow-hidden chamfer border border-bone/10 bg-char-2">
-            {/* Market header */}
             <div className="border-b border-bone/10 px-5 py-5">
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-
                     <p className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ash">
                       Player market
                     </p>
                   </div>
-
                   <p className="mt-2 font-display text-2xl font-black uppercase">
                     Choose your squad
                   </p>
                 </div>
-
                 <div className="text-right">
                   <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
                     Available
                   </p>
-
                   <p className="mt-1 font-display text-xl font-black text-ember">
                     {list.length}
                   </p>
                 </div>
               </div>
 
-              {/* Search */}
               <div className="relative mt-5">
                 <input
                   value={search}
@@ -334,20 +329,17 @@ export default function SelectionBuilder({
                   placeholder="SEARCH PLAYER OR TEAM..."
                   className="w-full chamfer-sm border border-bone/15 bg-char px-4 py-3.5 pr-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition placeholder:text-ash/50 focus:border-ember"
                 />
-
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg text-ash">
                   ⌕
                 </span>
               </div>
             </div>
 
-            {/* Player list */}
             <div className="p-3">
               <div className="mb-2 flex items-center justify-between px-1">
                 <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
                   Highest value first
                 </p>
-
                 <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash/50">
                   Click player for details
                 </p>
@@ -359,7 +351,6 @@ export default function SelectionBuilder({
                     <p className="font-display text-lg font-black uppercase text-bone/60">
                       No players found
                     </p>
-
                     <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
                       Try another player or team
                     </p>
@@ -382,12 +373,9 @@ export default function SelectionBuilder({
           </div>
         </section>
 
-        {/* SQUAD BUILDER */}
         <section className="order-1 min-w-0 space-y-5 lg:order-2 lg:sticky lg:top-20">
-          {/* Budget + chips */}
           <div className="space-y-3">
             <BudgetBar spent={spent} unlimited={unlimited} />
-
             <ChipPicker
               chip={chip}
               used={chipsUsed}
@@ -397,35 +385,29 @@ export default function SelectionBuilder({
             />
           </div>
 
-          {/* Squad header */}
           <div className="overflow-hidden chamfer border border-bone/10 bg-char-2">
             <div className="flex items-center justify-between px-5 py-5">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-
                   <p className="font-stat text-[9px] uppercase tracking-[0.25em] text-ash">
                     Your lineup
                   </p>
                 </div>
-
                 <p className="mt-2 font-display text-2xl font-black uppercase">
                   Ultimate Squad
                 </p>
               </div>
-
               <div className="text-right">
                 <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
                   Players
                 </p>
-
                 <p className="mt-1 font-display text-3xl font-black leading-none">
                   <span className="text-ember">{picked.length}</span>
                   <span className="text-ash/40"> / {SQUAD_SIZE}</span>
                 </p>
               </div>
             </div>
-
             <div className="h-1 bg-char">
               <div
                 className="h-full bg-ember transition-all duration-500"
@@ -439,11 +421,9 @@ export default function SelectionBuilder({
             </div>
           </div>
 
-          {/* Lock message */}
           {locked ? (
             <div className="flex items-center gap-3 border border-danger/20 bg-danger/[0.04] px-4 py-3">
               <span className="text-danger">🔒</span>
-
               <p className="font-stat text-[9px] uppercase tracking-widest text-danger">
                 Selections are locked for this day
                 {lockTime
@@ -456,19 +436,15 @@ export default function SelectionBuilder({
               <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
                 Selection deadline
               </p>
-
               <p className="font-stat text-[9px] uppercase tracking-widest text-ember">
                 {new Date(lockTime).toUTCString()}
               </p>
             </div>
           ) : null}
 
-          {/* CARD BOARD */}
           <div className="relative overflow-hidden chamfer border border-bone/10 bg-char-2 p-4 sm:p-6">
-            {/* Decorative background */}
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.035] blur-3xl" />
-
               <div
                 className="absolute inset-0 opacity-[0.025]"
                 style={{
@@ -483,18 +459,15 @@ export default function SelectionBuilder({
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-
                   <span className="font-stat text-[9px] uppercase tracking-[0.25em] text-ash">
                     Starting lineup
                   </span>
                 </div>
-
                 <span className="font-stat text-[9px] uppercase tracking-widest text-ash">
                   2 × 2
                 </span>
               </div>
 
-              {/* Four cards */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {slots.map((id, index) => {
                   const player = id !== null ? byId.get(id) : undefined;
@@ -518,36 +491,27 @@ export default function SelectionBuilder({
                         <div className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char-2 font-stat text-[10px] font-bold text-ash">
                           0{index + 1}
                         </div>
-
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-bone/20 bg-char transition group-hover:border-ember/60 group-hover:bg-ember/10">
                             <span className="font-display text-3xl font-light text-ash transition group-hover:text-ember">
                               +
                             </span>
                           </div>
-
                           <p className="mt-4 font-stat text-[9px] uppercase tracking-[0.25em] text-ash transition group-hover:text-bone">
                             Add player
                           </p>
-
                           <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash/50">
                             Slot {index + 1}
                           </p>
                         </div>
-
                         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-bone/20 to-transparent" />
                       </button>
                     );
                   }
 
                   const isCaptain = player.player_id === captain;
+                  const score = scoreByPlayerId.get(player.player_id);
 
-                  /*
-                   * The new FIFA-style card is intentionally kept separate from
-                   * the remove/captain controls. This prevents nested <button>
-                   * elements and lets FantasyPlayerCard handle its own scaling,
-                   * artwork and selected state cleanly.
-                   */
                   return (
                     <div
                       key={player.player_id}
@@ -557,7 +521,6 @@ export default function SelectionBuilder({
                           : ""
                       }`}
                     >
-                      {/* Player card */}
                       <FantasyPlayerCard
                         size="fluid"
                         player={{
@@ -581,18 +544,20 @@ export default function SelectionBuilder({
                         price={player.fantasy_price}
                         selected={true}
                         captain={isCaptain}
+                        stats={{
+                          kills: score?.kills,
+                          fantasyPoints: score?.final_points,
+                        }}
                         onClick={() => setDetailId(player.player_id)}
                         disabled={locked}
                       />
 
-                      {/* Slot number */}
                       <div className="pointer-events-none absolute left-[7%] top-[6%] z-20 flex h-7 min-w-7 items-center justify-center border border-bone/15 bg-char/70 px-2 backdrop-blur-sm">
                         <span className="font-stat text-[8px] font-bold text-ash">
                           0{index + 1}
                         </span>
                       </div>
 
-                      {/* Remove */}
                       {!locked && (
                         <button
                           type="button"
@@ -604,7 +569,6 @@ export default function SelectionBuilder({
                         </button>
                       )}
 
-                      {/* Captain control */}
                       {!locked && (
                         <button
                           type="button"
@@ -616,7 +580,6 @@ export default function SelectionBuilder({
                           }`}
                         >
                           <span className="text-xs leading-none">★</span>
-
                           <span>{isCaptain ? "Captain" : "Make Captain"}</span>
                         </button>
                       )}
@@ -627,7 +590,6 @@ export default function SelectionBuilder({
 
               <div className="mt-5 flex items-center justify-center gap-2 border-t border-bone/10 pt-4">
                 <span className="text-ember">★</span>
-
                 <p className="font-stat text-[9px] uppercase tracking-[0.18em] text-ash">
                   Select a captain for{" "}
                   <span className="text-ember">{multiplier}x points</span>
@@ -636,33 +598,27 @@ export default function SelectionBuilder({
             </div>
           </div>
 
-          {/* Squad summary */}
           <div className="grid grid-cols-3 overflow-hidden chamfer border border-bone/10 bg-char-2">
             <div className="border-r border-bone/10 px-4 py-4">
               <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
                 Squad
               </p>
-
               <p className="mt-1 font-display text-lg font-black">
                 {picked.length}/{SQUAD_SIZE}
               </p>
             </div>
-
             <div className="border-r border-bone/10 px-4 py-4">
               <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
                 Teams
               </p>
-
               <p className="mt-1 font-display text-lg font-black">
                 {usedTeamIds.size}
               </p>
             </div>
-
             <div className="px-4 py-4">
               <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
                 Remaining
               </p>
-
               <p
                 className={`mt-1 font-display text-lg font-black ${
                   unlimited
@@ -677,7 +633,6 @@ export default function SelectionBuilder({
             </div>
           </div>
 
-          {/* Error */}
           <p
             aria-live="polite"
             className="min-h-5 text-center font-stat text-xs text-danger"
@@ -685,7 +640,6 @@ export default function SelectionBuilder({
             {error}
           </p>
 
-          {/* Save */}
           <Button
             type="button"
             onClick={save}
@@ -703,7 +657,6 @@ export default function SelectionBuilder({
         </section>
       </div>
 
-      {/* PLAYER DETAIL OVERLAY */}
       {detailOption && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-char/75 p-4 backdrop-blur-md sm:p-6"
@@ -716,16 +669,13 @@ export default function SelectionBuilder({
           aria-modal="true"
           aria-label={`${detailOption.ign} player details`}
         >
-          {/* Ambient glow */}
           <div className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.08] blur-[120px]" />
 
-          {/* Modal card */}
           <div
             className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="relative">
-              {/* Close button */}
               <button
                 type="button"
                 onClick={() => setDetailId(null)}
