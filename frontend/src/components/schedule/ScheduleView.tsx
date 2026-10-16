@@ -1,5 +1,7 @@
+
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import ErrorState from "@/components/ui/ErrorState";
 import EmptyState from "@/components/ui/EmptyState";
@@ -67,6 +69,33 @@ const GROUPS: Group[] = [
     ],
   },
 ];
+
+const TEAM_LOGOS: Record<string, string> = {
+  LYON: "/teams/LYON.png",
+  "Team Flash": "/teams/FLASH.png",
+  "ONIC Olympus": "/teams/ONIC.png",
+  "LOS Grandes": "/teams/LOS.png",
+  "Horaa Esports": "/teams/HE.png",
+  "XPROJEKT Esports": "/teams/XP.png",
+  "Bigetron by Vitality": "/teams/BTR.png",
+  "Blue Cheese": "/teams/BlueCheese.png",
+  "P Esports": "/teams/pe.png",
+  "Resurrection Esports": "/teams/RES.png",
+  "Pirate Esports": "/teams/PIRATE.png",
+  "ParadoX Gaming": "/teams/PDX.png",
+  "LOUD GG": "/teams/LOUD.png",
+  "Team Apex Gaming": "/teams/APEX.png",
+  GOW: "/teams/GOW.png",
+  "RRQ Kazu": "/teams/RRQ.png",
+  "Gun Dynasty": "/teams/GunDynasty.png",
+  "Total Winner Esports": "/teams/TOTALWINNER.png",
+  "Team Infinity": "/teams/INF.png",
+  "All Gamers Global": "/teams/AG.png",
+  "Buriram United Esports": "/teams/BRU.png",
+  "TSG Pros": "/teams/TSG.png",
+  "Stellar Esports": "/teams/STELLAR.png",
+  FLUXO: "/teams/fluxo.png",
+};
 
 type StageName = "knockout" | "last-chance" | "grand-final";
 
@@ -336,22 +365,22 @@ export default function ScheduleView({
                 {group.teams.map((team, teamIndex) => (
                   <div
                     key={team}
-                    className={`flex min-h-[52px] items-center gap-3 px-3 py-2 ${
+                    className={`flex min-h-[64px] items-center justify-center px-3 py-2 ${
                       teamIndex % 2 === 0 ? "border-r border-char-3" : ""
                     } ${
                       teamIndex >= 2 ? "border-t border-char-3" : ""
                     }`}
+                    title={team}
                   >
-                    <span
-                      className="font-stat text-[10px]"
-                      style={{ color: group.color }}
-                    >
-                      {String(teamIndex + 1).padStart(2, "0")}
-                    </span>
-
-                    <span className="text-xs font-semibold text-bone sm:text-sm">
-                      {team}
-                    </span>
+                    <div className="relative h-11 w-full max-w-[120px]">
+                      <Image
+                        src={TEAM_LOGOS[team]}
+                        alt={`${team} logo`}
+                        fill
+                        sizes="120px"
+                        className="object-contain"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -416,7 +445,7 @@ export default function ScheduleView({
                     Phase 1
                   </p>
                   <h3 className="mt-1 font-display text-xl font-bold uppercase text-bone">
-                    Weeks 1 & 2
+                    Weeks 1 &amp; 2
                   </h3>
                   <p className="mt-1 text-xs text-ash">
                     November 6–15
