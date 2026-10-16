@@ -506,6 +506,100 @@ export default function ScheduleView({
                 </div>
               )}
 
+              {activeWeek !== 3 && (
+                <section className="space-y-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
+                        Phase 1 · Match rotation
+                      </p>
+                      <h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone sm:text-2xl">
+                        Weeks 1 &amp; 2
+                      </h3>
+                    </div>
+                    <p className="text-xs text-ash">
+                      3 match days · 2 sessions per day
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {[
+                      {
+                        week: 1,
+                        sessions: [
+                          ["A × B", "A × C", "A × D"],
+                          ["C × D", "B × D", "B × C"],
+                        ],
+                      },
+                      {
+                        week: 2,
+                        sessions: [
+                          ["C × D", "B × D", "B × C"],
+                          ["A × B", "A × C", "A × D"],
+                        ],
+                      },
+                    ].map(({ week, sessions }) => (
+                      <div
+                        key={week}
+                        className={`overflow-hidden rounded-sm border ${
+                          activeWeek === week
+                            ? "border-ember/70 bg-char-2"
+                            : "border-char-3 bg-char"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between border-b border-char-3 px-4 py-3">
+                          <div>
+                            <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">
+                              Knockout · Phase 1
+                            </p>
+                            <h4 className="mt-1 font-display text-lg font-extrabold uppercase text-bone">
+                              Week {week}
+                            </h4>
+                          </div>
+                          <span className="font-stat text-xs text-ash">
+                            0{week} / 02
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 p-3 sm:gap-3 sm:p-4">
+                          {[0, 1, 2].map((dayIndex) => (
+                            <div
+                              key={dayIndex}
+                              className="min-w-0 border border-char-3 bg-char p-2 sm:p-3"
+                            >
+                              <p className="mb-3 text-center font-stat text-[10px] uppercase tracking-wider text-ash">
+                                Day {dayIndex + 1}
+                              </p>
+                              {[0, 1].map((sessionIndex) => (
+                                <div
+                                  key={sessionIndex}
+                                  className={sessionIndex === 0 ? "mb-2" : ""}
+                                >
+                                  <p className="mb-1 text-center text-[9px] uppercase tracking-wider text-ash">
+                                    Session {sessionIndex + 1}
+                                  </p>
+                                  <div className="flex items-center justify-center gap-1 rounded-sm border border-ember/25 bg-ember/10 px-1 py-2">
+                                    <span className="font-display text-sm font-black text-bone sm:text-base">
+                                      {sessions[sessionIndex][dayIndex].split(" × ")[0]}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-ember">
+                                      ×
+                                    </span>
+                                    <span className="font-display text-sm font-black text-bone sm:text-base">
+                                      {sessions[sessionIndex][dayIndex].split(" × ")[1]}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               <div>
                 <p className="mb-3 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
                   Select match day
