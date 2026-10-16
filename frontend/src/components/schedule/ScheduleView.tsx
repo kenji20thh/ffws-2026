@@ -11,34 +11,152 @@ import RoomCard from "./RoomCard";
 import RoomResultsTable from "./RoomResultsTable";
 import TeamsOfDay from "./TeamsOfDay";
 
-type Stage = {
-  title: string;
-  days: TournamentDay[];
+type Group = {
+  name: string;
+  color: string;
+  teams: string[];
 };
 
-function getStage(name: string): string {
-  const normalized = name.toLowerCase();
+const GROUPS: Group[] = [
+  {
+    name: "Group A",
+    color: "#ff5a1f",
+    teams: [
+      "LYON",
+      "Team Flash",
+      "ONIC Olympus",
+      "LOS Grandes",
+      "Horaa Esports",
+      "XPROJEKT Esports",
+    ],
+  },
+  {
+    name: "Group B",
+    color: "#ffb000",
+    teams: [
+      "Bigetron by Vitality",
+      "Blue Cheese",
+      "P Esports",
+      "Resurrection Esports",
+      "Pirate Esports",
+      "ParadoX Gaming",
+    ],
+  },
+  {
+    name: "Group C",
+    color: "#c42cff",
+    teams: [
+      "LOUD GG",
+      "Team Apex Gaming",
+      "GOW",
+      "RRQ Kazu",
+      "Gun Dynasty",
+      "Total Winner Esports",
+    ],
+  },
+  {
+    name: "Group D",
+    color: "#25d366",
+    teams: [
+      "Team Infinity",
+      "All Gamers Global",
+      "Buriram United Esports",
+      "TSG Pros",
+      "Stellar Esports",
+      "FLUXO",
+    ],
+  },
+];
 
-  if (normalized.includes("last chance")) return "Last Chance";
-  if (normalized.includes("grand final")) return "Grand Finals";
-  return "Knockout Stage";
+type StageName = "knockout" | "last-chance" | "grand-final";
+
+function stageForDay(day: TournamentDay): StageName {
+  const name = day.name.toLowerCase();
+
+  if (name.includes("last chance")) return "last-chance";
+  if (name.includes("grand final")) return "grand-final";
+
+  return "knockout";
 }
 
-function groupDays(days: TournamentDay[]): Stage[] {
-  const stages = [
-    "Knockout Stage",
-    "Last Chance",
-    "Grand Finals",
-  ];
+function formatDate(date: string) {
+  const value = date.slice(0, 10);
+  const parsed = new Date(`${value}T12:00:00Z`);
 
-  return stages
-    .map((title) => ({
-      title,
-      days: days
-        .filter((day) => getStage(day.name) === title)
-        .sort((a, b) => a.day_order - b.day_order),
-    }))
-    .filter((stage) => stage.days.length > 0);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+function dayLabel(day: TournamentDay) {
+  const name = day.name;
+
+  return name
+    .replace(/^Knockout Stage\s*[-–:]?\s*/i, "")
+    .replace(/^Week\s+(\d+)/i, "Week $1")
+    .replace(/\s+Day\s+(\d+)/i, " · Day $1");
+}
+
+function StageHeader({
+  title,
+  subtitle,
+  number,
+  expanded,
+}: {
+  title: string;
+  subtitle: string;
+  number: string;
+  expanded: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-4">
+      <div
+        className={`flex h-12 w-12 shrink-0 items-center justify-center border font-display text-xl font-black ${
+          expanded
+            ? "border-ember bg-ember text-char"
+            : "border-char-3 bg-char-2 text-ash"
+        }`}
+      >
+        {number}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display text-2xl font-extrabold uppercase tracking-wide text-bone sm:text-3xl">
+          {title}
+        </h2>
+        <p className="mt-1 font-stat text-[10px] uppercase tracking-[0.18em] text-ash sm:text-xs">
+          {subtitle}
+        </p>
+      </div>
+
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center border ${
+          expanded
+            ? "border-ember text-ember"
+            : "border-char-3 text-ash"
+        }`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </span>
+    </div>
+  );
 }
 
 export default function ScheduleView({
@@ -47,6 +165,10 @@ export default function ScheduleView({
   days: TournamentDay[];
 }) {
   const [dayId, setDayId] = useState(days[0]?.id ?? 0);
+  const [expandedStage, setExpandedStage] =
+    useState<StageName>("knockout");
+  const [activeWeek, setActiveWeek] = useState(1);
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [dayTeams, setDayTeams] = useState<DayTeam[]>([]);
   const [roomId, setRoomId] = useState<number | null>(null);
@@ -55,7 +177,36 @@ export default function ScheduleView({
   const [error, setError] = useState<string | null>(null);
 
   const activeDay = days.find((day) => day.id === dayId) ?? days[0];
-  const stages = groupDays(days);
+
+  const knockoutDays = days
+    .filter((day) => stageForDay(day) === "knockout")
+    .sort((a, b) => a.day_order - b.day_order);
+
+  const lastChanceDays = days
+    .filter((day) => stageForDay(day) === "last-chance")
+    .sort((a, b) => a.day_order - b.day_order);
+
+  const grandFinalDays = days
+    .filter((day) => stageForDay(day) === "grand-final")
+    .sort((a, b) => a.day_order - b.day_order);
+
+  const weekDays = knockoutDays.filter((day) => {
+    if (activeWeek === 1) return day.day_order >= 1 && day.day_order <= 3;
+    if (activeWeek === 2) return day.day_order >= 4 && day.day_order <= 6;
+    return day.day_order >= 7 && day.day_order <= 10;
+  });
+
+  const room = rooms.find((item) => item.id === roomId) ?? null;
+  const isLive = room?.status === "live";
+
+  function selectDay(day: TournamentDay) {
+    setDayId(day.id);
+    setExpandedStage(stageForDay(day));
+
+    if (stageForDay(day) === "knockout") {
+      setActiveWeek(day.day_order <= 3 ? 1 : day.day_order <= 6 ? 2 : 3);
+    }
+  }
 
   useEffect(() => {
     if (!dayId) return;
@@ -77,7 +228,7 @@ export default function ScheduleView({
         setDayTeams(loadedTeams);
 
         const liveRoom = loadedRooms.find(
-          (room) => room.status === "live",
+          (item) => item.status === "live",
         );
 
         setRoomId((liveRoom ?? loadedRooms[0])?.id ?? null);
@@ -85,7 +236,7 @@ export default function ScheduleView({
       .catch((e) => {
         if (!cancelled) {
           setError(
-            e instanceof Error ? e.message : "Failed to load schedule",
+            e instanceof Error ? e.message : "Failed to load day",
           );
         }
       })
@@ -97,9 +248,6 @@ export default function ScheduleView({
       cancelled = true;
     };
   }, [dayId]);
-
-  const room = rooms.find((item) => item.id === roomId) ?? null;
-  const isLive = room?.status === "live";
 
   useEffect(() => {
     if (!roomId) {
@@ -114,9 +262,7 @@ export default function ScheduleView({
         .then((data) => {
           if (!cancelled) setResults(data);
         })
-        .catch(() => {
-          // Keep the most recently loaded results if a refresh fails.
-        });
+        .catch(() => {});
     };
 
     loadResults();
@@ -139,212 +285,406 @@ export default function ScheduleView({
     return (
       <EmptyState
         title="Schedule not announced"
-        hint="Days and rooms will appear here soon."
+        hint="Tournament groups and match days will appear here."
       />
     );
   }
 
   return (
-    <div className="space-y-10">
-      {/* Tournament stages */}
-      <div className="space-y-8">
-        {stages.map((stage) => {
-          const selected = stage.days.some(
-            (day) => day.id === dayId,
-          );
+    <div className="space-y-12">
+      {/* Four tournament groups */}
+      <section>
+        <div className="mb-5">
+          <p className="font-stat text-[10px] uppercase tracking-[0.3em] text-ember">
+            Free Fire World Series 2026
+          </p>
 
-          return (
-            <section key={stage.title} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <h2 className="font-display text-2xl font-extrabold uppercase tracking-wide text-bone">
-                  {stage.title}
-                </h2>
+          <h2 className="mt-2 font-display text-3xl font-black uppercase text-bone sm:text-4xl">
+            Group Distribution
+          </h2>
 
-                <div className="h-px flex-1 bg-char-3" />
+          <p className="mt-2 text-sm text-ash">
+            The 24 teams competing in four groups.
+          </p>
+        </div>
 
-                <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
-                  {stage.days.length}{" "}
-                  {stage.days.length === 1 ? "day" : "days"}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {GROUPS.map((group, index) => (
+            <div
+              key={group.name}
+              className="overflow-hidden border border-char-3 bg-char-2"
+            >
+              <div
+                className="flex items-center justify-between px-4 py-3"
+                style={{
+                  borderLeft: `4px solid ${group.color}`,
+                }}
+              >
+                <h3 className="font-display text-xl font-extrabold uppercase text-bone">
+                  {group.name}
+                </h3>
+
+                <span
+                  className="font-stat text-[10px] uppercase tracking-widest"
+                  style={{ color: group.color }}
+                >
+                  GROUP 0{index + 1}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {stage.days.map((day) => {
-                  const active = day.id === dayId;
-
-                  return (
-                    <button
-                      key={day.id}
-                      type="button"
-                      onClick={() => setDayId(day.id)}
-                      aria-pressed={active}
-                      className={`border px-4 py-3 text-left transition-colors ${
-                        active
-                          ? "border-ember bg-ember text-char"
-                          : "border-char-3 bg-char-2 text-ash hover:border-ember/60 hover:text-bone"
-                      }`}
+              <div className="grid grid-cols-2 border-t border-char-3">
+                {group.teams.map((team, teamIndex) => (
+                  <div
+                    key={team}
+                    className={`flex min-h-[52px] items-center gap-3 px-3 py-2 ${
+                      teamIndex % 2 === 0 ? "border-r border-char-3" : ""
+                    } ${
+                      teamIndex >= 2 ? "border-t border-char-3" : ""
+                    }`}
+                  >
+                    <span
+                      className="font-stat text-[10px]"
+                      style={{ color: group.color }}
                     >
-                      <span className="block font-stat text-[9px] uppercase tracking-widest opacity-80">
-                        {day.date
-                          ? new Date(`${day.date}T12:00:00`).toLocaleDateString(
-                              "en-GB",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                timeZone: "UTC",
-                              },
-                            )
-                          : `Day ${day.day_order}`}
-                      </span>
+                      {String(teamIndex + 1).padStart(2, "0")}
+                    </span>
 
-                      <span className="mt-1 block font-display text-sm font-bold uppercase">
-                        {day.name
-                          .replace(/^Knockout Stage\s*[-–:]?\s*/i, "")
-                          .replace(/^Week\s+/i, "W")
-                          .replace(/\s+Day\s+/i, " · Day ")}
-                      </span>
-                    </button>
-                  );
-                })}
+                    <span className="text-xs font-semibold text-bone sm:text-sm">
+                      {team}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Tournament stages */}
+      <section className="space-y-4">
+        <div className="mb-6">
+          <p className="font-stat text-[10px] uppercase tracking-[0.3em] text-ember">
+            Tournament roadmap
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-black uppercase text-bone sm:text-4xl">
+            Match Schedule
+          </h2>
+        </div>
+
+        {/* Knockout Phase */}
+        <div
+          className={`border ${
+            expandedStage === "knockout"
+              ? "border-ember/60"
+              : "border-char-3"
+          } bg-char`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setExpandedStage((current) =>
+                current === "knockout" ? "last-chance" : "knockout",
+              )
+            }
+            aria-expanded={expandedStage === "knockout"}
+            className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"
+          >
+            <StageHeader
+              title="Knockout Phase"
+              subtitle={`${knockoutDays.length} match days · November 6–22`}
+              number="01"
+              expanded={expandedStage === "knockout"}
+            />
+          </button>
+
+          {expandedStage === "knockout" && (
+            <div className="space-y-5 border-t border-char-3 p-4 sm:p-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveWeek(1);
+                    if (knockoutDays[0]) selectDay(knockoutDays[0]);
+                  }}
+                  className={`border p-4 text-left transition-colors ${
+                    activeWeek !== 3
+                      ? "border-ember bg-ember/10"
+                      : "border-char-3 bg-char-2 hover:border-ember/50"
+                  }`}
+                >
+                  <p className="font-stat text-[10px] uppercase tracking-widest text-ember">
+                    Phase 1
+                  </p>
+                  <h3 className="mt-1 font-display text-xl font-bold uppercase text-bone">
+                    Weeks 1 & 2
+                  </h3>
+                  <p className="mt-1 text-xs text-ash">
+                    November 6–15
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveWeek(3);
+                    const week3 = knockoutDays.find(
+                      (day) => day.day_order >= 7,
+                    );
+                    if (week3) selectDay(week3);
+                  }}
+                  className={`border p-4 text-left transition-colors ${
+                    activeWeek === 3
+                      ? "border-ember bg-ember/10"
+                      : "border-char-3 bg-char-2 hover:border-ember/50"
+                  }`}
+                >
+                  <p className="font-stat text-[10px] uppercase tracking-widest text-ember">
+                    Phase 2
+                  </p>
+                  <h3 className="mt-1 font-display text-xl font-bold uppercase text-bone">
+                    Week 3
+                  </h3>
+                  <p className="mt-1 text-xs text-ash">
+                    November 19–22
+                  </p>
+                </button>
               </div>
 
-              {selected && (
-                <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">
-                  Selected event day
-                </p>
+              {activeWeek !== 3 && (
+                <div className="flex gap-2">
+                  {[1, 2].map((week) => (
+                    <button
+                      key={week}
+                      type="button"
+                      onClick={() => {
+                        setActiveWeek(week);
+                        const firstDay = knockoutDays.find((day) =>
+                          week === 1
+                            ? day.day_order >= 1 && day.day_order <= 3
+                            : day.day_order >= 4 && day.day_order <= 6,
+                        );
+                        if (firstDay) selectDay(firstDay);
+                      }}
+                      className={`border px-4 py-2 font-stat text-xs uppercase tracking-wider ${
+                        activeWeek === week
+                          ? "border-ember bg-ember text-char"
+                          : "border-char-3 text-ash hover:text-bone"
+                      }`}
+                    >
+                      Week {week}
+                    </button>
+                  ))}
+                </div>
               )}
-            </section>
-          );
-        })}
-      </div>
 
-      <div className="h-px bg-char-3" />
+              <div>
+                <p className="mb-3 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+                  Select match day
+                </p>
 
-      {/* Selected day details */}
-      <section className="space-y-6">
+                <DayTabs
+                  days={weekDays}
+                  activeId={dayId}
+                  onSelect={(id) => {
+                    const selectedDay = days.find((day) => day.id === id);
+                    if (selectedDay) selectDay(selectedDay);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Last Chance */}
+        <div
+          className={`border ${
+            expandedStage === "last-chance"
+              ? "border-ember/60"
+              : "border-char-3"
+          } bg-char`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setExpandedStage((current) =>
+                current === "last-chance" ? "knockout" : "last-chance",
+              )
+            }
+            aria-expanded={expandedStage === "last-chance"}
+            className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"
+          >
+            <StageHeader
+              title="Last Chance"
+              subtitle="November 27 · Final opportunity"
+              number="02"
+              expanded={expandedStage === "last-chance"}
+            />
+          </button>
+
+          {expandedStage === "last-chance" && (
+            <div className="space-y-4 border-t border-char-3 p-4 sm:p-5">
+              {lastChanceDays.length === 0 ? (
+                <EmptyState title="Last Chance schedule not announced" />
+              ) : (
+                <DayTabs
+                  days={lastChanceDays}
+                  activeId={dayId}
+                  onSelect={(id) => {
+                    const selectedDay = days.find((day) => day.id === id);
+                    if (selectedDay) selectDay(selectedDay);
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Grand Final */}
+        <div
+          className={`border ${
+            expandedStage === "grand-final"
+              ? "border-ember/60"
+              : "border-char-3"
+          } bg-char`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setExpandedStage((current) =>
+                current === "grand-final" ? "knockout" : "grand-final",
+              )
+            }
+            aria-expanded={expandedStage === "grand-final"}
+            className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"
+          >
+            <StageHeader
+              title="Grand Final"
+              subtitle="November 28 · Championship day"
+              number="03"
+              expanded={expandedStage === "grand-final"}
+            />
+          </button>
+
+          {expandedStage === "grand-final" && (
+            <div className="space-y-4 border-t border-char-3 p-4 sm:p-5">
+              {grandFinalDays.length === 0 ? (
+                <EmptyState title="Grand Final schedule not announced" />
+              ) : (
+                <DayTabs
+                  days={grandFinalDays}
+                  activeId={dayId}
+                  onSelect={(id) => {
+                    const selectedDay = days.find((day) => day.id === id);
+                    if (selectedDay) selectDay(selectedDay);
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Selected match-day details */}
+      <section className="scroll-mt-6 space-y-8">
         <div className="border-l-2 border-ember pl-4">
           <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
-            {activeDay ? getStage(activeDay.name) : "Tournament"}
+            {activeDay ? stageForDay(activeDay).replace("-", " ") : "Schedule"}
           </p>
 
           <h2 className="mt-1 font-display text-3xl font-extrabold uppercase text-bone sm:text-4xl">
-            {activeDay?.name}
+            {activeDay?.name ?? "Match Day"}
           </h2>
 
-          <p className="mt-2 font-stat text-xs uppercase tracking-widest text-ash">
-            {activeDay?.date
-              ? new Date(`${activeDay.date}T12:00:00`).toLocaleDateString(
-                  "en-GB",
-                  {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  },
-                )
-              : `Tournament day ${activeDay?.day_order ?? ""}`}
-          </p>
+          {activeDay?.date && (
+            <p className="mt-2 font-stat text-xs uppercase tracking-widest text-ash">
+              {formatDate(activeDay.date)} 2026
+            </p>
+          )}
         </div>
 
-        <DayTabs
-          days={days}
-          activeId={dayId}
-          onSelect={setDayId}
-        />
-      </section>
-
-      {error ? (
-        <ErrorState message={error} />
-      ) : loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-      ) : (
-        <>
-          <section>
-            <h2 className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
-              Teams playing
-            </h2>
-            {dayTeams.length === 0 ? (
-              <EmptyState
-                title="Teams not announced"
-                hint="Teams assigned to this day will appear here."
-              />
-            ) : (
-              <TeamsOfDay teams={dayTeams} />
-            )}
-          </section>
-
-          <section>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
-                Rooms
-              </h2>
-
-              <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
-                {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
-              </span>
-            </div>
-
-            {rooms.length === 0 ? (
-              <EmptyState
-                title="No rooms yet"
-                hint="Room assignments will appear here when announced."
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {rooms.map((item) => (
-                  <RoomCard
-                    key={item.id}
-                    room={item}
-                    active={item.id === roomId}
-                    onSelect={() => setRoomId(item.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {room && (
+        {error ? (
+          <ErrorState message={error} />
+        ) : loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+        ) : (
+          <>
             <section>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
-                    {isLive ? "Live results" : "Match results"}
-                  </p>
+              <h3 className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+                Teams playing
+              </h3>
 
-                  <h2 className="mt-1 font-display text-3xl font-extrabold uppercase sm:text-4xl">
-                    Room {room.room_number}
-                  </h2>
-                </div>
-
-                {isLive && (
-                  <span className="flex items-center gap-2 font-stat text-[10px] uppercase tracking-widest text-ember">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-ember" />
-                    Updating every 10s
-                  </span>
-                )}
-              </div>
-
-              {results.length === 0 ? (
+              {dayTeams.length === 0 ? (
                 <EmptyState
-                  title="No results yet"
-                  hint={
-                    isLive
-                      ? "Results will appear here as they become available."
-                      : "Results for this room have not been published yet."
-                  }
+                  title="Teams not assigned yet"
+                  hint="The participating teams will appear here once assigned to this day."
                 />
               ) : (
-                <RoomResultsTable rows={results} />
+                <TeamsOfDay teams={dayTeams} />
               )}
             </section>
-          )}
-        </>
-      )}
+
+            <section>
+              <h3 className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+                Match rooms
+              </h3>
+
+              {rooms.length === 0 ? (
+                <EmptyState
+                  title="No rooms yet"
+                  hint="Room assignments will appear here when available."
+                />
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {rooms.map((item) => (
+                    <RoomCard
+                      key={item.id}
+                      room={item}
+                      active={item.id === roomId}
+                      onSelect={() => setRoomId(item.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {room && (
+              <section>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
+                      {isLive ? "Live results" : "Room standings"}
+                    </p>
+
+                    <h3 className="mt-1 font-display text-3xl font-extrabold uppercase text-bone">
+                      Room {room.room_number}
+                    </h3>
+                  </div>
+
+                  {isLive && (
+                    <span className="flex items-center gap-2 font-stat text-[10px] uppercase tracking-widest text-ember">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-ember" />
+                      Live · 10s refresh
+                    </span>
+                  )}
+                </div>
+
+                {results.length === 0 ? (
+                  <EmptyState
+                    title="No results yet"
+                    hint="Room results will appear here when available."
+                  />
+                ) : (
+                  <RoomResultsTable rows={results} />
+                )}
+              </section>
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }
