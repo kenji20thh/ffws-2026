@@ -2,9 +2,6 @@
 
 // TEMPORARY visual playground for <FantasyPlayerCard>. Delete this file together with
 // src/app/dev/fantasy-card/ once the card has been integrated.
-//
-// Everything below is MOCK DATA for looking at the layout. None of it is real, and none
-// of it lives inside the card component itself.
 
 import { useState } from "react";
 import { tierFromPrice } from "@/lib/cardTier";
@@ -29,7 +26,7 @@ const BASE_ENTRIES: MockEntry[] = [
     player: { ign: "MockRush", role: "rusher", country: "Brazil" },
     team: { name: "Mock Team Alpha", tag: "MTA" },
     overall: 90,
-    stats: { kills: 128, placements: 54, avgPlacement: 4.2, avgKills: 3.1 },
+    stats: { kills: 128, fantasyPoints: 540 },
     price: 32,
   },
   {
@@ -37,7 +34,7 @@ const BASE_ENTRIES: MockEntry[] = [
     player: { ign: "MockBomber", role: "bomber", country: "Indonesia" },
     team: { name: "Mock Team Beta", tag: "MTB" },
     overall: 84,
-    stats: { kills: 96, placements: 41, avgPlacement: 5.8, avgKills: 2.4 },
+    stats: { kills: 96, fantasyPoints: 410 },
     price: 26,
   },
   {
@@ -45,11 +42,10 @@ const BASE_ENTRIES: MockEntry[] = [
     player: { ign: "AVeryLongMockName", role: "support", country: "Thailand" },
     team: { name: "Mock Team With A Long Name", tag: "MTL" },
     overall: 77,
-    stats: { kills: 61, placements: 33, avgPlacement: 7.0, avgKills: 1.6 },
+    stats: { kills: 61, fantasyPoints: 330 },
     price: 18,
   },
   {
-    // nothing known yet: every missing value renders as a dash
     id: 4,
     player: { ign: "NoStats", role: "sniper", country: "" },
     team: {},
@@ -85,18 +81,22 @@ export default function FantasyPlayerCardDemo({
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-5 py-10">
       <header>
-        <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Dev preview</p>
-        <h1 className="font-display text-5xl font-black uppercase">Fantasy player card</h1>
+        <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+          Dev preview
+        </p>
+        <h1 className="font-display text-5xl font-black uppercase">
+          Fantasy player card
+        </h1>
         <p className="mt-2 max-w-2xl text-bone/70">
-          Mock data only. Add <code>?photo=https://…</code> (a transparent PNG) and optionally{" "}
-          <code>&amp;logo=https://…</code> to the URL to see real images. This page does not exist in
-          production builds.
+          Mock data only. Add <code>?photo=https://…</code> (a transparent PNG)
+          and optionally <code>&amp;logo=https://…</code> to the URL to see real
+          images. This page does not exist in production builds.
         </p>
       </header>
 
       <section>
         <h2 className="mb-4 font-stat text-xs uppercase tracking-widest text-ash">
-          Medium · click to select · tier comes from the price (temporary thresholds)
+          Medium · click to select · tier comes from the price
         </h2>
         <div className="flex flex-wrap gap-8">
           {entries.map((e) => (
@@ -159,7 +159,7 @@ export default function FantasyPlayerCardDemo({
 
       <section>
         <h2 className="mb-4 font-stat text-xs uppercase tracking-widest text-ash">
-          Large · not clickable (plain display)
+          Large · not clickable
         </h2>
         <FantasyPlayerCard
           size="lg"
