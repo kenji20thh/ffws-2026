@@ -1,8 +1,18 @@
 import { getTournament } from "@/lib/api";
 import StandingsExperience from "@/components/standings/StandingsExperience";
+import type { Tournament } from "@/types";
+
+// Fetches live data from the API, so render per request instead of at build time.
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Placements · FFWS 2026" };
 
 export default async function StandingsPage() {
-  const tournament = await getTournament("ffws-2026");
+  let tournament: Tournament | null = null;
+  try {
+    tournament = await getTournament("ffws-2026");
+  } catch {
+    tournament = null;
+  }
 
   if (!tournament) {
     return (
