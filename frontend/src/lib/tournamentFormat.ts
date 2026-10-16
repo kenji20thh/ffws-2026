@@ -121,14 +121,118 @@ export function groupForTeam(team: { name: string; tag?: string }): GroupKey | u
   return loose?.group;
 }
 
-/** Where a team ends up after Phase 1, based on its overall rank (1-based). */
-export type Phase1Zone = { label: string; tone: "pool1" | "pool" | "last-chance" | "out" };
+// ---------------------------------------------------------------------------
+// Qualification paths (who plays, who advances where)
+// ---------------------------------------------------------------------------
 
-export function phaseOneZone(rank: number): Phase1Zone {
-  if (rank <= 12) return { label: "Pool 1 · Week 3 Day 1", tone: "pool1" };
-  if (rank <= 14) return { label: "Pool 2 · Week 3 Day 2", tone: "pool" };
-  if (rank <= 16) return { label: "Pool 3 · Week 3 Day 3", tone: "pool" };
-  if (rank <= 18) return { label: "Pool 4 · Week 3 Day 4", tone: "pool" };
-  if (rank <= 20) return { label: "Last Chance", tone: "last-chance" };
-  return { label: "Eliminated", tone: "out" };
+export type Tone = "advance" | "next" | "lastchance" | "out";
+
+export const TONE_COLOR: Record<Tone, string> = {
+  advance: "#22c55e", // green – qualified for the Grand Finals / next big step
+  next: "#ffb000", // amber – continues in the tournament
+  lastchance: "#38bdf8", // blue – goes to Last Chance
+  out: "#e5322d", // red – eliminated
+};
+
+export type Entrant = { label: string; count: number; note?: string };
+export type Outcome = { from: number; to: number; tone: Tone; label: string };
+
+export type StageDef = {
+  key: string;
+  title: string;
+  date: string;
+  /** number of teams that play this stage/day */
+  size: number;
+  matches?: string;
+  entrants: Entrant[];
+  outcomes: Outcome[];
+};
+
+export const PHASE_ONE_OVERALL: StageDef = {
+  key: "phase-1",
+  title: "Phase 1 · Overall",
+  date: "November 6–15",
+  size: 24,
+  matches: "36 matches",
+  entrants: [{ label: "Groups A–D", count: 24, note: "4 groups of 6 teams" }],
+  outcomes: [
+    { from: 1, to: 12, tone: "advance", label: "Pool 1 · Week 3 Day 1" },
+    { from: 13, to: 14, tone: "next", label: "Pool 2 · Week 3 Day 2" },
+    { from: 15, to: 16, tone: "next", label: "Pool 3 · Week 3 Day 3" },
+    { from: 17, to: 18, tone: "next", label: "Pool 4 · Week 3 Day 4" },
+    { from: 19, to: 20, tone: "lastchance", label: "Last Chance" },
+    { from: 21, to: 24, tone: "out", label: "Eliminated" },
+  ],
+};
+
+const FIRST_TWO: Outcome = { from: 1, to: 2, tone: "advance", label: "Grand Finals" };
+
+export const PHASE_TWO_DAYS: StageDef[] = [
+  {
+    key: "w3d1", title: "Week 3 · Day 1", date: "November 19", size: 12, matches: "6 matches",
+    entrants: [{ label: "Pool 1", count: 12, note: "Phase 1 ranks 1–12" }],
+    outcomes: [FIRST_TWO, { from: 3, to: 12, tone: "next", label: "Week 3 Day 2" }],
+  },
+  {
+    key: "w3d2", title: "Week 3 · Day 2", date: "November 20", size: 12, matches: "6 matches",
+    entrants: [
+      { label: "Remaining from Day 1", count: 10, note: "places 3–12" },
+      { label: "Pool 2", count: 2, note: "Phase 1 ranks 13–14" },
+    ],
+    outcomes: [FIRST_TWO, { from: 3, to: 12, tone: "next", label: "Week 3 Day 3" }],
+  },
+  {
+    key: "w3d3", title: "Week 3 · Day 3", date: "November 21", size: 12, matches: "6 matches",
+    entrants: [
+      { label: "Remaining from Day 2", count: 10, note: "places 3–12" },
+      { label: "Pool 3", count: 2, note: "Phase 1 ranks 15–16" },
+    ],
+    outcomes: [FIRST_TWO, { from: 3, to: 12, tone: "next", label: "Week 3 Day 4" }],
+  },
+  {
+    key: "w3d4", title: "Week 3 · Day 4", date: "November 22", size: 12, matches: "6 matches",
+    entrants: [
+      { label: "Remaining from Day 3", count: 10, note: "places 3–12" },
+      { label: "Pool 4", count: 2, note: "Phase 1 ranks 17–18" },
+    ],
+    outcomes: [FIRST_TWO, { from: 3, to: 12, tone: "lastchance", label: "Last Chance" }],
+  },
+];
+
+export const LAST_CHANCE: StageDef = {
+  key: "last-chance", title: "Last Chance", date: "November 27", size: 12, matches: "10 matches",
+  entrants: [
+    { label: "Knockout Phase 1", count: 2, note: "Phase 1 ranks 19–20" },
+    { label: "Knockout Phase 2", count: 10, note: "bottom 10 of Week 3 Day 4" },
+  ],
+  outcomes: [
+    { from: 1, to: 4, tone: "advance", label: "Grand Finals" },
+    { from: 5, to: 12, tone: "out", label: "Eliminated" },
+  ],
+};
+
+export const GRAND_FINAL: StageDef = {
+  key: "grand-final", title: "Grand Finals", date: "November 28 · BITEC LIVE, Bangkok", size: 12,
+  matches: "Champion Rush format",
+  entrants: [
+    { label: "Week 3 Day 1", count: 2, note: "top 2" },
+    { label: "Week 3 Day 2", count: 2, note: "top 2" },
+    { label: "Week 3 Day 3", count: 2, note: "top 2" },
+    { label: "Week 3 Day 4", count: 2, note: "top 2" },
+    { label: "Last Chance", count: 4, note: "top 4" },
+  ],
+  outcomes: [],
+};
+
+export function outcomeForRank(def: StageDef, rank: number): Outcome | null {
+  return def.outcomes.find((o) => rank >= o.from && rank <= o.to) ?? null;
+}
+
+/** The stage definition for a Phase 2 / Last Chance / Grand Finals tournament day. */
+export function stageDefForDay(day: { name: string; day_order: number }): StageDef | undefined {
+  const name = day.name.toLowerCase();
+  if (name.includes("last chance")) return LAST_CHANCE;
+  if (name.includes("grand final")) return GRAND_FINAL;
+  if (day.day_order >= 7 && day.day_order <= 10) return PHASE_TWO_DAYS[day.day_order - 7];
+  return undefined;
 }

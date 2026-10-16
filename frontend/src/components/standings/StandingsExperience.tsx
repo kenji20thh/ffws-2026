@@ -13,11 +13,18 @@ import { countryFlag } from "@/lib/flags";
 import {
   GROUP_BY_KEY,
   groupForTeam,
+  GRAND_FINAL,
+  LAST_CHANCE,
+  PHASE_ONE_OVERALL,
+  TONE_COLOR,
+  outcomeForRank,
   phaseOneSlot,
-  phaseOneZone,
   sessionGroups,
+  stageDefForDay,
   type GroupKey,
+  type StageDef,
 } from "@/lib/tournamentFormat";
+import { StageRules } from "@/components/schedule/StageRules";
 import type {
   DayTeam,
   Room,
@@ -44,7 +51,8 @@ type DayData = {
 };
 
 type StandingRow = {
-  team: Team;
+  /** null = team not known yet (shown as TBA) */
+  team: Team | null;
   group?: GroupKey;
   roomsPlayed: number;
   placementPoints: number;
@@ -107,39 +115,20 @@ function splitSessionRooms(rooms: RoomData[], session: Session) {
     : sorted.slice(midpoint);
 }
 
-type Qualification = { label: string; tone: "good" | "mid" | "bad" } | null;
-
-/** What a team's rank means in the current view, per the official FFWS 2026 format. */
-function qualificationFor(
+/** Which qualification rules apply to the current view (null = none). */
+function resolveDef(
   stage: Stage,
   phase: Phase,
   viewMode: ViewMode,
   day: TournamentDay | null,
-  rank: number,
-): Qualification {
+): StageDef | null {
   if (stage === "knockout" && phase === "phase-1") {
-    if (viewMode !== "overall") return null;
-    const zone = phaseOneZone(rank);
-    return {
-      label: zone.label,
-      tone: zone.tone === "pool1" ? "good" : zone.tone === "out" ? "bad" : "mid",
-    };
+    return viewMode === "overall" ? PHASE_ONE_OVERALL : null;
   }
-
-  if (stage === "knockout" && phase === "phase-2") {
-    if (viewMode === "overall" || !day) return null;
-    if (rank <= 2) return { label: "Grand Finals", tone: "good" };
-    if (day.day_order >= 10) return { label: "Last Chance", tone: "bad" };
-    return { label: "Next day", tone: "mid" };
+  if (stage === "knockout") {
+    return viewMode !== "overall" && day ? (stageDefForDay(day) ?? null) : null;
   }
-
-  if (stage === "last-chance") {
-    return rank <= 4
-      ? { label: "Grand Finals", tone: "good" }
-      : { label: "Eliminated", tone: "bad" };
-  }
-
-  return null;
+  return stage === "last-chance" ? LAST_CHANCE : GRAND_FINAL;
 }
 
 function calculateStandings(
@@ -181,7 +170,7 @@ function calculateStandings(
       b.totalPoints - a.totalPoints ||
       b.placementPoints - a.placementPoints ||
       b.killPoints - a.killPoints ||
-      a.team.name.localeCompare(b.team.name),
+      (a.team?.name ?? "").localeCompare(b.team?.name ?? ""),
   );
 }
 
@@ -374,9 +363,8 @@ export default function StandingsExperience({
         sourceDays.flatMap((item) => item.teamIds),
       );
 
-      if (participantIds.size > 0) {
-        allowedTeamIds = [...participantIds];
-      }
+      // no teams assigned yet -> show TBA slots, not the whole tournament roster
+      allowedTeamIds = [...participantIds];
     } else {
       sourceDays =
         viewMode === "overall" ? stageDays : selectedDay ? [selectedDay] : [];
@@ -385,9 +373,8 @@ export default function StandingsExperience({
         sourceDays.flatMap((item) => item.teamIds),
       );
 
-      if (participantIds.size > 0) {
-        allowedTeamIds = [...participantIds];
-      }
+      // no teams assigned yet -> show TBA slots, not the whole tournament roster
+      allowedTeamIds = [...participantIds];
     }
 
     const rooms = sourceDays.flatMap((item) =>
@@ -417,7 +404,22 @@ export default function StandingsExperience({
       }
     }
 
-    return calculateStandings(teams, rooms, allowedTeamIds);
+    const rows = calculateStandings(teams, rooms, allowedTeamIds);
+
+    // Pad unknown participants with TBA rows (Phase 2, Last Chance, Grand Finals).
+    const def = resolveDef(stage, phase, viewMode, selectedDay?.day ?? null);
+    if (def && !isPhaseOne) {
+      while (rows.length < def.size) {
+        rows.push({
+          team: null,
+          roomsPlayed: 0,
+          placementPoints: 0,
+          killPoints: 0,
+          totalPoints: 0,
+        });
+      }
+    }
+    return rows;
   }, [
     stage,
     phase,
@@ -486,10 +488,10 @@ export default function StandingsExperience({
 
   const isPhaseOne = stage === "knockout" && phase === "phase-1";
   const showGroup = isPhaseOne;
-  const showQualification =
-    (isPhaseOne && viewMode === "overall") ||
-    (stage === "knockout" && phase === "phase-2" && viewMode !== "overall") ||
-    stage === "last-chance";
+  const activeDef = resolveDef(stage, phase, viewMode, selectedDay?.day ?? null);
+  const showQualification = activeDef !== null;
+  // Real teams are only colour-coded once results exist, TBA slots always show their path.
+  const anyResults = activeRows.some((row) => row.team && row.roomsPlayed > 0);
 
   return (
     <div className="space-y-6">
@@ -678,6 +680,16 @@ export default function StandingsExperience({
         {isPhaseOne && selectedDay && <SessionLineup day={selectedDay.day} active={viewMode === "session" ? session : null} />}
       </section>
 
+      {/* QUALIFICATION RULES */}
+      {activeDef && (
+        <section>
+          <p className="mb-2 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+            {activeDef.title} · {activeDef.date}
+          </p>
+          <StageRules def={activeDef} />
+        </section>
+      )}
+
       {/* TABLE */}
       <section className="overflow-hidden border border-bone/10 bg-char">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bone/10 px-4 py-4 sm:px-6">
@@ -734,23 +746,22 @@ export default function StandingsExperience({
 
               <tbody>
                 {activeRows.map((row, index) => {
-                  const qualification = showQualification
-                    ? qualificationFor(
-                        stage,
-                        phase,
-                        viewMode,
-                        selectedDay?.day ?? null,
-                        index + 1,
-                      )
+                  const qualification = activeDef
+                    ? outcomeForRank(activeDef, index + 1)
                     : null;
-                  const prev = index > 0 && showQualification
-                    ? qualificationFor(stage, phase, viewMode, selectedDay?.day ?? null, index)
-                    : null;
-                  const cutLine = qualification && prev && qualification.label !== prev.label;
+                  const prev =
+                    activeDef && index > 0
+                      ? outcomeForRank(activeDef, index)
+                      : null;
+                  const cutLine =
+                    qualification && prev && qualification.label !== prev.label;
+                  const colored = qualification !== null && (!row.team || anyResults);
+                  const color = qualification ? TONE_COLOR[qualification.tone] : undefined;
                   return (
                   <tr
-                    key={row.team.id}
-                    className={`border-b border-bone/5 transition-colors hover:bg-char-2 ${cutLine ? "border-t-2 border-t-ember/40" : ""}`}
+                    key={row.team?.id ?? `tba-${index}`}
+                    className={`border-b border-bone/5 transition-colors hover:bg-char-2 ${cutLine ? "border-t-2 border-t-bone/20" : ""}`}
+                    style={colored && color ? { backgroundColor: `${color}12`, boxShadow: `inset 4px 0 0 ${color}` } : undefined}
                   >
                     <td
                       className={`px-4 py-3 font-display text-2xl font-black ${
@@ -761,32 +772,43 @@ export default function StandingsExperience({
                     </td>
 
                     <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-char-2">
-                          {row.team.logo_url ? (
-                            <Image
-                              src={row.team.logo_url}
-                              alt={row.team.name}
-                              width={36}
-                              height={36}
-                              className="h-9 w-9 object-contain"
-                            />
-                          ) : (
-                            <span className="font-display text-xs font-bold text-bone/40">
-                              {row.team.tag || row.team.name.slice(0, 2)}
-                            </span>
-                          )}
-                        </div>
+                      {row.team ? (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-char-2">
+                            {row.team.logo_url ? (
+                              <Image
+                                src={row.team.logo_url}
+                                alt={row.team.name}
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 object-contain"
+                              />
+                            ) : (
+                              <span className="font-display text-xs font-bold text-bone/40">
+                                {row.team.tag || row.team.name.slice(0, 2)}
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate font-display text-lg font-bold uppercase text-bone">
-                            {row.team.name}
-                          </span>
-                          <span title={row.team.country || "Unknown"}>
-                            {countryFlag(row.team.country)}
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate font-display text-lg font-bold uppercase text-bone">
+                              {row.team.name}
+                            </span>
+                            <span title={row.team.country || "Unknown"}>
+                              {countryFlag(row.team.country)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-dashed border-bone/20 bg-char-2 font-display text-sm font-black text-bone/30">
+                            ?
+                          </div>
+                          <span className="font-display text-lg font-bold uppercase text-bone/40">
+                            TBA
                           </span>
                         </div>
-                      </div>
+                      )}
                     </td>
 
                     {showGroup && (
@@ -819,13 +841,8 @@ export default function StandingsExperience({
                       <td className="px-4 py-3">
                         {qualification && (
                           <span
-                            className={`font-stat text-[10px] font-bold uppercase tracking-wider ${
-                              qualification.tone === "good"
-                                ? "text-ember"
-                                : qualification.tone === "mid"
-                                  ? "text-amber"
-                                  : "text-danger"
-                            }`}
+                            className="font-stat text-[10px] font-bold uppercase tracking-wider"
+                            style={{ color: colored ? color : undefined, opacity: colored ? 1 : 0.6 }}
                           >
                             {qualification.label}
                           </span>

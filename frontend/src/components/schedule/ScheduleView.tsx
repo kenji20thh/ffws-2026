@@ -10,6 +10,7 @@ import type { DayTeam, Room, RoomTeamSummary, TournamentDay } from "@/types";
 import RoomCard from "./RoomCard";
 import RoomResultsTable from "./RoomResultsTable";
 import TeamsOfDay from "./TeamsOfDay";
+import { StageRules, TbaSlots } from "./StageRules";
 import {
   GROUPS,
   GROUP_BY_KEY,
@@ -17,6 +18,10 @@ import {
   phaseOneSlot,
   sessionGroups,
   PHASE_ONE_ROTATION,
+  PHASE_TWO_DAYS,
+  LAST_CHANCE,
+  GRAND_FINAL,
+  stageDefForDay,
   type GroupDef,
   type GroupKey,
   type SessionKey,
@@ -136,7 +141,8 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
             {showDayDetails && dayId === day.id && <div className="space-y-7 pt-3">
               {error ? <ErrorState message={error} /> : loading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[0,1,2,3].map((i) => <Skeleton key={i} className="h-32" />)}</div> : <>
                 {phaseOneSlot(day.day_order) ? <PhaseOneDay day={day} dayTeams={dayTeams} rooms={rooms} roomId={roomId} onSelectRoom={setRoomId} /> : <>
-                <section><h4 className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Teams playing</h4>{dayTeams.length === 0 ? <EmptyState title="Teams not assigned yet" hint="Participating teams will appear here once assigned to this day." /> : <TeamsOfDay teams={dayTeams} />}</section>
+                {stageDefForDay(day) && <section><h4 className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">How this day works</h4><StageRules def={stageDefForDay(day)!} /></section>}
+                <section><h4 className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Teams playing</h4>{(() => { const def = stageDefForDay(day); return <>{dayTeams.length > 0 && <TeamsOfDay teams={dayTeams} />}{def ? <div className={dayTeams.length > 0 ? "mt-3" : ""}><TbaSlots def={def} filled={dayTeams.length} /></div> : dayTeams.length === 0 && <EmptyState title="Teams not assigned yet" hint="Participating teams will appear here once assigned to this day." />}</>; })()}</section>
                 <section><h4 className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Match rooms</h4>{rooms.length === 0 ? <EmptyState title="No rooms yet" hint="Room assignments will appear here when available." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{rooms.map((item) => <RoomCard key={item.id} room={item} active={item.id === roomId} onSelect={() => setRoomId(item.id)} />)}</div>}</section>
                 </>}
                 {room && <section><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">{isLive ? "Live results" : "Room standings"}</p><h4 className="mt-1 font-display text-2xl font-extrabold uppercase text-bone">Room {room.room_number}</h4></div>{isLive && <span className="flex items-center gap-2 font-stat text-[10px] uppercase tracking-widest text-ember"><span className="h-2 w-2 animate-pulse rounded-full bg-ember" />Live · refreshes every 10s</span>}</div>{results.length === 0 ? <EmptyState title="No results yet" hint="Room results will appear here when available." /> : <RoomResultsTable rows={results} />}</section>}
@@ -172,18 +178,18 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
           </div>
           <MatchRotation />
           <div className="space-y-3"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 1 · Match days</p><h3 className="mt-1 font-display text-lg font-extrabold uppercase text-bone">Choose a day to explore</h3></div>{renderDays(knockoutDays.filter((day) => day.day_order <= 6), "Phase 1")}</div>
-          <div className="border-t border-char-3 pt-5"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 2 · November 19–22</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Knockout progression</h3><p className="mt-2 text-sm leading-6 text-ash">Teams are placed in pools by their Phase 1 ranking. Each day 12 teams play and the top 2 qualify for the Grand Finals. Day 1: all of Pool 1 · Day 2: remaining 10 + 2 from Pool 2 · Day 3: remaining 10 + 2 from Pool 3 · Day 4: remaining 10 + 2 from Pool 4. The bottom 10 teams on Day 4 move to Last Chance.</p></div><div className="mt-4">{renderDays(knockoutDays.filter((day) => day.day_order >= 7), "Phase 2")}</div></div>
+          <div className="border-t border-char-3 pt-5"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 2 · November 19–22</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Knockout progression</h3><p className="mt-2 text-sm leading-6 text-ash">Teams are placed in pools by their Phase 1 ranking. Each day 12 teams play and the top 2 qualify for the Grand Finals. Day 1: all of Pool 1 · Day 2: remaining 10 + 2 from Pool 2 · Day 3: remaining 10 + 2 from Pool 3 · Day 4: remaining 10 + 2 from Pool 4. The bottom 10 teams on Day 4 move to Last Chance.</p></div><div className="mt-4 grid gap-3 lg:grid-cols-2">{PHASE_TWO_DAYS.map((def) => <div key={def.key} className="border border-char-3 bg-char-2 p-3"><div className="mb-3 flex items-baseline justify-between gap-2"><h4 className="font-display text-base font-extrabold uppercase text-bone">{def.title}</h4><span className="font-stat text-[10px] uppercase tracking-widest text-ember">{def.date}</span></div><StageRules def={def} compact /></div>)}</div><div className="mt-4">{renderDays(knockoutDays.filter((day) => day.day_order >= 7), "Phase 2")}</div></div>
         </div>}
       </section>
 
       <section className={`border ${expandedStage === "last-chance" ? "border-ember/60" : "border-char-3"} bg-char`}>
         <button type="button" onClick={() => setExpandedStage((current) => current === "last-chance" ? null : "last-chance")} aria-expanded={expandedStage === "last-chance"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="02" title="Last Chance" subtitle="November 27 · Final opportunity to qualify" open={expandedStage === "last-chance"} /></button>
-        {expandedStage === "last-chance" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams (2 from Phase 1 and 10 from Phase 2) play 10 matches. The top 4 teams advance to the Grand Finals and the rest are eliminated.</p>{renderDays(lastChanceDays, "Last Chance")}</div>}
+        {expandedStage === "last-chance" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams (2 from Phase 1 and 10 from Phase 2) play 10 matches. The top 4 teams advance to the Grand Finals and the rest are eliminated.</p><StageRules def={LAST_CHANCE} />{lastChanceDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={LAST_CHANCE} /></div>}{renderDays(lastChanceDays, "Last Chance")}</div>}
       </section>
 
       <section className={`border ${expandedStage === "grand-final" ? "border-ember/60" : "border-char-3"} bg-char`}>
         <button type="button" onClick={() => setExpandedStage((current) => current === "grand-final" ? null : "grand-final")} aria-expanded={expandedStage === "grand-final"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="03" title="Grand Finals" subtitle="November 28 · Championship day" open={expandedStage === "grand-final"} /></button>
-        {expandedStage === "grand-final" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams play in Champion Rush format at BITEC LIVE, Bangkok: 2 teams from each Phase 2 day plus 4 from Last Chance. Expand the day to check team assignments and match information.</p>{renderDays(grandFinalDays, "Grand Final")}</div>}
+        {expandedStage === "grand-final" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams play in Champion Rush format at BITEC LIVE, Bangkok: 2 teams from each Phase 2 day plus 4 from Last Chance. Expand the day to check team assignments and match information.</p><StageRules def={GRAND_FINAL} />{grandFinalDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={GRAND_FINAL} /></div>}{renderDays(grandFinalDays, "Grand Final")}</div>}
       </section>
     </section>
   </div>;
