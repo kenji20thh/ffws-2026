@@ -11,67 +11,41 @@ import RoomCard from "./RoomCard";
 import RoomResultsTable from "./RoomResultsTable";
 import TeamsOfDay from "./TeamsOfDay";
 
-const PHASES = [
-  {
-    title: "Knockout Stage",
-    subtitle: "Phase 1 · Weeks 1–2",
-    dates: "NOV 6–15",
-    description:
-      "24 teams split into four groups of six. Teams compete across six matchdays, with 24 matches per team across the round-robin phase.",
-    start: "2026-11-06",
-    end: "2026-11-15",
-  },
-  {
-    title: "Knockout Stage",
-    subtitle: "Phase 2 · Week 3",
-    dates: "NOV 19–22",
-    description:
-      "Four matchdays. Teams qualify directly for the Grand Finals or advance to the next phase based on their results.",
-    start: "2026-11-19",
-    end: "2026-11-22",
-  },
-  {
-    title: "Last Chance",
-    subtitle: "Final qualification",
-    dates: "NOV 27",
-    description:
-      "Twelve teams compete across ten matches. The top four qualify for the Grand Finals.",
-    start: "2026-11-27",
-    end: "2026-11-27",
-  },
-  {
-    title: "Grand Finals",
-    subtitle: "World Championship",
-    dates: "NOV 28",
-    description:
-      "Twelve teams compete for the championship using the Champion Rush format at BITEC LIVE, Bangkok, Thailand.",
-    start: "2026-11-28",
-    end: "2026-11-28",
-  },
-];
+type Stage = {
+  title: string;
+  days: TournamentDay[];
+};
 
-function getDateKey(date: string | Date) {
-  const value = typeof date === "string" ? date : date.toISOString();
-  return value.slice(0, 10);
+function getStage(name: string): string {
+  const normalized = name.toLowerCase();
+
+  if (normalized.includes("last chance")) return "Last Chance";
+  if (normalized.includes("grand final")) return "Grand Finals";
+  return "Knockout Stage";
 }
 
-function getPhaseForDay(day: TournamentDay) {
-  const date = getDateKey(day.date);
-  return PHASES.find((phase) => date >= phase.start && date <= phase.end);
+function groupDays(days: TournamentDay[]): Stage[] {
+  const stages = [
+    "Knockout Stage",
+    "Last Chance",
+    "Grand Finals",
+  ];
+
+  return stages
+    .map((title) => ({
+      title,
+      days: days
+        .filter((day) => getStage(day.name) === title)
+        .sort((a, b) => a.day_order - b.day_order),
+    }))
+    .filter((stage) => stage.days.length > 0);
 }
 
-function formatDate(date: string | Date) {
-  const value = typeof date === "string" ? date : date.toISOString();
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value.length === 10 ? `${value}T12:00:00Z` : value));
-}
-
-export default function ScheduleView({ days }: { days: TournamentDay[] }) {
+export default function ScheduleView({
+  days,
+}: {
+  days: TournamentDay[];
+}) {
   const [dayId, setDayId] = useState(days[0]?.id ?? 0);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [dayTeams, setDayTeams] = useState<DayTeam[]>([]);
@@ -80,11 +54,11 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const activeDay = days.find((day) => day.id === dayId) ?? days[0];
+  const stages = groupDays(days);
+
   useEffect(() => {
-    if (!dayId) {
-      setLoading(false);
-      return;
-    }
+    if (!dayId) return;
 
     let cancelled = false;
 
@@ -102,12 +76,17 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
         setRooms(loadedRooms);
         setDayTeams(loadedTeams);
 
-        const live = loadedRooms.find((room) => room.status === "live");
-        setRoomId((live ?? loadedRooms[0])?.id ?? null);
+        const liveRoom = loadedRooms.find(
+          (room) => room.status === "live",
+        );
+
+        setRoomId((liveRoom ?? loadedRooms[0])?.id ?? null);
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load day");
+          setError(
+            e instanceof Error ? e.message : "Failed to load schedule",
+          );
         }
       })
       .finally(() => {
@@ -130,15 +109,17 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
 
     let cancelled = false;
 
-    const load = () => {
+    const loadResults = () => {
       getRoomResults(roomId)
         .then((data) => {
           if (!cancelled) setResults(data);
         })
-        .catch(() => {});
+        .catch(() => {
+          // Keep the most recently loaded results if a refresh fails.
+        });
     };
 
-    load();
+    loadResults();
 
     if (!isLive) {
       return () => {
@@ -146,7 +127,7 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
       };
     }
 
-    const intervalId = setInterval(load, 10_000);
+    const intervalId = setInterval(loadResults, 10_000);
 
     return () => {
       cancelled = true;
@@ -154,60 +135,123 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
     };
   }, [roomId, isLive]);
 
-  const activeDay = days.find((day) => day.id === dayId) ?? days[0];
-  const activePhase = activeDay ? getPhaseForDay(activeDay) : undefined;
-
   if (days.length === 0) {
     return (
-      <div className="space-y-8">
-        <TournamentPhases />
-        <EmptyState
-          title="Matchdays being prepared"
-          hint="The tournament format and dates are announced. Matchday details, teams, and rooms will appear here when available."
-        />
-      </div>
+      <EmptyState
+        title="Schedule not announced"
+        hint="Days and rooms will appear here soon."
+      />
     );
   }
 
   return (
     <div className="space-y-10">
-      <TournamentPhases />
+      {/* Tournament stages */}
+      <div className="space-y-8">
+        {stages.map((stage) => {
+          const selected = stage.days.some(
+            (day) => day.id === dayId,
+          );
 
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="font-stat text-[10px] uppercase tracking-[0.3em] text-ember">
-              Official match calendar
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-extrabold uppercase sm:text-4xl">
-              Matchdays
-            </h2>
-          </div>
+          return (
+            <section key={stage.title} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h2 className="font-display text-2xl font-extrabold uppercase tracking-wide text-bone">
+                  {stage.title}
+                </h2>
 
-          {activeDay && (
-            <p className="font-stat text-xs uppercase tracking-wider text-ash">
-              {formatDate(activeDay.date)}
-            </p>
-          )}
+                <div className="h-px flex-1 bg-char-3" />
+
+                <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
+                  {stage.days.length}{" "}
+                  {stage.days.length === 1 ? "day" : "days"}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {stage.days.map((day) => {
+                  const active = day.id === dayId;
+
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => setDayId(day.id)}
+                      aria-pressed={active}
+                      className={`border px-4 py-3 text-left transition-colors ${
+                        active
+                          ? "border-ember bg-ember text-char"
+                          : "border-char-3 bg-char-2 text-ash hover:border-ember/60 hover:text-bone"
+                      }`}
+                    >
+                      <span className="block font-stat text-[9px] uppercase tracking-widest opacity-80">
+                        {day.date
+                          ? new Date(`${day.date}T12:00:00`).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                timeZone: "UTC",
+                              },
+                            )
+                          : `Day ${day.day_order}`}
+                      </span>
+
+                      <span className="mt-1 block font-display text-sm font-bold uppercase">
+                        {day.name
+                          .replace(/^Knockout Stage\s*[-–:]?\s*/i, "")
+                          .replace(/^Week\s+/i, "W")
+                          .replace(/\s+Day\s+/i, " · Day ")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selected && (
+                <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">
+                  Selected event day
+                </p>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      <div className="h-px bg-char-3" />
+
+      {/* Selected day details */}
+      <section className="space-y-6">
+        <div className="border-l-2 border-ember pl-4">
+          <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
+            {activeDay ? getStage(activeDay.name) : "Tournament"}
+          </p>
+
+          <h2 className="mt-1 font-display text-3xl font-extrabold uppercase text-bone sm:text-4xl">
+            {activeDay?.name}
+          </h2>
+
+          <p className="mt-2 font-stat text-xs uppercase tracking-widest text-ash">
+            {activeDay?.date
+              ? new Date(`${activeDay.date}T12:00:00`).toLocaleDateString(
+                  "en-GB",
+                  {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  },
+                )
+              : `Tournament day ${activeDay?.day_order ?? ""}`}
+          </p>
         </div>
 
-        <DayTabs days={days} activeId={dayId} onSelect={setDayId} />
-
-        {activeDay && (
-          <div className="border-l-2 border-ember bg-char-2 p-4 sm:p-5">
-            <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
-              {activePhase?.subtitle ?? "Tournament matchday"}
-            </p>
-            <h3 className="mt-1 font-display text-2xl font-extrabold uppercase">
-              {activeDay.name}
-            </h3>
-            {activePhase && (
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-ash">
-                {activePhase.description}
-              </p>
-            )}
-          </div>
-        )}
+        <DayTabs
+          days={days}
+          activeId={dayId}
+          onSelect={setDayId}
+        />
       </section>
 
       {error ? (
@@ -221,36 +265,34 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
       ) : (
         <>
           <section>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
-                Participating teams
-              </h2>
-              {dayTeams.length > 0 && (
-                <span className="font-stat text-xs text-ash">
-                  {dayTeams.length} teams
-                </span>
-              )}
-            </div>
-
-            {dayTeams.length > 0 ? (
-              <TeamsOfDay teams={dayTeams} />
-            ) : (
+            <h2 className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+              Teams playing
+            </h2>
+            {dayTeams.length === 0 ? (
               <EmptyState
-                title="Teams not assigned yet"
-                hint="The matchday is listed, but participating teams have not been added."
+                title="Teams not announced"
+                hint="Teams assigned to this day will appear here."
               />
+            ) : (
+              <TeamsOfDay teams={dayTeams} />
             )}
           </section>
 
           <section>
-            <h2 className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
-              Matches & rooms
-            </h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+                Rooms
+              </h2>
+
+              <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
+                {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
+              </span>
+            </div>
 
             {rooms.length === 0 ? (
               <EmptyState
-                title="Match details not available yet"
-                hint="Rooms and match results will appear here once they are configured."
+                title="No rooms yet"
+                hint="Room assignments will appear here when announced."
               />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -268,65 +310,41 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
 
           {room && (
             <section>
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <h2 className="font-display text-3xl font-extrabold uppercase sm:text-4xl">
-                  Room {room.room_number} results
-                </h2>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
+                    {isLive ? "Live results" : "Match results"}
+                  </p>
+
+                  <h2 className="mt-1 font-display text-3xl font-extrabold uppercase sm:text-4xl">
+                    Room {room.room_number}
+                  </h2>
+                </div>
+
                 {isLive && (
-                  <span className="font-stat text-xs uppercase tracking-wider text-ember">
-                    Live · Refreshes every 10 seconds
+                  <span className="flex items-center gap-2 font-stat text-[10px] uppercase tracking-widest text-ember">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-ember" />
+                    Updating every 10s
                   </span>
                 )}
               </div>
-              <RoomResultsTable rows={results} />
+
+              {results.length === 0 ? (
+                <EmptyState
+                  title="No results yet"
+                  hint={
+                    isLive
+                      ? "Results will appear here as they become available."
+                      : "Results for this room have not been published yet."
+                  }
+                />
+              ) : (
+                <RoomResultsTable rows={results} />
+              )}
             </section>
           )}
         </>
       )}
     </div>
-  );
-}
-
-function TournamentPhases() {
-  return (
-    <section className="space-y-4">
-      <div>
-        <p className="font-stat text-[10px] uppercase tracking-[0.3em] text-ember">
-          November 2026
-        </p>
-        <h2 className="mt-2 font-display text-3xl font-extrabold uppercase sm:text-4xl">
-          Tournament format
-        </h2>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PHASES.map((phase, index) => (
-          <article
-            key={`${phase.title}-${phase.start}`}
-            className="relative overflow-hidden border border-white/10 bg-char-2 p-5"
-          >
-            <span className="absolute right-4 top-2 font-display text-5xl font-black text-white/[0.06]">
-              0{index + 1}
-            </span>
-
-            <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">
-              {phase.subtitle}
-            </p>
-
-            <h3 className="mt-2 font-display text-2xl font-extrabold uppercase">
-              {phase.title}
-            </h3>
-
-            <p className="mt-1 font-stat text-xs tracking-wider text-bone">
-              {phase.dates}, 2026
-            </p>
-
-            <p className="mt-3 text-sm leading-6 text-ash">
-              {phase.description}
-            </p>
-          </article>
-        ))}
-      </div>
-    </section>
   );
 }
