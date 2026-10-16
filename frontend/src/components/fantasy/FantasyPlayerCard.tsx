@@ -76,7 +76,7 @@ export default function FantasyPlayerCard({
 
   const content = (
     <>
-      {/* Card artwork: place the new A-tier background at public/cards/bronze-card.png. */}
+      {/* A-tier card artwork background. */}
       <Image
         src="/cards/bronze-card.png"
         alt=""
@@ -114,34 +114,91 @@ export default function FantasyPlayerCard({
         </div>
       )}
 
-      {/* Player photo occupies the upper section, above the nameplate. */}
+      {/*
+        Portrait is constrained to a fixed-height area so inconsistent source
+        dimensions cannot reach the nameplate. The bottom edge fades out softly.
+      */}
       {photoSrc && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute z-[2]"
-          style={{
-            left: "12%",
-            top: "7%",
-            width: "76%",
-            height: "59%",
-          }}
-        >
-          <Image
-            src={photoSrc}
-            alt=""
-            fill
-            unoptimized
-            sizes="320px"
-            onError={() => setFailedPhoto(photoSrc)}
-            draggable={false}
-            className="select-none object-contain object-bottom"
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[2] overflow-hidden"
+            style={{
+              left: "12%",
+              top: "7%",
+              width: "76%",
+              height: "54%",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black 0%, black 72%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, black 0%, black 72%, transparent 100%)",
+            }}
+          >
+            <Image
+              src={photoSrc}
+              alt=""
+              fill
+              unoptimized
+              sizes="320px"
+              onError={() => setFailedPhoto(photoSrc)}
+              draggable={false}
+              className="select-none object-contain object-bottom"
+            />
+          </div>
+
+          {/*
+            A duplicate portrait layer adds a subtle blurred transition at the
+            bottom. The mask confines the blur to the lower edge, away from faces.
+          */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[2] overflow-hidden"
+            style={{
+              left: "12%",
+              top: "43%",
+              width: "76%",
+              height: "18%",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, black 35%, black 72%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, black 35%, black 72%, transparent 100%)",
+            }}
+          >
+            <Image
+              src={photoSrc}
+              alt=""
+              fill
+              unoptimized
+              sizes="320px"
+              draggable={false}
+              className="select-none object-contain object-bottom"
+              style={{
+                filter: "blur(10px)",
+                transform: "scale(1.04)",
+                transformOrigin: "bottom center",
+              }}
+            />
+          </div>
+
+          {/* Dark fade blends the portrait into the card before the nameplate. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute z-[2]"
+            style={{
+              left: "8%",
+              top: "56%",
+              width: "84%",
+              height: "9.5%",
+              background:
+                "linear-gradient(to bottom, rgba(20,17,16,0), rgba(20,17,16,.48) 55%, rgba(20,17,16,.9))",
+            }}
           />
-        </div>
+        </>
       )}
 
-      {/* Middle nameplate: nationality flag and IGN. */}
+      {/* Middle nameplate: flag stays left, IGN stays centered in the plate. */}
       <div
-        className="absolute z-[3] flex items-center justify-center gap-[20%] px-[8%]"
+        className="absolute z-[3] flex items-center px-[8%]"
         style={{
           left: "12%",
           top: "65.3%",
@@ -154,7 +211,7 @@ export default function FantasyPlayerCard({
           <span
             role="img"
             aria-label={player.country}
-            className="shrink-0 leading-none"
+            className="absolute left-[8%] shrink-0 leading-none"
             style={{ fontSize: "clamp(12px, 5.2cqw, 38px)" }}
           >
             {flag}
@@ -162,7 +219,7 @@ export default function FantasyPlayerCard({
         )}
         <span
           title={player.ign}
-          className="min-w-0 truncate text-center font-display font-black uppercase leading-none text-bone"
+          className="min-w-0 w-full truncate text-center font-display font-black uppercase leading-none text-bone"
           style={{
             fontSize: `clamp(10px, ${player.ign.length > 12 ? 4.1 : player.ign.length > 9 ? 4.8 : 5.7}cqw, 46px)`,
             letterSpacing: "0.025em",
