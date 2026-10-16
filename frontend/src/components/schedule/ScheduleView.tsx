@@ -600,20 +600,22 @@ export default function ScheduleView({
                 </section>
               )}
 
-              <div>
-                <p className="mb-3 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
-                  Select match day
-                </p>
+              {activeWeek === 3 && (
+                <div>
+                  <p className="mb-3 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+                    Select match day
+                  </p>
 
-                <DayTabs
-                  days={weekDays}
-                  activeId={dayId}
-                  onSelect={(id) => {
-                    const selectedDay = days.find((day) => day.id === id);
-                    if (selectedDay) selectDay(selectedDay);
-                  }}
-                />
-              </div>
+                  <DayTabs
+                    days={weekDays}
+                    activeId={dayId}
+                    onSelect={(id) => {
+                      const selectedDay = days.find((day) => day.id === id);
+                      if (selectedDay) selectDay(selectedDay);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
