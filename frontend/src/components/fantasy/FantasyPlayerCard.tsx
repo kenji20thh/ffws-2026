@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, type CSSProperties } from "react";
+import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
 import { countryFlag } from "@/lib/flags";
 import type { Player, Team } from "@/types";
 
@@ -52,6 +53,8 @@ export default function FantasyPlayerCard({
   player,
   team,
   stats,
+  price,
+  tier,
   selected = false,
   captain = false,
   onClick,
@@ -68,6 +71,10 @@ export default function FantasyPlayerCard({
   const logoSrc = logo && failedLogo !== logo ? logo : undefined;
   const flag = player.country ? countryFlag(player.country) : undefined;
   const clickable = typeof onClick === "function";
+  // Card frame comes from the price (an explicit valid `tier` prop overrides it).
+  const artwork = cardArtwork(
+    isCardTier(tier) ? tier : tierFromPrice(price ?? 0),
+  );
 
   const rootStyle: CSSProperties = {
     containerType: "inline-size",
@@ -76,9 +83,9 @@ export default function FantasyPlayerCard({
 
   const content = (
     <>
-      {/* A-tier card artwork background. */}
+      {/* Card artwork background, chosen by price tier. */}
       <Image
-        src="/cards/bronze-card.png"
+        src={artwork}
         alt=""
         fill
         priority
