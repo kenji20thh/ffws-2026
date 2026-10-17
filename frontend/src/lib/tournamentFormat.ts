@@ -153,7 +153,7 @@ export const PHASE_ONE_OVERALL: StageDef = {
   title: "Phase 1 · Overall",
   date: "November 6–15",
   size: 24,
-  matches: "36 matches",
+  matches: "36 games per team",
   entrants: [{ label: "Groups A–D", count: 24, note: "4 groups of 6 teams" }],
   outcomes: [
     { from: 1, to: 12, tone: "advance", label: "Pool 1 · Week 3 Day 1" },
