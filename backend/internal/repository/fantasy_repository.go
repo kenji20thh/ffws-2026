@@ -177,17 +177,23 @@ func (r *FantasyRepository) SubmitSelection(fantasyTeamID, tournamentID, dayID u
 	for _, p := range picks {
 		ids = append(ids, p.PlayerID)
 	}
-	// Only players whose team belongs to this tournament are valid picks.
+	// Only players whose team belongs to this tournament AND plays on this day are valid
+	// picks. This mirrors GetPlayerPool, so the API enforces the same pool the UI shows
+	// (24 teams on a Phase 1 day, 12 from Phase 2 onwards).
 	if err := r.db.Raw(`
 		SELECT p.id, p.team_id, p.fantasy_price
 		FROM players p
 		JOIN teams t ON t.id = p.team_id
 		WHERE p.id IN (?) AND t.tournament_id = ?
-	`, ids, tournamentID).Scan(&rows).Error; err != nil {
+		  AND EXISTS (
+		    SELECT 1 FROM tournament_day_teams tdt
+		    WHERE tdt.team_id = t.id AND tdt.tournament_day_id = ?
+		  )
+	`, ids, tournamentID, dayID).Scan(&rows).Error; err != nil {
 		return err
 	}
 	if len(rows) != SelectionSize {
-		return invalidSelection("one or more selected players are not available in this tournament")
+		return invalidSelection("one or more selected players are not playing on this day")
 	}
 
 	perTeam := map[uint]int{}
