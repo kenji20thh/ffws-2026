@@ -30,9 +30,9 @@ export const TIER_THRESHOLDS: ReadonlyArray<{
   tier: CardTier;
   minPrice: number;
 }> = [
-  { tier: "legendary", minPrice: 26 },
-  { tier: "diamond", minPrice: 21 },
-  { tier: "gold", minPrice: 17 },
+  { tier: "legendary", minPrice: 30 },
+  { tier: "diamond", minPrice: 24 },
+  { tier: "gold", minPrice: 18 },
   { tier: "silver", minPrice: 13 },
 ];
 
