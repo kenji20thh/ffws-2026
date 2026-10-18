@@ -1,23 +1,24 @@
-
 "use client";
 
 import Image from "next/image";
+import { Barlow_Condensed } from "next/font/google";
 import { useState, type CSSProperties } from "react";
 import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
 import { countryFlag } from "@/lib/flags";
 import type { Player, Team } from "@/types";
 
-export type FantasyCardPlayer = Pick<
-  Player,
-  "ign" | "role" | "country"
-> &
+const condensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+  display: "swap",
+});
+
+export type FantasyCardPlayer = Pick<Player, "ign" | "role" | "country"> &
   Partial<Pick<Player, "photo_url">> & {
     fantasy_price?: number;
   };
 
-export type FantasyCardTeam = Partial<
-  Pick<Team, "name" | "tag" | "logo_url">
->;
+export type FantasyCardTeam = Partial<Pick<Team, "name" | "tag" | "logo_url">>;
 
 export interface FantasyCardStats {
   kills?: number;
@@ -52,6 +53,8 @@ const SIZE_CLASS: Record<FantasyCardSize, string> = {
 const ART_WIDTH = 1024;
 const ART_HEIGHT = 1536;
 
+const GOLD = "#ffd98a";
+
 const ROLE_ICONS: Record<string, string> = {
   rusher:
     "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_rusher_role_player.png",
@@ -69,8 +72,51 @@ function roleIcon(role: string): string | undefined {
 
 function statValue(value: number | undefined) {
   return value === undefined || Number.isNaN(value)
-    ? ""
+    ? "–"
     : String(Math.round(value));
+}
+
+/** Thin gold line that fades out at both ends. */
+function GoldRule({ width = "100%" }: { width?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width,
+        height: 1,
+        background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`,
+        opacity: 0.7,
+      }}
+    />
+  );
+}
+
+function StatBlock({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center">
+      <span
+        className="font-extrabold tabular-nums leading-none text-white"
+        style={{
+          fontSize: "clamp(14px, 8cqw, 44px)",
+          textShadow: "0 2px 4px rgba(0,0,0,.85)",
+        }}
+      >
+        {value}
+      </span>
+      <span
+        className="font-bold uppercase leading-none"
+        style={{
+          marginTop: "5%",
+          fontSize: "clamp(6px, 2.7cqw, 12px)",
+          letterSpacing: "0.22em",
+          color: GOLD,
+          textShadow: "0 1px 2px rgba(0,0,0,.9)",
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
 }
 
 export default function FantasyPlayerCard({
@@ -125,6 +171,9 @@ export default function FantasyPlayerCard({
     aspectRatio: `${ART_WIDTH} / ${ART_HEIGHT}`,
   };
 
+  const nameSize =
+    player.ign.length > 12 ? 6 : player.ign.length > 9 ? 7.2 : 8.6;
+
   const content = (
     <>
       {/* Rarity artwork */}
@@ -138,17 +187,17 @@ export default function FantasyPlayerCard({
         className="pointer-events-none select-none object-fill"
       />
 
-      {/* Large, subtle team logo behind the player */}
+      {/* Large, subtle team logo watermark behind the player */}
       {backgroundLogoSrc && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute z-[1]"
           style={{
-            left: "20%",
-            top: "12%",
-            width: "60%",
-            height: "42%",
-            opacity: 0.18,
+            left: "26%",
+            top: "14%",
+            width: "58%",
+            height: "40%",
+            opacity: 0.14,
           }}
         >
           <Image
@@ -164,15 +213,19 @@ export default function FantasyPlayerCard({
         </div>
       )}
 
-      {/* Single, crisp player portrait. No blur or fade layers. */}
+      {/* Player portrait, big, with the torso fading into the name plate */}
       {photoSrc && (
         <div
           className="pointer-events-none absolute z-[2]"
           style={{
-            left: "12%",
-            top: "7%",
-            width: "76%",
-            height: "55%",
+            left: "22%",
+            top: "6%",
+            width: "70%",
+            height: "62%",
+            WebkitMaskImage:
+              "linear-gradient(to bottom, #000 80%, transparent 100%)",
+            maskImage:
+              "linear-gradient(to bottom, #000 80%, transparent 100%)",
           }}
         >
           <Image
@@ -188,60 +241,86 @@ export default function FantasyPlayerCard({
         </div>
       )}
 
-      {/* Player name and nationality */}
+      {/* Soft dark pool behind the text so it always reads well */}
       <div
-        className="absolute z-[3] flex items-center justify-center"
+        aria-hidden="true"
+        className="pointer-events-none absolute z-[2]"
         style={{
-          left: "15%",
-          top: "62%",
-          width: "73%",
-          height: "7%",
-          textShadow: "0 2px 4px rgba(0,0,0,.9)",
+          left: "6%",
+          top: "58%",
+          width: "88%",
+          height: "34%",
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 70%)",
+        }}
+      />
+
+      {/* FIFA-style info column: price · role · flag · club */}
+      <div
+        className="absolute z-[3] flex flex-col items-center"
+        style={{
+          left: "17%",
+          top: "12%",
+          width: "13%",
+          gap: "6%",
+          filter: "drop-shadow(0 2px 3px rgba(0,0,0,.85))",
         }}
       >
+        {displayPrice !== undefined && (
+          <span
+            className="font-black tabular-nums leading-none text-white"
+            style={{ fontSize: "clamp(14px, 10cqw, 46px)" }}
+            aria-label={`Fantasy price ${displayPrice}`}
+          >
+            {displayPrice}
+          </span>
+        )}
+
+        <GoldRule />
+
+        {roleImageSrc ? (
+          <div
+            className="relative aspect-square w-full"
+            title={player.role}
+          >
+            <Image
+              src={roleImageSrc}
+              alt={`${player.role} role`}
+              fill
+              unoptimized
+              sizes="40px"
+              onError={() => setFailedRoleIcon(roleImage!)}
+              draggable={false}
+              className="object-contain"
+            />
+          </div>
+        ) : (
+          player.role && (
+            <span
+              className="font-bold uppercase leading-none text-white"
+              style={{
+                fontSize: "clamp(7px, 3cqw, 14px)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {player.role.slice(0, 3)}
+            </span>
+          )
+        )}
+
         {flag && (
           <span
             role="img"
             aria-label={player.country}
-            className="absolute left-0 shrink-0 leading-none"
-            style={{ fontSize: "clamp(12px, 5cqw, 38px)" }}
+            className="leading-none"
+            style={{ fontSize: "clamp(11px, 6cqw, 30px)" }}
           >
             {flag}
           </span>
         )}
 
-        <span
-          title={player.ign}
-          className="w-full min-w-0 truncate text-center font-display font-black uppercase leading-none text-white"
-          style={{
-            paddingLeft: flag ? "12%" : "2%",
-            fontSize: `clamp(10px, ${
-              player.ign.length > 12
-                ? 3.6
-                : player.ign.length > 9
-                  ? 4.3
-                  : 5.1
-            }cqw, 44px)`,
-            letterSpacing: "0.025em",
-          }}
-        >
-          {player.ign}
-        </span>
-      </div>
-
-      {/* Team logo, role icon, and fantasy price */}
-      <div
-        className="absolute z-[3] flex items-center justify-center"
-        style={{
-          left: "18%",
-          top: "71%",
-          width: "64%",
-          height: "7%",
-          gap: "8%",
-        }}
-      >
         {logoSrc && (
-          <div className="relative h-full aspect-square shrink-0">
+          <div className="relative aspect-square w-full">
             <Image
               src={logoSrc}
               alt={team?.name ? `${team.name} logo` : "Team logo"}
@@ -254,75 +333,82 @@ export default function FantasyPlayerCard({
             />
           </div>
         )}
-
-        {roleImageSrc && (
-          <div className="relative h-[82%] aspect-square shrink-0">
-            <Image
-              src={roleImageSrc}
-              alt={`${player.role} role`}
-              fill
-              unoptimized
-              sizes="40px"
-              onError={() => setFailedRoleIcon(roleImage!)}
-              draggable={false}
-              className="object-contain"
-            />
-          </div>
-        )}
-
-        {displayPrice !== undefined && (
-          <span
-            className="shrink-0 font-display font-black tabular-nums leading-none text-white"
-            style={{
-              fontSize: "clamp(12px, 5cqw, 40px)",
-              textShadow: "0 2px 4px rgba(0,0,0,.9)",
-            }}
-            aria-label={`Fantasy price ${displayPrice}`}
-          >
-            {displayPrice}
-          </span>
-        )}
       </div>
 
-      {/* Optional bottom stats */}
-      {showStats && (
-        <>
-          <div
-            className="absolute z-[3] flex items-center justify-center font-stat font-black tabular-nums text-white"
-            style={{
-              left: "22%",
-              top: "81%",
-              width: "20%",
-              height: "5.5%",
-              fontSize: "clamp(10px, 4.8cqw, 40px)",
-              lineHeight: 1,
-              textShadow: "0 2px 4px rgba(0,0,0,.9)",
-            }}
-          >
-            {statValue(stats?.kills)}
-          </div>
+      {/* Name plate */}
+      <div
+        className="absolute z-[3] flex items-center justify-center"
+        style={{
+          left: "15%",
+          top: "66.5%",
+          width: "70%",
+          height: "7.5%",
+          filter: "drop-shadow(0 2px 3px rgba(0,0,0,.85))",
+        }}
+      >
+        <span
+          title={player.ign}
+          className="w-full min-w-0 truncate text-center font-black uppercase leading-none"
+          style={{
+            fontSize: `clamp(12px, ${nameSize}cqw, 48px)`,
+            letterSpacing: "0.04em",
+            backgroundImage: "linear-gradient(180deg, #ffffff 35%, #ffe3ad 100%)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            color: "transparent",
+            paddingBottom: "0.08em",
+          }}
+        >
+          {player.ign}
+        </span>
+      </div>
 
+      {/* Divider with diamond */}
+      <div
+        aria-hidden="true"
+        className="absolute z-[3] flex items-center justify-center"
+        style={{ left: "22%", top: "74.8%", width: "56%", height: "1.6%" }}
+      >
+        <div className="absolute inset-x-0 top-1/2">
+          <GoldRule />
+        </div>
+        <div
+          className="relative"
+          style={{
+            width: "2.2cqw",
+            height: "2.2cqw",
+            background: GOLD,
+            transform: "rotate(45deg)",
+            boxShadow: "0 0 6px rgba(255,200,90,.8)",
+          }}
+        />
+      </div>
+
+      {/* Stats */}
+      {showStats && (
+        <div
+          className="absolute z-[3] flex items-center"
+          style={{ left: "20%", top: "77.5%", width: "60%", height: "9.5%" }}
+        >
+          <StatBlock value={statValue(stats?.kills)} label="Kills" />
           <div
-            className="absolute z-[3] flex items-center justify-center font-stat font-black tabular-nums text-white"
+            aria-hidden="true"
             style={{
-              left: "58%",
-              top: "81%",
-              width: "20%",
-              height: "5.5%",
-              fontSize: "clamp(10px, 4.8cqw, 40px)",
-              lineHeight: 1,
-              textShadow: "0 2px 4px rgba(0,0,0,.9)",
+              width: 1,
+              height: "70%",
+              background: `linear-gradient(180deg, transparent, ${GOLD}, transparent)`,
+              opacity: 0.6,
             }}
-          >
-            {statValue(stats?.fantasyPoints)}
-          </div>
-        </>
+          />
+          <StatBlock value={statValue(stats?.fantasyPoints)} label="Points" />
+        </div>
       )}
 
       {/* Captain marker */}
       {captain && (
         <span
-          className="absolute z-[4] flex items-center justify-center rounded-full bg-amber font-display font-black text-char"
+          className="absolute z-[4] flex items-center justify-center rounded-full bg-amber font-black text-char"
           style={{
             right: "7%",
             top: "4%",
@@ -339,7 +425,9 @@ export default function FantasyPlayerCard({
   );
 
   const rootClass =
-    `relative isolate block overflow-hidden ${SIZE_CLASS[size]} ${className}`.trim();
+    `relative isolate block overflow-hidden ${condensed.className} ${SIZE_CLASS[size]} ${
+      selected ? "drop-shadow-[0_0_14px_rgba(255,170,40,.6)]" : ""
+    } ${className}`.trim();
 
   if (clickable) {
     return (
