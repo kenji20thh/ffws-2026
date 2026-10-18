@@ -51,7 +51,21 @@ const SIZE_CLASS: Record<FantasyCardSize, string> = {
 
 const ART_WIDTH = 1024;
 const ART_HEIGHT = 1536;
-const TEXT_SHADOW = "0 2px 5px rgba(0,0,0,.95)";
+
+const ROLE_ICONS: Record<string, string> = {
+  rusher:
+    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_rusher_role_player.png",
+  bomber:
+    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_bomber_role_player.png",
+  support:
+    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_support_role_player.png",
+  sniper:
+    "https://webid.cdn.garenanow.com/gstaticid/FFID/main_esports/logo_sniper_role_player.png",
+};
+
+function roleIcon(role: string): string | undefined {
+  return ROLE_ICONS[role.trim().toLowerCase()];
+}
 
 function statValue(value: number | undefined) {
   return value === undefined || Number.isNaN(value)
@@ -77,13 +91,13 @@ export default function FantasyPlayerCard({
   const [failedLogo, setFailedLogo] = useState<string | null>(null);
   const [failedBackgroundLogo, setFailedBackgroundLogo] =
     useState<string | null>(null);
+  const [failedRoleIcon, setFailedRoleIcon] = useState<string | null>(null);
 
   const photo = player.photo_url || undefined;
   const photoSrc = photo && failedPhoto !== photo ? photo : undefined;
 
   const logo = team?.logo_url || undefined;
   const logoSrc = logo && failedLogo !== logo ? logo : undefined;
-
   const backgroundLogoSrc =
     logo && failedBackgroundLogo !== logo ? logo : undefined;
 
@@ -100,6 +114,10 @@ export default function FantasyPlayerCard({
     : tierFromPrice(displayPrice ?? 0);
 
   const artwork = cardArtwork(selectedTier);
+  const roleImage = roleIcon(player.role || "");
+  const roleImageSrc =
+    roleImage && failedRoleIcon !== roleImage ? roleImage : undefined;
+
   const clickable = typeof onClick === "function";
 
   const rootStyle: CSSProperties = {
@@ -109,7 +127,7 @@ export default function FantasyPlayerCard({
 
   const content = (
     <>
-      {/* 1. Card artwork */}
+      {/* Rarity artwork */}
       <Image
         src={artwork}
         alt=""
@@ -120,18 +138,17 @@ export default function FantasyPlayerCard({
         className="pointer-events-none select-none object-fill"
       />
 
-      {/* 2. Large faded team logo behind the player's portrait */}
+      {/* Large, subtle team logo behind the player */}
       {backgroundLogoSrc && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute z-[1]"
           style={{
-            left: "23%",
+            left: "20%",
             top: "12%",
-            width: "57%",
-            height: "43%",
-            opacity: 0.2,
-            filter: "drop-shadow(0 3px 8px rgba(0,0,0,.8))",
+            width: "60%",
+            height: "42%",
+            opacity: 0.18,
           }}
         >
           <Image
@@ -147,70 +164,47 @@ export default function FantasyPlayerCard({
         </div>
       )}
 
-      {/* 3. Player portrait */}
+      {/* Single, crisp player portrait. No blur or fade layers. */}
       {photoSrc && (
-        <>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute z-[2] overflow-hidden"
-            style={{
-              left: "17%",
-              top: "7%",
-              width: "70%",
-              height: "54%",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, black 0%, black 76%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to bottom, black 0%, black 76%, transparent 100%)",
-            }}
-          >
-            <Image
-              src={photoSrc}
-              alt=""
-              fill
-              unoptimized
-              sizes="320px"
-              onError={() => setFailedPhoto(photoSrc)}
-              draggable={false}
-              className="select-none object-contain object-bottom"
-            />
-          </div>
-
-          {/* Soft fade at the portrait's lower edge */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute z-[2]"
-            style={{
-              left: "17%",
-              top: "53%",
-              width: "70%",
-              height: "10%",
-              background:
-                "linear-gradient(to bottom, transparent, rgba(0,0,0,.5) 55%, rgba(0,0,0,.85))",
-            }}
+        <div
+          className="pointer-events-none absolute z-[2]"
+          style={{
+            left: "12%",
+            top: "7%",
+            width: "76%",
+            height: "55%",
+          }}
+        >
+          <Image
+            src={photoSrc}
+            alt=""
+            fill
+            unoptimized
+            sizes="320px"
+            onError={() => setFailedPhoto(photoSrc)}
+            draggable={false}
+            className="select-none object-contain object-bottom"
           />
-        </>
+        </div>
       )}
 
-      {/* 4. Player name and nationality flag */}
+      {/* Player name and nationality */}
       <div
         className="absolute z-[3] flex items-center justify-center"
         style={{
-          left: "19%",
-          top: "61.5%",
-          width: "74%",
+          left: "15%",
+          top: "62%",
+          width: "73%",
           height: "7%",
-          textShadow: TEXT_SHADOW,
+          textShadow: "0 2px 4px rgba(0,0,0,.9)",
         }}
       >
         {flag && (
           <span
             role="img"
             aria-label={player.country}
-            className="absolute left-[1%] shrink-0 leading-none"
-            style={{
-              fontSize: "clamp(12px, 5cqw, 38px)",
-            }}
+            className="absolute left-0 shrink-0 leading-none"
+            style={{ fontSize: "clamp(12px, 5cqw, 38px)" }}
           >
             {flag}
           </span>
@@ -220,8 +214,7 @@ export default function FantasyPlayerCard({
           title={player.ign}
           className="w-full min-w-0 truncate text-center font-display font-black uppercase leading-none text-white"
           style={{
-            paddingLeft: flag ? "11%" : "2%",
-            paddingRight: "2%",
+            paddingLeft: flag ? "12%" : "2%",
             fontSize: `clamp(10px, ${
               player.ign.length > 12
                 ? 3.6
@@ -236,65 +229,62 @@ export default function FantasyPlayerCard({
         </span>
       </div>
 
-      {/* 5. Separate team logo for clear team identification */}
-      {logoSrc && (
-        <div
-          className="absolute z-[3]"
-          style={{
-            left: "21%",
-            top: "70.5%",
-            width: "12%",
-            height: "6%",
-          }}
-        >
-          <Image
-            src={logoSrc}
-            alt={team?.name ? `${team.name} logo` : "Team logo"}
-            fill
-            unoptimized
-            sizes="48px"
-            onError={() => setFailedLogo(logo!)}
-            draggable={false}
-            className="object-contain"
-          />
-        </div>
-      )}
-
-      {/* 6. Player role */}
+      {/* Team logo, role icon, and fantasy price */}
       <div
         className="absolute z-[3] flex items-center justify-center"
         style={{
-          left: "34%",
-          top: "70.5%",
-          width: "34%",
-          height: "6%",
-          fontSize: "clamp(9px, 3.3cqw, 28px)",
-          textShadow: TEXT_SHADOW,
+          left: "18%",
+          top: "71%",
+          width: "64%",
+          height: "7%",
+          gap: "8%",
         }}
       >
-        <span className="truncate text-center font-display font-bold uppercase leading-none text-white">
-          {player.role || ""}
-        </span>
+        {logoSrc && (
+          <div className="relative h-full aspect-square shrink-0">
+            <Image
+              src={logoSrc}
+              alt={team?.name ? `${team.name} logo` : "Team logo"}
+              fill
+              unoptimized
+              sizes="48px"
+              onError={() => setFailedLogo(logo!)}
+              draggable={false}
+              className="object-contain"
+            />
+          </div>
+        )}
+
+        {roleImageSrc && (
+          <div className="relative h-[82%] aspect-square shrink-0">
+            <Image
+              src={roleImageSrc}
+              alt={`${player.role} role`}
+              fill
+              unoptimized
+              sizes="40px"
+              onError={() => setFailedRoleIcon(roleImage!)}
+              draggable={false}
+              className="object-contain"
+            />
+          </div>
+        )}
+
+        {displayPrice !== undefined && (
+          <span
+            className="shrink-0 font-display font-black tabular-nums leading-none text-white"
+            style={{
+              fontSize: "clamp(12px, 5cqw, 40px)",
+              textShadow: "0 2px 4px rgba(0,0,0,.9)",
+            }}
+            aria-label={`Fantasy price ${displayPrice}`}
+          >
+            {displayPrice}
+          </span>
+        )}
       </div>
 
-      {/* 7. Fantasy price */}
-      <div
-        className="absolute z-[3] flex items-center justify-center"
-        style={{
-          left: "69%",
-          top: "70.5%",
-          width: "19%",
-          height: "6%",
-          fontSize: "clamp(11px, 4.2cqw, 36px)",
-          textShadow: TEXT_SHADOW,
-        }}
-      >
-        <span className="font-stat font-black tabular-nums leading-none text-white">
-          {displayPrice === undefined ? "" : displayPrice}
-        </span>
-      </div>
-
-      {/* Optional stats: kills and fantasy points */}
+      {/* Optional bottom stats */}
       {showStats && (
         <>
           <div
@@ -306,7 +296,7 @@ export default function FantasyPlayerCard({
               height: "5.5%",
               fontSize: "clamp(10px, 4.8cqw, 40px)",
               lineHeight: 1,
-              textShadow: TEXT_SHADOW,
+              textShadow: "0 2px 4px rgba(0,0,0,.9)",
             }}
           >
             {statValue(stats?.kills)}
@@ -321,7 +311,7 @@ export default function FantasyPlayerCard({
               height: "5.5%",
               fontSize: "clamp(10px, 4.8cqw, 40px)",
               lineHeight: 1,
-              textShadow: TEXT_SHADOW,
+              textShadow: "0 2px 4px rgba(0,0,0,.9)",
             }}
           >
             {statValue(stats?.fantasyPoints)}
