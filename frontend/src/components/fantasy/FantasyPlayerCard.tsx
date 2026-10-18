@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Barlow_Condensed } from "next/font/google";
+import { Barlow_Condensed, Bebas_Neue } from "next/font/google";
 import { useState, type CSSProperties } from "react";
 import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
 import { countryFlag } from "@/lib/flags";
@@ -10,6 +10,12 @@ import type { Player, Team } from "@/types";
 const condensed = Barlow_Condensed({
   subsets: ["latin"],
   weight: ["600", "700", "800", "900"],
+  display: "swap",
+});
+
+const numberFont = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
   display: "swap",
 });
 
@@ -70,6 +76,11 @@ function roleIcon(role: string): string | undefined {
   return ROLE_ICONS[role.trim().toLowerCase()];
 }
 
+/** Price -> power rating. 33 => 95. Change the offset to rescale. */
+function powerFromPrice(price: number): number {
+  return Math.min(99, Math.max(1, Math.round(price + 62)));
+}
+
 function statValue(value: number | undefined) {
   return value === undefined || Number.isNaN(value)
     ? "–"
@@ -122,6 +133,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
 export default function FantasyPlayerCard({
   player,
   team,
+  overall,
   stats,
   price,
   tier,
@@ -155,6 +167,13 @@ export default function FantasyPlayerCard({
       ? playerPrice
       : undefined;
 
+  const power =
+    typeof overall === "number" && Number.isFinite(overall)
+      ? Math.round(overall)
+      : displayPrice !== undefined
+        ? powerFromPrice(displayPrice)
+        : undefined;
+
   const selectedTier = isCardTier(tier)
     ? tier
     : tierFromPrice(displayPrice ?? 0);
@@ -187,15 +206,15 @@ export default function FantasyPlayerCard({
         className="pointer-events-none select-none object-fill"
       />
 
-      {/* Large, subtle team logo watermark behind the player */}
+      {/* Large, subtle team logo watermark, centered */}
       {backgroundLogoSrc && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute z-[1]"
           style={{
-            left: "26%",
+            left: "20%",
             top: "14%",
-            width: "58%",
+            width: "60%",
             height: "40%",
             opacity: 0.14,
           }}
@@ -213,14 +232,14 @@ export default function FantasyPlayerCard({
         </div>
       )}
 
-      {/* Player portrait, big, with the torso fading into the name plate */}
+      {/* Player portrait: centered, torso fades into the name plate */}
       {photoSrc && (
         <div
           className="pointer-events-none absolute z-[2]"
           style={{
-            left: "22%",
+            left: "12%",
             top: "6%",
-            width: "70%",
+            width: "76%",
             height: "62%",
             WebkitMaskImage:
               "linear-gradient(to bottom, #000 80%, transparent 100%)",
@@ -255,32 +274,55 @@ export default function FantasyPlayerCard({
         }}
       />
 
-      {/* FIFA-style info column: price · role · flag · club */}
+      {/* Left column: power · role · flag · club (evenly spread) */}
       <div
-        className="absolute z-[3] flex flex-col items-center"
+        className="absolute z-[3] flex flex-col items-center justify-between"
         style={{
-          left: "17%",
-          top: "12%",
-          width: "13%",
-          gap: "6%",
+          left: "15.5%",
+          top: "11%",
+          width: "14%",
+          height: "46%",
           filter: "drop-shadow(0 2px 3px rgba(0,0,0,.85))",
         }}
       >
-        {displayPrice !== undefined && (
-          <span
-            className="font-black tabular-nums leading-none text-white"
-            style={{ fontSize: "clamp(14px, 10cqw, 46px)" }}
-            aria-label={`Fantasy price ${displayPrice}`}
+        {power !== undefined && (
+          <div
+            className="flex flex-col items-center"
+            aria-label={`Power ${power}`}
           >
-            {displayPrice}
-          </span>
+            <span
+              className={`${numberFont.className} leading-[0.85]`}
+              style={{
+                fontSize: "clamp(20px, 15cqw, 64px)",
+                backgroundImage:
+                  "linear-gradient(180deg, #ffffff 30%, #ffd98a 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                color: "transparent",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {power}
+            </span>
+            <span
+              className="font-bold uppercase leading-none"
+              style={{
+                marginTop: "6%",
+                fontSize: "clamp(6px, 2.6cqw, 11px)",
+                letterSpacing: "0.22em",
+                color: GOLD,
+              }}
+            >
+              PWR
+            </span>
+          </div>
         )}
-
-        <GoldRule />
 
         {roleImageSrc ? (
           <div
-            className="relative aspect-square w-full"
+            className="relative aspect-square"
+            style={{ width: "85%" }}
             title={player.role}
           >
             <Image
@@ -313,14 +355,14 @@ export default function FantasyPlayerCard({
             role="img"
             aria-label={player.country}
             className="leading-none"
-            style={{ fontSize: "clamp(11px, 6cqw, 30px)" }}
+            style={{ fontSize: "clamp(12px, 7cqw, 34px)" }}
           >
             {flag}
           </span>
         )}
 
         {logoSrc && (
-          <div className="relative aspect-square w-full">
+          <div className="relative aspect-square" style={{ width: "85%" }}>
             <Image
               src={logoSrc}
               alt={team?.name ? `${team.name} logo` : "Team logo"}
