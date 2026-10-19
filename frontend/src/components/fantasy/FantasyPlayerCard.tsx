@@ -216,7 +216,7 @@ export default function FantasyPlayerCard({
             top: "14%",
             width: "60%",
             height: "40%",
-            opacity: 0.14,
+            opacity: 0.5,
           }}
         >
           <Image
