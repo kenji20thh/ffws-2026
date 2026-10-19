@@ -7,6 +7,7 @@ import {
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 const display = Big_Shoulders({
   subsets: ["latin"],
@@ -50,6 +51,7 @@ export default function RootLayout({
         <Navbar />
         <main className="min-h-screen pt-16">{children}</main>
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
