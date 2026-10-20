@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { ApiError, createFantasyTeam } from "@/lib/api";
 import { COUNTRY_FLAGS, countryDisplayName } from "@/lib/flags";
-import Flag from "@/components/ui/Flag";
+import Flag from "@/components/ui/Flags";
 
 export default function CreateFantasyTeamForm({
   tournamentId,

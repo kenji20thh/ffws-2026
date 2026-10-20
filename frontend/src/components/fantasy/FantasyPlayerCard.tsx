@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Barlow_Condensed, Bebas_Neue } from "next/font/google";
 import { useState, type CSSProperties } from "react";
 import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
-import Flag from "@/components/ui/Flag";
+import Flag from "@/components/ui/Flags";
 import type { Player, Team } from "@/types";
 
 const condensed = Barlow_Condensed({
