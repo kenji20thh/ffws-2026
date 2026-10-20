@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, type CSSProperties } from "react";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Player, Team } from "@/types";
 
 export type FantasyCardPlayer = Pick<Player, "ign" | "role" | "country"> &
@@ -66,7 +66,6 @@ export default function FantasyPlayerCard({
   const photoSrc = photo && failedPhoto !== photo ? photo : undefined;
   const logo = team?.logo_url || undefined;
   const logoSrc = logo && failedLogo !== logo ? logo : undefined;
-  const flag = player.country ? countryFlag(player.country) : undefined;
   const clickable = typeof onClick === "function";
 
   const rootStyle: CSSProperties = {
@@ -150,16 +149,10 @@ export default function FantasyPlayerCard({
           textShadow,
         }}
       >
-        {flag && (
-          <span
-            role="img"
-            aria-label={player.country}
-            className="shrink-0 leading-none"
-            style={{ fontSize: "clamp(12px, 5.2cqw, 38px)" }}
-          >
-            {flag}
-          </span>
-        )}
+        <Flag
+          country={player.country}
+          height="clamp(10px, 4cqw, 28px)"
+        />
         <span
           title={player.ign}
           className="min-w-0 truncate text-center font-display font-black uppercase leading-none text-bone"

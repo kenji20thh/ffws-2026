@@ -1,5 +1,5 @@
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Player } from "@/types";
 
 export default function PlayerCard({ player }: { player: Player }) {
@@ -13,7 +13,7 @@ return ( <div className="chamfer border border-bone/10 bg-char-2 p-5"> <div clas
     <span className="text-ember">{player.role || "player"}</span>
 
     <span>
-      {countryFlag(player.country)} {player.country}
+      <Flag country={player.country} height={14} /> {player.country}
     </span>
   </div>
 </div>

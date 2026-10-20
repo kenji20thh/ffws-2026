@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Barlow_Condensed, Bebas_Neue } from "next/font/google";
 import { useState, type CSSProperties } from "react";
 import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Player, Team } from "@/types";
 
 const condensed = Barlow_Condensed({
@@ -159,7 +159,6 @@ export default function FantasyPlayerCard({
   const backgroundLogoSrc =
     logo && failedBackgroundLogo !== logo ? logo : undefined;
 
-  const flag = player.country ? countryFlag(player.country) : undefined;
 
   const playerPrice = price ?? player.fantasy_price;
   const displayPrice =
@@ -350,16 +349,10 @@ export default function FantasyPlayerCard({
           )
         )}
 
-        {flag && (
-          <span
-            role="img"
-            aria-label={player.country}
-            className="leading-none"
-            style={{ fontSize: "clamp(12px, 7cqw, 34px)" }}
-          >
-            {flag}
-          </span>
-        )}
+        <Flag
+          country={player.country}
+          height="clamp(10px, 5.5cqw, 26px)"
+        />
 
         {logoSrc && (
           <div className="relative aspect-square" style={{ width: "85%" }}>

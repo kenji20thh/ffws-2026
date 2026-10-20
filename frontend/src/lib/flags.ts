@@ -196,6 +196,17 @@ const COUNTRY_CODES: Record<string, string> = {
   Zimbabwe: "zw",
 };
 
+/** Alias kept for existing imports (country name -> ISO code). */
+export const COUNTRY_FLAGS = COUNTRY_CODES;
+
+/** "SaintKittsAndNevis" -> "Saint Kitts and Nevis" */
+export function countryDisplayName(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/ And /g, " and ")
+    .replace(/ Of /g, " of ");
+}
+
 export function countryFlag(country: string): string {
   const normalizedCountry = country
     .trim()

@@ -7,7 +7,7 @@ import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import { ApiError, getMyFantasyLeagues, getMyFantasyTeam, leavePrivateLeague } from "@/lib/api";
 import { clearSession, getToken } from "@/lib/auth";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 import FantasyLeaderboard from "./FantasyLeaderboard";
 import LeagueCodeCard from "./LeagueCodeCard";
@@ -132,7 +132,7 @@ export default function FantasyLeagues({
       <div className="chamfer border border-bone/10 bg-char-2 px-6 py-5">
         <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Your leagues</p>
         <p className="mt-2 text-bone/80">
-          <span className="mr-2 text-lg">{countryFlag(team.country)}</span>
+          <span className="mr-2"><Flag country={team.country} height={18} /></span>
           {hasRegion ? (
             <>
               Playing from <strong>{team.country}</strong>, you&apos;re in the{" "}

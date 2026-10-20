@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { PlayerProfile as PlayerProfileData } from "@/types";
 import { roleIcon, roleLabel } from "@/lib/roles";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 
 type PlayerProfileProps = {
 player: PlayerProfileData["player"];
@@ -10,7 +10,6 @@ team: PlayerProfileData["team"];
 
 export default function PlayerProfile({ player, team }: PlayerProfileProps) {
 const icon = roleIcon(player.role);
-const flag = countryFlag(player.country);
 
 return ( <section className="relative overflow-hidden bg-[#151515] text-white">
 {/* Background */} <div className="absolute inset-0"> <div className="absolute -right-32 -top-40 h-[520px] w-[520px] rounded-full bg-white/[0.035]" />
@@ -111,7 +110,7 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
           </p>
 
           <p className="mt-1 flex items-center gap-2 text-sm font-bold uppercase">
-            <span className="text-lg leading-none">{flag}</span>
+            <Flag country={player.country} height={18} />
 
             {player.country}
           </p>

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { ApiError, createFantasyTeam } from "@/lib/api";
-import { COUNTRY_FLAGS, countryFlag } from "@/lib/flags";
+import { COUNTRY_FLAGS, countryDisplayName } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 
 export default function CreateFantasyTeamForm({
   tournamentId,
@@ -22,7 +23,7 @@ export default function CreateFantasyTeamForm({
   const countryRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const countries = Object.keys(COUNTRY_FLAGS);
+  const countries = Object.keys(COUNTRY_FLAGS).map(countryDisplayName);
 
   const filteredCountries = countries.filter((name) =>
     name.toLowerCase().includes(countrySearch.toLowerCase().trim()),
@@ -134,7 +135,7 @@ export default function CreateFantasyTeamForm({
         >
           {country ? (
             <span className="flex items-center gap-2">
-              <span className="text-lg">{countryFlag(country)}</span>
+              <Flag country={country} height={18} />
               <span>{country}</span>
             </span>
           ) : (
@@ -195,8 +196,8 @@ export default function CreateFantasyTeamForm({
                         : "text-bone"
                     }`}
                   >
-                    <span className="w-6 text-lg">
-                      {countryFlag(name)}
+                    <span className="flex w-6 justify-center">
+                      <Flag country={name} height={16} />
                     </span>
 
                     <span>{name}</span>

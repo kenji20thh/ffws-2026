@@ -1,6 +1,6 @@
 
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Team } from "@/types";
 
 export default function TeamHeader({ team }: { team: Team }) {
@@ -15,8 +15,8 @@ export default function TeamHeader({ team }: { team: Team }) {
       <div>
         <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
           {team.country && (
-            <span className="mr-2 text-base tracking-normal">
-              {countryFlag(team.country)}
+            <span className="mr-2 tracking-normal">
+              <Flag country={team.country} height={18} />
             </span>
           )}
 

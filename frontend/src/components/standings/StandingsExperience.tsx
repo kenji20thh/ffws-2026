@@ -9,7 +9,7 @@ import {
   getRooms,
   getTeams,
 } from "@/lib/api";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import {
   GROUP_BY_KEY,
   groupForTeam,
@@ -854,9 +854,7 @@ export default function StandingsExperience({
                               <span className="truncate font-display text-lg font-bold uppercase text-bone">
                                 {row.team.name}
                               </span>
-                              <span title={row.team.country || "Unknown"}>
-                                {countryFlag(row.team.country)}
-                              </span>
+                              <Flag country={row.team.country} height={16} />
                             </div>
                           </div>
                         ) : (

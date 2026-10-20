@@ -6,7 +6,7 @@ import { useState, type CSSProperties } from "react";
 
 import { cardArtwork, tierFromPrice, type CardTier } from "@/lib/cardTier";
 
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 
 import { roleIcon, roleLabel } from "@/lib/roles";
 
@@ -205,7 +205,6 @@ export default function FantasyPlayerCard({
 
   const icon = roleIcon(player.role);
 
-  const flag = player.country ? countryFlag(player.country) : undefined;
 
   const priceLabel = price !== undefined ? `$${price}` : "–";
 
@@ -385,23 +384,7 @@ export default function FantasyPlayerCard({
 
         <div className="ml-auto flex shrink-0 items-center" style={{ gap: cq(14 * m) }}>
 
-          {flag && (
-
-            <span
-
-              role="img"
-
-              aria-label={player.country}
-
-              style={{ fontSize: cq(34 * m), lineHeight: 1 }}
-
-            >
-
-              {flag}
-
-            </span>
-
-          )}
+          <Flag country={player.country} height={cq(26 * m)} />
 
           <span
 

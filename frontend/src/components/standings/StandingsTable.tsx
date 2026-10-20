@@ -1,6 +1,6 @@
 import Image from "next/image";
 import EmptyState from "@/components/ui/EmptyState";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { TeamStanding } from "@/types";
 
 type StandingsRow = TeamStanding & {
@@ -70,12 +70,7 @@ return (
                   {r.team_name}
                 </span>
 
-                <span
-                  className="shrink-0 text-base"
-                  title={r.country || "Unknown"}
-                >
-                  {countryFlag(r.country)}
-                </span>
+                <Flag country={r.country} height={16} />
               </div>
             </div>
           </td>

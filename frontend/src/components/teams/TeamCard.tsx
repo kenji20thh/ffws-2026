@@ -1,10 +1,9 @@
 import Link from "next/link";
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Team } from "@/types";
 
 export default function TeamCard({ team }: { team: Team }) {
-  const flag = team.country ? countryFlag(team.country) : undefined;
 
   return (
     <Link
@@ -17,12 +16,9 @@ export default function TeamCard({ team }: { team: Team }) {
       <span className="absolute bottom-2 right-2 h-3 w-3 border-b border-r border-ember opacity-0 transition-all group-hover:bottom-0 group-hover:right-0 group-hover:opacity-100" />
 
       {/* Country flag */}
-      {flag && (
-        <span
-          className="absolute right-5 top-5 text-2xl leading-none"
-          title={team.country}
-        >
-          {flag}
+      {team.country && (
+        <span className="absolute right-5 top-5 leading-none">
+          <Flag country={team.country} height={22} />
         </span>
       )}
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { TeamStaff } from "@/types";
 
 export default function CoachingStaff({ staff }: { staff: TeamStaff[] }) {
@@ -52,7 +52,12 @@ onError={() => setImageError(true)}
 
     <p className="mt-1 font-stat text-[14px] uppercase tracking-widest text-ash">
       {staff.role}
-      {staff.country && ` · ${countryFlag(staff.country)}`}
+      {staff.country && (
+        <>
+          {" · "}
+          <Flag country={staff.country} height={14} />
+        </>
+      )}
     </p>
   </div>
 </div>

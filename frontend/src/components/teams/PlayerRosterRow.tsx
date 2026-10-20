@@ -1,4 +1,4 @@
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Monogram from "@/components/ui/Monogram";
 import type { TeamPlayerStats } from "@/types";
@@ -55,9 +55,7 @@ export default function PlayerRosterRow({
                   )}
                   {roleLabel(p.role)}
                 </span>
-                <span title={p.country} className="text-lg leading-none">
-                  {countryFlag(p.country)}
-                </span>
+                <Flag country={p.country} height={16} />
               </div>
             </div>
           </a>

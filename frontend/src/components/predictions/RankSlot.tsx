@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { Team } from "@/types";
 
 interface Props {
@@ -71,7 +71,7 @@ className={`chamfer-sm flex items-center gap-4 border p-3 ${
     </p>
 
     <p className="mt-1 flex items-center gap-1 font-stat text-[10px] uppercase tracking-widest text-ash">
-      <span>{countryFlag(team.country)}</span>
+      <Flag country={team.country} height={12} />
       {team.country}
       {team.region && ` · ${team.region}`}
     </p>

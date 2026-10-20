@@ -4,29 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Player, Team } from "@/types";
 import { roleIcon, roleLabel } from "@/lib/roles";
-
-const countryFlags: Record<string, string> = {
-  Morocco: "🇲🇦",
-  Algeria: "🇩🇿",
-  Tunisia: "🇹🇳",
-  Egypt: "🇪🇬",
-  Indonesia: "🇮🇩",
-  Vietnam: "🇻🇳",
-  Thailand: "🇹🇭",
-  Malaysia: "🇲🇾",
-  Singapore: "🇸🇬",
-  Philippines: "🇵🇭",
-  India: "🇮🇳",
-  Brazil: "🇧🇷",
-  Mexico: "🇲🇽",
-  Turkey: "🇹🇷",
-  France: "🇫🇷",
-  Pakistan: "🇵🇰",
-  Bangladesh: "🇧🇩",
-  Nepal: "🇳🇵",
-  Chile: "🇨🇱",
-  Argentina: "🇦🇷",
-};
+import Flag from "@/components/ui/Flag";
 
 type PlayerWithStats = Player & {
   team: Team;
@@ -121,7 +99,6 @@ export default function PlayersDirectory({ players, teams }: Props) {
       <div className="space-y-2">
         {filteredPlayers.map((player, index) => {
           const icon = roleIcon(player.role);
-          const flag = countryFlags[player.country];
 
           return (
             <Link
@@ -158,14 +135,7 @@ export default function PlayersDirectory({ players, teams }: Props) {
                       {player.ign}
                     </h2>
 
-                    {flag && (
-                      <span
-                        className="shrink-0 text-base leading-none"
-                        title={player.country}
-                      >
-                        {flag}
-                      </span>
-                    )}
+                    <Flag country={player.country} height={16} />
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">

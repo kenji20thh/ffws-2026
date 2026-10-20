@@ -1,5 +1,5 @@
 import Monogram from "@/components/ui/Monogram";
-import { countryFlag } from "@/lib/flags";
+import Flag from "@/components/ui/Flag";
 import type { PoolPlayer } from "@/types";
 
 interface Props {
@@ -39,7 +39,7 @@ export default function PlayerListRow({ option, selected, active, blockedReason,
         <p className="mt-0.5 truncate font-stat text-[10px] uppercase tracking-widest text-ash">
           {option.role}
           <span className="mx-1.5 text-bone/20">·</span>
-          {countryFlag(option.country)} {option.country}
+          <Flag country={option.country} height={12} /> {option.country}
         </p>
       </div>
       <span className="ml-3 font-stat text-sm font-bold tabular-nums text-ember">${option.fantasy_price}</span>
