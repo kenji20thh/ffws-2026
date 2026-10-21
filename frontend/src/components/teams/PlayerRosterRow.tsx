@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Flag from "@/components/ui/Flag";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Monogram from "@/components/ui/Monogram";
@@ -27,11 +28,13 @@ export default function PlayerRosterRow({
           >
             <div className="relative aspect-[3/4] w-full overflow-hidden bg-char-3">
               {p.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={p.photo_url}
                   alt={p.ign}
-                  className="h-full w-full object-cover object-top"
+                  fill
+                  quality={90}
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px"
+                  className="object-cover object-top"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
