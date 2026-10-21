@@ -160,6 +160,9 @@ func (h *TournamentDayHandler) Update(c *gin.Context) {
 
 type assignTeamsRequest struct {
 	TeamIDs []uint `json:"team_ids" binding:"required"`
+	// Session is the lobby these teams play in that day (1 = first lobby). Optional,
+	// defaults to 1. Phase 1 days use 1 and 2 (12 teams each).
+	Session int `json:"session" binding:"omitempty,gte=1,lte=10"`
 }
 
 func (h *TournamentDayHandler) AssignTeams(c *gin.Context) {
@@ -176,7 +179,7 @@ func (h *TournamentDayHandler) AssignTeams(c *gin.Context) {
 		return
 	}
 
-	if err := h.dayTeamRepo.AssignTeams(uint(id), req.TeamIDs); err != nil {
+	if err := h.dayTeamRepo.AssignTeams(uint(id), req.TeamIDs, req.Session); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to assign teams"})
 		return
 	}

@@ -19,12 +19,17 @@ func NewPredictionHandler(repo *repository.PredictionRepository) *PredictionHand
 }
 
 type placementPick struct {
-	TeamID    uint `json:"team_id" binding:"required"`
-	Placement int  `json:"placement" binding:"required,gte=1,lte=12"`
+	TeamID uint `json:"team_id" binding:"required"`
+	// Session is the lobby the team plays in that day (1 if omitted). Placement is
+	// 1-12 within that session.
+	Session   int `json:"session" binding:"omitempty,gte=1,lte=10"`
+	Placement int `json:"placement" binding:"required,gte=1,lte=12"`
 }
 
+// One pick per team on the day: 12 per session, so the length is validated in the
+// repository against the day's actual sessions.
 type submitPredictionRequest struct {
-	Picks []placementPick `json:"picks" binding:"required,len=12,dive"`
+	Picks []placementPick `json:"picks" binding:"required,min=12,max=120,dive"`
 }
 
 func (h *PredictionHandler) Submit(c *gin.Context) {
@@ -41,9 +46,13 @@ func (h *PredictionHandler) Submit(c *gin.Context) {
 		return
 	}
 
-	picks := make([]repository.PlacementInput, 0, 12)
+	picks := make([]repository.PlacementInput, 0, len(req.Picks))
 	for _, p := range req.Picks {
-		picks = append(picks, repository.PlacementInput{TeamID: p.TeamID, Placement: p.Placement})
+		session := p.Session
+		if session == 0 {
+			session = 1
+		}
+		picks = append(picks, repository.PlacementInput{TeamID: p.TeamID, Session: session, Placement: p.Placement})
 	}
 
 	prediction, err := h.repo.SubmitPrediction(userID, uint(dayID), picks)
