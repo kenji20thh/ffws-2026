@@ -9,6 +9,13 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { ApiError, getDayTeams, getDays, getMyFantasyTeam, getMyPrediction, submitPrediction } from "@/lib/api";
 import { getToken } from "@/lib/auth";
+import {
+  MAX_SESSION_POINTS,
+  SESSION_SIZE,
+  groupEntriesBySession,
+  groupTeamsBySession,
+  sessionKeys,
+} from "@/lib/predictionSessions";
 import type { FantasyTeam, PredictionDetail, Team, TournamentDay } from "@/types";
 import PredictionResultRow from "./PredictionResultRow";
 import PredictionSummary from "./PredictionSummary";
@@ -32,9 +39,13 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   const [loggedIn, setLoggedIn] = useState(false);
   const [team, setTeam] = useState<FantasyTeam | null | undefined>(undefined);
   const [day, setDay] = useState<TournamentDay | null>(null);
-  const [dayTeams, setDayTeams] = useState<Team[]>([]);
+  // Teams per session (a day can have several lobbies of 12), the user's current order
+  // for each, and which sessions the user has already looked at / arranged.
+  const [sessionTeams, setSessionTeams] = useState<Record<number, Team[]>>({});
+  const [orders, setOrders] = useState<Record<number, Team[]>>({});
+  const [reviewed, setReviewed] = useState<Record<number, boolean>>({});
+  const [activeSession, setActiveSession] = useState(1);
   const [existing, setExisting] = useState<PredictionDetail | null | undefined>(undefined);
-  const [order, setOrder] = useState<Team[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,25 +74,39 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     if (!day || !team) return;
     setLoading(true);
     Promise.all([
-      getDayTeams(day.id).then((dt) => dt.map((x) => x.team)),
+      getDayTeams(day.id),
       getMyPrediction(day.id).catch((e) => {
         if (e instanceof ApiError && e.status === 404) return null;
         throw e;
       }),
     ])
-      .then(([teams, mine]) => {
-        setDayTeams(teams);
-        setExisting(mine);
-        if (mine && mine.teams.length === 12) {
-          const byId = new Map(teams.map((t) => [t.id, t]));
-          const ordered = [...mine.teams]
-            .sort((a, b) => a.predicted_placement - b.predicted_placement)
-            .map((pt) => byId.get(pt.team_id))
-            .filter((t): t is Team => !!t);
-          setOrder(ordered.length === 12 ? ordered : teams);
-        } else {
-          setOrder(teams);
+      .then(([dayTeams, mine]) => {
+        const grouped = groupTeamsBySession(dayTeams);
+        const keys = sessionKeys(grouped);
+        const savedBySession = mine ? groupEntriesBySession(mine.teams) : {};
+
+        const nextOrders: Record<number, Team[]> = {};
+        const nextReviewed: Record<number, boolean> = {};
+        for (const s of keys) {
+          const teams = grouped[s];
+          const saved = savedBySession[s] ?? [];
+          let restored: Team[] = [];
+          if (saved.length === SESSION_SIZE) {
+            const byId = new Map(teams.map((t) => [t.id, t]));
+            restored = saved
+              .map((e) => byId.get(e.team_id))
+              .filter((t): t is Team => !!t);
+          }
+          const useSaved = restored.length === SESSION_SIZE;
+          nextOrders[s] = useSaved ? restored : teams;
+          nextReviewed[s] = useSaved;
         }
+
+        setSessionTeams(grouped);
+        setOrders(nextOrders);
+        setReviewed(nextReviewed);
+        setActiveSession(keys[0] ?? 1);
+        setExisting(mine);
       })
       .catch(() => setError("Failed to load this day's teams"))
       .finally(() => setLoading(false));
@@ -91,6 +116,8 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     loadDayData();
   }, [loadDayData]);
 
+  const sessions = sessionKeys(sessionTeams);
+
   async function handleSubmit() {
     if (!day) return;
     setBusy(true);
@@ -98,7 +125,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     try {
       const saved = await submitPrediction(
         day.id,
-        order.map((t, i) => ({ team_id: t.id, placement: i + 1 }))
+        sessions.flatMap((sn) =>
+          (orders[sn] ?? []).map((t, i) => ({ team_id: t.id, session: sn, placement: i + 1 }))
+        )
       );
       router.push(`/fantasy/predict/${saved.id}`);
     } catch (err) {
@@ -145,30 +174,54 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-96" /></div>;
   }
 
-  if (dayTeams.length !== 12) {
+  const incomplete = sessions.filter((sn) => sessionTeams[sn].length !== SESSION_SIZE);
+  if (sessions.length === 0 || incomplete.length > 0) {
+    const hint =
+      sessions.length === 0
+        ? "Check back once the lobby is set."
+        : `${incomplete
+            .map((sn) => `Session ${sn} has ${sessionTeams[sn].length}/${SESSION_SIZE} teams`)
+            .join(" · ")}. Check back once every lobby is set.`;
     return (
       <div className="mx-auto max-w-3xl px-5 py-20">
-        <EmptyState title="This day doesn't have 12 teams assigned yet" hint="Check back once the full lobby is set." />
+        <EmptyState title={`${day.name} doesn't have all its teams assigned yet`} hint={hint} />
       </div>
     );
   }
 
+  const multi = sessions.length > 1;
+
   if (existing?.scored) {
+    const bySession = groupEntriesBySession(existing.teams);
+    const resultSessions = sessionKeys(bySession);
     return (
       <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
         <div className="chamfer border border-bone/10 bg-char-2 p-6">
           <p className="font-stat text-[10px] uppercase tracking-widest text-ash">{day.name} — results</p>
           <p className="font-display text-4xl font-black tabular-nums text-ember">
-            {existing.total_points} / 144
+            {existing.total_points} / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}
           </p>
         </div>
-        <div className="space-y-2">
-          {[...existing.teams].sort((a, b) => a.predicted_placement - b.predicted_placement).map((e) => (
-            <PredictionResultRow key={e.id} entry={e} />
-          ))}
-        </div>
+        {resultSessions.map((sn) => (
+          <div key={sn} className="space-y-2">
+            {resultSessions.length > 1 && (
+              <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
+            )}
+            {bySession[sn].map((e) => (
+              <PredictionResultRow key={e.id} entry={e} />
+            ))}
+          </div>
+        ))}
       </div>
     );
+  }
+
+  const allReviewed = sessions.every((sn) => reviewed[sn]);
+  const currentOrder = orders[activeSession] ?? [];
+
+  function reorder(sn: number, next: Team[]) {
+    setOrders((o) => ({ ...o, [sn]: next }));
+    setReviewed((r) => ({ ...r, [sn]: true }));
   }
 
   return (
@@ -185,13 +238,21 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </p>
       ) : (
         <p className="font-stat text-xs uppercase tracking-widest text-ash">
-          Drag to reorder, or use the arrow buttons. 1st at the top.
+          {multi
+            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder, or use the arrow buttons.`
+            : "Drag to reorder, or use the arrow buttons. 1st at the top."}
         </p>
       )}
 
       {confirming ? (
         <>
-          <PredictionSummary order={order} />
+          {sessions.map((sn) => (
+            <PredictionSummary
+              key={sn}
+              order={orders[sn] ?? []}
+              heading={multi ? `Session ${sn} — confirm before submitting` : undefined}
+            />
+          ))}
           <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
           <div className="flex gap-3">
             <Button type="button" onClick={handleSubmit} disabled={busy}>
@@ -204,11 +265,65 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </>
       ) : (
         <>
-          <TeamRankBuilder order={order} onReorder={setOrder} disabled={locked} />
-          {!locked && (
-            <Button type="button" onClick={() => setConfirming(true)} className="w-full sm:w-auto">
-              Review & submit
+          {multi && (
+            <div role="tablist" className="flex gap-2">
+              {sessions.map((sn) => {
+                const active = sn === activeSession;
+                return (
+                  <button
+                    key={sn}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setActiveSession(sn)}
+                    className={`chamfer-sm flex-1 border px-4 py-2.5 font-stat text-xs uppercase tracking-widest transition-colors sm:flex-none ${
+                      active
+                        ? "border-ember bg-ember/10 text-ember"
+                        : "border-bone/15 bg-char-2 text-ash hover:border-bone/40"
+                    }`}
+                  >
+                    Session {sn}
+                    {!locked && <span className="ml-2">{reviewed[sn] ? "✓" : "•"}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <TeamRankBuilder
+            key={activeSession}
+            order={currentOrder}
+            onReorder={(next) => reorder(activeSession, next)}
+            disabled={locked}
+          />
+
+          {!locked && !reviewed[activeSession] && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setReviewed((r) => ({ ...r, [activeSession]: true }))}
+              className="w-full sm:w-auto"
+            >
+              Keep this order
             </Button>
+          )}
+
+          {!locked && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                onClick={() => setConfirming(true)}
+                disabled={!allReviewed}
+                className="w-full sm:w-auto"
+              >
+                Review & submit
+              </Button>
+              {!allReviewed && (
+                <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
+                  Set an order for every session to continue
+                </p>
+              )}
+            </div>
           )}
         </>
       )}

@@ -53,6 +53,11 @@ export interface DayTeam {
   id: number;
   tournament_day_id: number;
   team_id: number;
+  /**
+   * Lobby (session) the team plays in that day, starting at 1. A day can hold
+   * several sessions of 12 teams (e.g. Knockout Phase 1 has 2). Missing = 1.
+   */
+  session?: number;
   team: Team;
 }
 
@@ -328,6 +333,9 @@ export interface PredictionTeamEntry {
   id: number;
   prediction_id: number;
   team_id: number;
+  /** Session the entry belongs to (starting at 1). Missing = 1. */
+  session?: number;
+  /** Placement within its session (1-12). */
   predicted_placement: number;
   actual_placement: number;
   points: number;
@@ -348,6 +356,9 @@ export interface PredictionDetail {
 
 export interface PredictionPick {
   team_id: number;
+  /** Session the team plays in (starting at 1). Omitted = 1. */
+  session?: number;
+  /** Placement within its session (1-12). */
   placement: number;
 }
 

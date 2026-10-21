@@ -1,11 +1,17 @@
 import Monogram from "@/components/ui/Monogram";
 import type { Team } from "@/types";
 
-export default function PredictionSummary({ order }: { order: Team[] }) {
+export default function PredictionSummary({
+  order,
+  heading = "Confirm before submitting",
+}: {
+  order: Team[];
+  heading?: string;
+}) {
   return (
     <div className="chamfer border border-amber/40 bg-char-2 p-5">
       <p className="mb-4 font-stat text-[11px] uppercase tracking-[0.3em] text-amber">
-        Confirm before submitting
+        {heading}
       </p>
       <div className="space-y-1.5">
         {order.map((team, i) => (
