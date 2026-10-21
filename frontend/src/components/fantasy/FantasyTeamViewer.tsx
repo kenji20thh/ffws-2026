@@ -5,17 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
-import {
-  getDays,
-  getFantasyLeagueStandings,
-  getFantasyTeamProfile,
-  getMyFantasyLeagues,
-  getMyFantasyTeam,
-} from "@/lib/api";
+import { getDays, getFantasyTeamProfile, getMyFantasyTeam, getTeams } from "@/lib/api";
 import { getToken } from "@/lib/auth";
-import { captainMultiplier, chipName } from "@/lib/chips";
-import type { FantasyTeamProfile, TournamentDay } from "@/types";
-import ReadOnlySelection from "./ReadOnlySelection";
+import { chipName } from "@/lib/chips";
+import type { FantasyTeamProfile, Team, TournamentDay } from "@/types";
+import FantasyPlayerCard from "./FantasyPlayerCard";
 
 const hasDeadline = (d: TournamentDay) => Boolean(d.deadline) && !d.deadline.startsWith("0001");
 const isOpen = (d: TournamentDay) => !hasDeadline(d) || new Date(d.deadline).getTime() > Date.now();
@@ -26,8 +20,6 @@ function defaultIndex(sorted: TournamentDay[]): number {
   const open = sorted.findIndex(isOpen);
   return open >= 0 ? open : sorted.length - 1;
 }
-
-type LeagueRow = { slug: string; name: string; rank?: number; size: number };
 
 export default function FantasyTeamViewer({
   tournamentId,
@@ -45,7 +37,7 @@ export default function FantasyTeamViewer({
   const [profile, setProfile] = useState<FantasyTeamProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [leagues, setLeagues] = useState<LeagueRow[]>([]);
+  const [teamsById, setTeamsById] = useState<Map<number, Team>>(new Map());
 
   const selectedDay = days[index] ?? null;
   const dayId = selectedDay?.id ?? null;
@@ -83,45 +75,20 @@ export default function FantasyTeamViewer({
     };
   }, [tournamentId, fantasyTeamId]);
 
-  // leagues + placement: only for the owner
+  // real-team info (name / logo) for the cards; the picks themselves only carry team_id
   useEffect(() => {
-    if (!isMine) {
-      setLeagues([]);
-      return;
-    }
     let cancelled = false;
-
-    (async () => {
-      try {
-        const mine = await getMyFantasyLeagues(tournamentId);
-        const rows = await Promise.all(
-          mine.map(async (l): Promise<LeagueRow> => {
-            try {
-              const standings: any[] = await getFantasyLeagueStandings(tournamentId, l.slug);
-              const i = standings.findIndex(
-                (r) => (r.fantasy_team_id ?? r.team_id ?? r.id) === fantasyTeamId,
-              );
-              return {
-                slug: l.slug,
-                name: l.name,
-                rank: i >= 0 ? (standings[i].rank ?? i + 1) : undefined,
-                size: standings.length,
-              };
-            } catch {
-              return { slug: l.slug, name: l.name, size: 0 };
-            }
-          }),
-        );
-        if (!cancelled) setLeagues(rows);
-      } catch {
-        if (!cancelled) setLeagues([]);
-      }
-    })();
-
+    getTeams(tournamentId)
+      .then((teams) => {
+        if (!cancelled) setTeamsById(new Map(teams.map((t) => [t.id, t])));
+      })
+      .catch(() => {
+        /* cards still render without the team badge */
+      });
     return () => {
       cancelled = true;
     };
-  }, [isMine, tournamentId, fantasyTeamId]);
+  }, [tournamentId]);
 
   // picks for the selected day; ignore answers that arrive after the day changed
   useEffect(() => {
@@ -167,8 +134,9 @@ export default function FantasyTeamViewer({
   }, [go]);
 
   const dayIsFuture = selectedDay ? isOpen(selectedDay) : false;
+  const scores = new Map((profile?.breakdown ?? []).map((b) => [b.player_id, b]));
+  const scored = (profile?.breakdown ?? []).some((b) => b.final_points !== 0);
   const loading = !daysLoaded || profileLoading;
-  const showSidebar = isMine;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-5 py-10">
@@ -186,43 +154,8 @@ export default function FantasyTeamViewer({
         )}
       </div>
 
-      <div className={showSidebar ? "grid gap-8 lg:grid-cols-[280px_1fr]" : ""}>
-        {/* Leagues (owner only) */}
-        {showSidebar && (
-          <aside className="order-2 lg:order-1">
-            <h2 className="font-stat text-xs uppercase tracking-widest text-ash">My leagues</h2>
-            {leagues.length === 0 ? (
-              <p className="mt-3 border border-bone/10 p-4 font-stat text-sm text-ash">
-                You haven&apos;t joined any league yet.
-              </p>
-            ) : (
-              <ul className="mt-3 divide-y divide-bone/10 border border-bone/10">
-                {leagues.map((l) => (
-                  <li key={l.slug}>
-                    <Link
-                      href={`/leaderboard?league=${encodeURIComponent(l.slug)}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-bone/5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-display text-lg font-black uppercase">{l.name}</p>
-                        {l.size > 0 && <p className="font-stat text-xs text-ash">{l.size} players</p>}
-                      </div>
-                      <p
-                        className={`shrink-0 font-display text-2xl font-black ${
-                          l.rank && l.rank <= 3 ? "text-ember" : ""
-                        }`}
-                      >
-                        {l.rank ? `#${l.rank}` : "–"}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </aside>
-        )}
-
-        <section className="order-1 min-w-0 space-y-4 lg:order-2">
+      <div>
+        <section className="min-w-0 space-y-4">
           {/* Matchday switcher */}
           {days.length > 0 && (
             <div className="chamfer flex items-stretch border border-bone/10 bg-char-2">
@@ -276,11 +209,26 @@ export default function FantasyTeamViewer({
                     <span className="ml-2 bg-amber px-2 py-0.5 font-black text-char">{chipName(profile.chip)}</span>
                   </p>
                 )}
-                <ReadOnlySelection
-                  selections={profile.selections ?? []}
-                  breakdown={profile.breakdown}
-                  captainMultiplier={captainMultiplier(profile.chip)}
-                />
+                {(profile.selections ?? []).length === 0 ? (
+                  <EmptyState title="No selection made for this day" />
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    {(profile.selections ?? []).map((sel) => {
+                      const score = scored ? scores.get(sel.player_id) : undefined;
+                      const realTeam = teamsById.get(sel.player.team_id);
+                      return (
+                        <FantasyPlayerCard
+                          key={sel.player_id}
+                          player={sel.player}
+                          team={realTeam}
+                          price={(sel.player as typeof sel.player & { fantasy_price?: number }).fantasy_price}
+                          captain={sel.is_captain}
+                          stats={score ? { kills: score.kills, fantasyPoints: score.final_points } : undefined}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )
           ) : (
