@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Monogram from "@/components/ui/Monogram";
-import Flag from "@/components/ui/Flag";
+import Flag from "@/components/ui/FLag";
 import type { Team } from "@/types";
 
 export default function TeamCard({ team }: { team: Team }) {
@@ -18,7 +18,7 @@ export default function TeamCard({ team }: { team: Team }) {
       {/* Country flag */}
       {team.country && (
         <span className="absolute right-5 top-5 leading-none">
-          <Flag country={team.country} height={22} />
+          <Flag country={team.country} height={16} />
         </span>
       )}
 
