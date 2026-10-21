@@ -60,7 +60,7 @@ export default function PredictionViewer({ predictionId }: { predictionId: numbe
   const scored = detail.scored && !detail.hidden;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
+    <div className={`mx-auto ${sessions.length > 1 ? "max-w-6xl" : "max-w-3xl"} space-y-6 px-5 py-10`}>
       <div className="chamfer border border-bone/10 bg-char-2 p-6">
         <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
           {scored ? "Live score" : "Submitted prediction"}
@@ -77,24 +77,28 @@ export default function PredictionViewer({ predictionId }: { predictionId: numbe
           Predictions stay hidden until this day locks
         </p>
       ) : scored ? (
-        sessions.map((sn) => (
-          <div key={sn} className="space-y-2">
-            {sessions.length > 1 && (
-              <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
-            )}
-            {bySession[sn].map((e) => (
-              <PredictionResultRow key={e.id} entry={e} />
-            ))}
-          </div>
-        ))
+        <div className={sessions.length > 1 ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-2"}>
+          {sessions.map((sn) => (
+            <div key={sn} className="space-y-2">
+              {sessions.length > 1 && (
+                <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
+              )}
+              {bySession[sn].map((e) => (
+                <PredictionResultRow key={e.id} entry={e} />
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
-        sessions.map((sn) => (
-          <PredictionSummary
-            key={sn}
-            order={bySession[sn].map((e) => e.team)}
-            heading={sessions.length > 1 ? `Session ${sn}` : "Submitted prediction"}
-          />
-        ))
+        <div className={sessions.length > 1 ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-6"}>
+          {sessions.map((sn) => (
+            <PredictionSummary
+              key={sn}
+              order={bySession[sn].map((e) => e.team)}
+              heading={sessions.length > 1 ? `Session ${sn}` : "Submitted prediction"}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

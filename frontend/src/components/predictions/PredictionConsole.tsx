@@ -44,7 +44,6 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   const [sessionTeams, setSessionTeams] = useState<Record<number, Team[]>>({});
   const [orders, setOrders] = useState<Record<number, Team[]>>({});
   const [reviewed, setReviewed] = useState<Record<number, boolean>>({});
-  const [activeSession, setActiveSession] = useState(1);
   const [existing, setExisting] = useState<PredictionDetail | null | undefined>(undefined);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -105,7 +104,6 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         setSessionTeams(grouped);
         setOrders(nextOrders);
         setReviewed(nextReviewed);
-        setActiveSession(keys[0] ?? 1);
         setExisting(mine);
       })
       .catch(() => setError("Failed to load this day's teams"))
@@ -190,34 +188,38 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   }
 
   const multi = sessions.length > 1;
+  // Days with two sessions show both boards side by side, so give them more room.
+  const widthClass = multi ? "max-w-6xl" : "max-w-3xl";
+  const gridClass = multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-2";
 
   if (existing?.scored) {
     const bySession = groupEntriesBySession(existing.teams);
     const resultSessions = sessionKeys(bySession);
     return (
-      <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
+      <div className={`mx-auto ${widthClass} space-y-6 px-5 py-10`}>
         <div className="chamfer border border-bone/10 bg-char-2 p-6">
           <p className="font-stat text-[10px] uppercase tracking-widest text-ash">{day.name} — results</p>
           <p className="font-display text-4xl font-black tabular-nums text-ember">
             {existing.total_points} / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}
           </p>
         </div>
-        {resultSessions.map((sn) => (
-          <div key={sn} className="space-y-2">
-            {resultSessions.length > 1 && (
-              <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
-            )}
-            {bySession[sn].map((e) => (
-              <PredictionResultRow key={e.id} entry={e} />
-            ))}
-          </div>
-        ))}
+        <div className={gridClass}>
+          {resultSessions.map((sn) => (
+            <div key={sn} className="space-y-2">
+              {resultSessions.length > 1 && (
+                <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
+              )}
+              {bySession[sn].map((e) => (
+                <PredictionResultRow key={e.id} entry={e} />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   const allReviewed = sessions.every((sn) => reviewed[sn]);
-  const currentOrder = orders[activeSession] ?? [];
 
   function reorder(sn: number, next: Team[]) {
     setOrders((o) => ({ ...o, [sn]: next }));
@@ -225,7 +227,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-5 py-10">
+    <div className={`mx-auto ${widthClass} space-y-6 px-5 py-10`}>
       <div className="chamfer-sm border border-bone/15 bg-char-2 px-5 py-3">
         <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Predicting as</p>
         <p className="font-display text-2xl font-black uppercase text-ember">{team.team_name}</p>
@@ -246,13 +248,15 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
 
       {confirming ? (
         <>
-          {sessions.map((sn) => (
-            <PredictionSummary
-              key={sn}
-              order={orders[sn] ?? []}
-              heading={multi ? `Session ${sn} — confirm before submitting` : undefined}
-            />
-          ))}
+          <div className={multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-6"}>
+            {sessions.map((sn) => (
+              <PredictionSummary
+                key={sn}
+                order={orders[sn] ?? []}
+                heading={multi ? `Session ${sn} — confirm before submitting` : undefined}
+              />
+            ))}
+          </div>
           <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
           <div className="flex gap-3">
             <Button type="button" onClick={handleSubmit} disabled={busy}>
@@ -265,48 +269,43 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </>
       ) : (
         <>
-          {multi && (
-            <div role="tablist" className="flex gap-2">
-              {sessions.map((sn) => {
-                const active = sn === activeSession;
-                return (
-                  <button
-                    key={sn}
+          <div className={multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : ""}>
+            {sessions.map((sn) => (
+              <section key={sn} className="space-y-3">
+                {multi && (
+                  <div className="flex items-center justify-between border-b border-bone/10 pb-2">
+                    <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
+                    {!locked && (
+                      <span
+                        className={`font-stat text-[10px] uppercase tracking-widest ${
+                          reviewed[sn] ? "text-ember" : "text-ash"
+                        }`}
+                      >
+                        {reviewed[sn] ? "✓ Order set" : "Not set yet"}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <TeamRankBuilder
+                  order={orders[sn] ?? []}
+                  onReorder={(next) => reorder(sn, next)}
+                  disabled={locked}
+                />
+
+                {!locked && !reviewed[sn] && (
+                  <Button
                     type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setActiveSession(sn)}
-                    className={`chamfer-sm flex-1 border px-4 py-2.5 font-stat text-xs uppercase tracking-widest transition-colors sm:flex-none ${
-                      active
-                        ? "border-ember bg-ember/10 text-ember"
-                        : "border-bone/15 bg-char-2 text-ash hover:border-bone/40"
-                    }`}
+                    variant="ghost"
+                    onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
+                    className="w-full sm:w-auto"
                   >
-                    Session {sn}
-                    {!locked && <span className="ml-2">{reviewed[sn] ? "✓" : "•"}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <TeamRankBuilder
-            key={activeSession}
-            order={currentOrder}
-            onReorder={(next) => reorder(activeSession, next)}
-            disabled={locked}
-          />
-
-          {!locked && !reviewed[activeSession] && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setReviewed((r) => ({ ...r, [activeSession]: true }))}
-              className="w-full sm:w-auto"
-            >
-              Keep this order
-            </Button>
-          )}
+                    Keep this order
+                  </Button>
+                )}
+              </section>
+            ))}
+          </div>
 
           {!locked && (
             <div className="space-y-2">
