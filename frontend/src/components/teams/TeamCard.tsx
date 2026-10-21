@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Monogram from "@/components/ui/Monogram";
-import Flag from "@/components/ui/FLag";
+import Flag from "@/components/ui/Flag";
 import type { Team } from "@/types";
 
 export default function TeamCard({ team }: { team: Team }) {
