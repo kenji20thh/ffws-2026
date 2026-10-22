@@ -27,19 +27,18 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
 
       {/* Ambient orange glow */}
       <div
-        className="pointer-events-none absolute -right-40 top-1/2 h-[700px] w-[700px] -translate-y-1/2 rounded-full bg-[#ff5a1f]/[0.035] blur-3xl"
+        className="pointer-events-none absolute -right-40 top-1/2 h-[43.75rem] w-[43.75rem] -translate-y-1/2 rounded-full bg-[#ff5a1f]/[0.035] blur-3xl"
         aria-hidden="true"
       />
 
       {/* Safe-zone rings */}
       <div
-        className="pointer-events-none absolute -right-[320px] top-1/2 -translate-y-1/2 opacity-70"
+        className="pointer-events-none absolute -right-[20rem] top-1/2 -translate-y-1/2 opacity-70"
         aria-hidden="true"
       >
         <div className="animate-spin [animation-duration:120s]">
           <svg
-            width="900"
-            height="900"
+            style={{ width: "56.25rem", height: "56.25rem" }}
             viewBox="0 0 900 900"
             fill="none"
           >
@@ -68,7 +67,7 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
       </div>
 
       {/* Main content */}
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1600px] flex-col px-5 py-8 md:px-8 lg:px-12">
+      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-[100rem] flex-col px-5 py-8 md:px-8 lg:px-12">
         {/* Top event information */}
         <motion.div
           custom={0}
@@ -77,11 +76,11 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
           animate="show"
           className="flex flex-wrap items-center gap-x-5 gap-y-2"
         >
-          <span className="border border-[#ff5a1f] px-2.5 py-1 font-stat text-[10px] font-bold uppercase tracking-[0.18em] text-[#ff5a1f]">
+          <span className="border border-[#ff5a1f] px-2.5 py-1 font-stat text-[0.625rem] font-bold uppercase tracking-[0.18em] text-[#ff5a1f]">
             Coming Soon
           </span>
 
-          <span className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+          <span className="font-stat text-[0.625rem] uppercase tracking-[0.2em] text-ash">
             {formatDate(tournament.start_date)}
             <span className="mx-2 text-bone/20">—</span>
             {formatDate(tournament.end_date)}
@@ -111,19 +110,19 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
 
           {/* Orange glow */}
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#ff5a1f]/10 blur-3xl"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[31.25rem] w-[31.25rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#ff5a1f]/10 blur-3xl"
             aria-hidden="true"
           />
 
           {/* Countdown */}
-          <div className="relative z-10 flex min-h-[500px] w-full items-center justify-center px-5 py-16 md:min-h-[600px] lg:min-h-[650px]">
+          <div className="relative z-10 flex min-h-[31.25rem] w-full items-center justify-center px-5 py-16 md:min-h-[37.5rem] lg:min-h-[40.625rem]">
             <div className="flex flex-col items-center text-center">
               <motion.p
                 custom={2}
                 variants={rise}
                 initial="hidden"
                 animate="show"
-                className="mb-6 font-stat text-[10px] font-bold uppercase tracking-[0.4em] text-[#ff5a1f]"
+                className="mb-6 font-stat text-[0.625rem] font-bold uppercase tracking-[0.4em] text-[#ff5a1f]"
               >
                 FFWS {tournament.season}
               </motion.p>
@@ -143,13 +142,13 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
           <div className="absolute bottom-5 left-5 z-10 flex items-center gap-3">
             <span className="h-px w-8 bg-[#ff5a1f]" />
 
-            <span className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-bone/60">
+            <span className="font-stat text-[0.5625rem] font-bold uppercase tracking-[0.25em] text-bone/60">
               The World Stage
             </span>
           </div>
 
           {/* Bottom right location */}
-          <div className="absolute bottom-5 right-5 z-10 font-stat text-[9px] uppercase tracking-[0.2em] text-bone/50">
+          <div className="absolute bottom-5 right-5 z-10 font-stat text-[0.5625rem] uppercase tracking-[0.2em] text-bone/50">
             Bangkok · Thailand
           </div>
         </motion.div>
@@ -164,7 +163,7 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
         >
           {/* Title */}
           <div>
-            <p className="mb-2 font-stat text-[10px] font-bold uppercase tracking-[0.3em] text-[#ff5a1f]">
+            <p className="mb-2 font-stat text-[0.625rem] font-bold uppercase tracking-[0.3em] text-[#ff5a1f]">
               FFWS {tournament.season}
             </p>
 
@@ -179,15 +178,14 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
           <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
             {/* Location */}
             <div>
-              <p className="mb-2 font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ash">
+              <p className="mb-2 font-stat text-[0.5625rem] font-bold uppercase tracking-[0.25em] text-ash">
                 Location
               </p>
 
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center border border-bone/10 text-[#ff5a1f]">
                   <svg
-                    width="14"
-                    height="14"
+                    style={{ width: "0.875rem", height: "0.875rem" }}
                     viewBox="0 0 24 24"
                     fill="none"
                     aria-hidden="true"
@@ -213,7 +211,7 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
                     Bangkok
                   </p>
 
-                  <p className="mt-1 font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
+                  <p className="mt-1 font-stat text-[0.5625rem] uppercase tracking-[0.2em] text-ash">
                     Thailand
                   </p>
                 </div>
@@ -222,7 +220,7 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
 
             {/* Dates */}
             <div>
-              <p className="mb-2 font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ash">
+              <p className="mb-2 font-stat text-[0.5625rem] font-bold uppercase tracking-[0.25em] text-ash">
                 Championship
               </p>
 
@@ -232,7 +230,7 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
                 {formatDate(tournament.end_date)}
               </p>
 
-              <p className="mt-1 font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
+              <p className="mt-1 font-stat text-[0.5625rem] uppercase tracking-[0.2em] text-ash">
                 FFWS {tournament.season}
               </p>
             </div>
@@ -241,14 +239,14 @@ export default function Hero({ tournament }: { tournament: Tournament }) {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/teams"
-                className="inline-flex h-11 items-center justify-center border border-[#ff5a1f] bg-[#ff5a1f] px-6 font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-transparent hover:text-[#ff5a1f]"
+                className="inline-flex h-11 items-center justify-center border border-[#ff5a1f] bg-[#ff5a1f] px-6 font-stat text-[0.625rem] font-bold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-transparent hover:text-[#ff5a1f]"
               >
                 Meet the Teams
               </Link>
 
               <Link
                 href="/schedule"
-                className="inline-flex h-11 items-center justify-center border border-bone/15 px-6 font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-bone transition-colors hover:border-bone/40"
+                className="inline-flex h-11 items-center justify-center border border-bone/15 px-6 font-stat text-[0.625rem] font-bold uppercase tracking-[0.2em] text-bone transition-colors hover:border-bone/40"
               >
                 Schedule
               </Link>

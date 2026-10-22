@@ -34,7 +34,7 @@ export default function Countdown({ targetDate }: { targetDate: string }) {
   const remaining = t ? Math.min(t.diff / windowMs, 1) : 1;
 
   return (
-    <div className="relative mx-auto" style={{ width: SIZE, height: SIZE, maxWidth: "100%" }}>
+    <div className="relative mx-auto" style={{ width: `${SIZE / 16}rem`, maxWidth: "100%", aspectRatio: "1 / 1" }}>
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0 -rotate-90">
         <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="rgba(241,233,220,0.1)" strokeWidth={STROKE} />
         <circle
@@ -61,7 +61,7 @@ export default function Countdown({ targetDate }: { targetDate: string }) {
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="font-stat text-[10px] uppercase tracking-[0.35em] text-ember">Zone closes in</p>
+        <p className="font-stat text-[0.625rem] uppercase tracking-[0.35em] text-ember">Zone closes in</p>
         <p className="font-display text-[7rem] font-black leading-none tabular-nums">
           {t ? pad2(t.days) : "--"}
         </p>
