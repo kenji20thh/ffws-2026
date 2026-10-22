@@ -33,6 +33,18 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * Scale the whole UI with the screen. Everything is sized in rem, so changing the root
+ * font size makes the layout look the same on a big monitor as on a laptop instead of
+ * staying the same pixel size (and looking smaller). Below BASE the site is unchanged.
+ *   BASE = 1440px (16px root there). Bigger screens grow linearly, capped at 32px.
+ */
+@media (min-width: 1440px) {
+  html {
+    font-size: min(calc(100vw / 90), 32px);
+  }
+}
+
 body {
   background: var(--char);
   color: var(--bone);
@@ -54,22 +66,22 @@ body::before {
 /* chamfered (cut-corner) shapes */
 .chamfer {
   clip-path: polygon(
-    14px 0,
+    0.875rem 0,
     100% 0,
-    100% calc(100% - 14px),
-    calc(100% - 14px) 100%,
+    100% calc(100% - 0.875rem),
+    calc(100% - 0.875rem) 100%,
     0 100%,
-    0 14px
+    0 0.875rem
   );
 }
 .chamfer-sm {
   clip-path: polygon(
-    8px 0,
+    0.5rem 0,
     100% 0,
-    100% calc(100% - 8px),
-    calc(100% - 8px) 100%,
+    100% calc(100% - 0.5rem),
+    calc(100% - 0.5rem) 100%,
     0 100%,
-    0 8px
+    0 0.5rem
   );
 }
 
@@ -84,7 +96,7 @@ body::before {
   background-image:
     linear-gradient(rgba(241, 233, 220, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(241, 233, 220, 0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
+  background-size: 3rem 3rem;
 }
 
 /* scanline shimmer for LIVE cards */
