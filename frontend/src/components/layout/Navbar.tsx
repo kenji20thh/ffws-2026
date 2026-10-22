@@ -181,14 +181,13 @@ aria-label="FFWS World Series"
               </span>
 
               {/* Username */}
-              <span className="max-w-[140px] truncate font-display text-base font-bold uppercase tracking-wide text-bone">
+              <span className="max-w-[8.75rem] truncate font-display text-base font-bold uppercase tracking-wide text-bone">
                 {username}
               </span>
 
               {/* Chevron */}
               <svg
-                width="12"
-                height="12"
+                style={{ width: "0.75rem", height: "0.75rem" }}
                 viewBox="0 0 24 24"
                 fill="none"
                 className={`transition-transform ${
@@ -207,7 +206,7 @@ aria-label="FFWS World Series"
 
             {/* Dropdown */}
             {profileOpen && (
-              <div className="absolute right-0 top-[calc(100%+8px)] w-64 border border-bone/10 bg-[#171717] shadow-2xl">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] w-64 border border-bone/10 bg-[#171717] shadow-2xl">
                 {/* Profile header */}
                 <div className="border-b border-bone/10 p-4">
                   <div className="flex items-center gap-3">
@@ -220,7 +219,7 @@ aria-label="FFWS World Series"
                         {username}
                       </p>
 
-                      <p className="mt-0.5 font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
+                      <p className="mt-0.5 font-stat text-[0.5625rem] uppercase tracking-[0.2em] text-ash">
                         {session.role === "admin"
                           ? "Administrator"
                           : "FFWS Member"}
@@ -241,8 +240,7 @@ aria-label="FFWS World Series"
                     }`}
                   >
                     <svg
-                      width="17"
-                      height="17"
+                      style={{ width: "1.0625rem", height: "1.0625rem" }}
                       viewBox="0 0 24 24"
                       fill="none"
                       aria-hidden="true"
@@ -270,8 +268,7 @@ aria-label="FFWS World Series"
                     className="flex w-full items-center gap-3 px-3 py-3 font-display text-base font-bold uppercase tracking-wide text-bone/80 transition-colors hover:bg-bone/[0.06] hover:text-ember"
                   >
                     <svg
-                      width="17"
-                      height="17"
+                      style={{ width: "1.0625rem", height: "1.0625rem" }}
                       viewBox="0 0 24 24"
                       fill="none"
                       aria-hidden="true"
@@ -395,7 +392,7 @@ aria-label="FFWS World Series"
                   {username}
                 </p>
 
-                <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
+                <p className="font-stat text-[0.5625rem] uppercase tracking-[0.2em] text-ash">
                   {session.role === "admin"
                     ? "Administrator"
                     : "FFWS Member"}
