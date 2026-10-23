@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Player, Team } from "@/types";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Flag from "@/components/ui/Flag";
+import TeamSelect from "./TeamSelect";
 
 type PlayerWithStats = Player & {
   team: Team;
@@ -66,31 +67,21 @@ export default function PlayersDirectory({ players, teams }: Props) {
           />
         </div>
 
-        <select
+        <TeamSelect
+          teams={teamsWithPlayers}
           value={selectedTeam}
-          onChange={(event) => setSelectedTeam(event.target.value)}
-          className="h-12 chamfer border border-bone/10 bg-char-2 px-4 font-stat text-xs uppercase tracking-widest text-bone outline-none focus:border-ember md:w-64"
-        >
-          <option value="all">ALL TEAMS</option>
-
-          {teamsWithPlayers
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-        </select>
+          onChange={setSelectedTeam}
+        />
       </div>
 
       {/* Result count */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="font-stat text-[11px] uppercase tracking-[0.2em] text-ash">
+        <p className="font-stat text-[0.6875rem] uppercase tracking-[0.2em] text-ash">
           {filteredPlayers.length}{" "}
           {filteredPlayers.length === 1 ? "PLAYER" : "PLAYERS"}
         </p>
 
-        <p className="font-stat text-[11px] uppercase tracking-[0.2em] text-ash">
+        <p className="font-stat text-[0.6875rem] uppercase tracking-[0.2em] text-ash">
           SORTED BY KILLS
         </p>
       </div>
@@ -106,7 +97,7 @@ export default function PlayersDirectory({ players, teams }: Props) {
               href={`/players/${player.id}`}
               className="group block chamfer border border-bone/10 bg-char-2 transition-colors hover:border-ember"
             >
-              <div className="flex min-h-[88px] items-center gap-4 px-4 py-3 md:px-6">
+              <div className="flex min-h-[5.5rem] items-center gap-4 px-4 py-3 md:px-6">
                 {/* Rank */}
                 <div className="hidden w-8 shrink-0 text-center font-stat text-xs text-ash sm:block">
                   {String(index + 1).padStart(2, "0")}
@@ -150,14 +141,14 @@ export default function PlayersDirectory({ players, teams }: Props) {
                         />
                       )}
 
-                      <span className="font-stat text-[10px] uppercase tracking-widest text-ember">
+                      <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ember">
                         {roleLabel(player.role)}
                       </span>
                     </div>
 
                     <span className="text-bone/20">·</span>
 
-                    <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
+                    <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ash">
                       {player.team.name}
                     </span>
                   </div>
@@ -169,7 +160,7 @@ export default function PlayersDirectory({ players, teams }: Props) {
                     {player.total_kills}
                   </p>
 
-                  <p className="mt-1 font-stat text-[9px] uppercase tracking-[0.18em] text-ash">
+                  <p className="mt-1 font-stat text-[0.5625rem] uppercase tracking-[0.18em] text-ash">
                     KILLS
                   </p>
                 </div>
