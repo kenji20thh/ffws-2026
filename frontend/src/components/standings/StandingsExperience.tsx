@@ -170,45 +170,135 @@ function calculateStandings(
   );
 }
 
-function SelectButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
+/** "Knockout Stage - Week 1 Day 2" -> "Week 1 · Day 2" (other names just lose the prefix). */
+function shortDayName(name: string) {
+  const trimmed = name.replace(/^Knockout Stage\s*[-–—]\s*/i, "").trim();
+  const match = trimmed.match(/^Week\s*(\d+)\s*[-–—,]?\s*Day\s*(\d+)/i);
+  return match ? `Week ${match[1]} · Day ${match[2]}` : trimmed;
+}
+
+/** Label for an option inside a "Week N" group: just "Day N" when possible. */
+function dayOptionLabel(name: string) {
+  const match = name.match(/Day\s*(\d+)/i);
+  return match ? `Day ${match[1]}` : shortDayName(name);
+}
+
+function weekLabel(week: Week) {
+  return `Week ${week.replace("week-", "")}`;
+}
+
+function Chevron({ open = false }: { open?: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`shrink-0 border px-4 py-2 font-stat text-xs font-bold uppercase tracking-wider transition-colors ${
-        active
-          ? "border-ember bg-ember text-char"
-          : "border-bone/10 bg-char-2 text-ash hover:border-bone/30 hover:text-bone"
-      }`}
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 12 12"
+      className={`h-3 w-3 shrink-0 text-ash transition-transform ${open ? "rotate-180" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
     >
-      {children}
-    </button>
+      <path d="M2 4.5 6 8.5 10 4.5" />
+    </svg>
   );
 }
 
-function NavigationSection({
+/** Compact segmented control: one row of mutually exclusive options. */
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  grow = false,
+}: {
+  options: { value: T; label: React.ReactNode }[];
+  value: T;
+  onChange: (value: T) => void;
+  ariaLabel: string;
+  /** Stretch to fill the row (used for the stage tabs on small screens). */
+  grow?: boolean;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className={`inline-flex border border-bone/10 bg-char-2 ${grow ? "w-full sm:w-auto" : ""}`}
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={`flex items-center justify-center gap-2 px-3 py-2 font-stat text-xs font-bold uppercase tracking-wider transition-colors ${
+              grow ? "flex-1 sm:flex-none sm:px-4" : ""
+            } ${
+              active
+                ? "bg-ember text-char"
+                : "text-ash hover:bg-char-3 hover:text-bone"
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Colored group letters, e.g. [A][B]. */
+function GroupChips({ pair }: { pair: GroupKey[] }) {
+  return (
+    <span className="flex items-center gap-1">
+      {pair.map((group) => (
+        <span
+          key={group}
+          className="inline-flex h-4 w-4 items-center justify-center font-stat text-[0.5625rem] font-bold text-char"
+          style={{ backgroundColor: GROUP_BY_KEY[group].color }}
+        >
+          {group}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** A closed-by-default block for explanations. */
+function Collapsible({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="space-y-2">
-      <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
-        {title}
-      </p>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
+    <section className="border border-bone/10 bg-char">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-char-2"
+      >
+        <span className="min-w-0 truncate">
+          <span className="font-stat text-xs font-bold uppercase tracking-wider text-bone">
+            {title}
+          </span>
+          {subtitle && (
+            <span className="ml-2 font-stat text-[0.625rem] uppercase tracking-wider text-ash">
+              {subtitle}
+            </span>
+          )}
+        </span>
+        <Chevron open={open} />
+      </button>
+
+      {open && <div className="border-t border-bone/10 p-4">{children}</div>}
+    </section>
   );
 }
 
@@ -472,16 +562,31 @@ export default function StandingsExperience({
     setSession("overall");
   }
 
-  function chooseWeek(nextWeek: Week) {
-    setWeek(nextWeek);
-    setViewMode(phase === "phase-1" ? "day" : "day");
+  function chooseOverall() {
+    setViewMode("overall");
     setSession("overall");
   }
 
   function chooseDay(dayId: number) {
+    const picked = dayData.find(({ day }) => day.id === dayId);
+
+    // The matchday dropdown lists every week of the phase, so keep the week in sync.
+    if (picked) setWeek(getWeek(picked.day));
+
     setSelectedDayId(dayId);
     setViewMode("day");
     setSession("overall");
+  }
+
+  function chooseSessionView(next: "all" | "session-1" | "session-2") {
+    if (next === "all") {
+      setViewMode("day");
+      setSession("overall");
+      return;
+    }
+
+    setViewMode("session");
+    setSession(next);
   }
 
   if (loading) {
@@ -510,7 +615,6 @@ export default function StandingsExperience({
   }
 
   const isPhaseOne = stage === "knockout" && phase === "phase-1";
-  const isPhaseTwo = stage === "knockout" && phase === "phase-2";
 
   const activeDef = resolveDef(
     stage,
@@ -529,233 +633,172 @@ export default function StandingsExperience({
     ({ day }) => day.id === selectedDayId,
   );
 
+  // ----- compact navigation helpers -----
+  const dayLabel = selectedDay ? shortDayName(selectedDay.day.name) : "Matchday";
+
+  const showSessionControl =
+    isPhaseOne &&
+    viewMode !== "overall" &&
+    selectedDay !== null &&
+    selectedDayIsVisible;
+
+  // matchday dropdown: days of the chosen phase, grouped by week
+  const dayOptionGroups = phaseDays.reduce<{ week: Week; days: TournamentDay[] }[]>(
+    (groups, { day }) => {
+      const dayWeek = getWeek(day);
+      const existing = groups.find((group) => group.week === dayWeek);
+      if (existing) existing.days.push(day);
+      else groups.push({ week: dayWeek, days: [day] });
+      return groups;
+    },
+    [],
+  );
+
+  const matchdayValue =
+    viewMode === "overall" && isPhaseOne
+      ? "overall"
+      : selectedDayId !== null
+        ? String(selectedDayId)
+        : "";
+
+  const lineupDay = showSessionControl && selectedDay ? selectedDay.day : null;
+
+  // single heading for the table card
+  let viewTitle: string;
+  if (stage === "last-chance") {
+    viewTitle = viewMode === "overall" ? "Last Chance" : dayLabel;
+  } else if (stage === "grand-finals") {
+    viewTitle = viewMode === "overall" ? "Grand Finals" : dayLabel;
+  } else if (viewMode === "overall") {
+    viewTitle = `${isPhaseOne ? "Phase 1" : "Phase 2"} · Overall`;
+  } else if (viewMode === "week") {
+    viewTitle = `${weekLabel(week)} · Cumulative`;
+  } else if (viewMode === "session") {
+    viewTitle = `${dayLabel} · ${session === "session-1" ? "Session 1" : "Session 2"}`;
+  } else {
+    viewTitle = dayLabel;
+  }
+
   return (
-    <div className="space-y-6">
-      {/* MAIN STAGES */}
-      <section>
-        <NavigationSection title="Tournament Stage">
-          <SelectButton
-            active={stage === "knockout"}
-            onClick={() => chooseStage("knockout")}
-          >
-            Knockout
-          </SelectButton>
+    <div className="space-y-4">
+      {/* STAGE */}
+      <Segmented
+        ariaLabel="Stage"
+        grow
+        value={stage}
+        onChange={chooseStage}
+        options={[
+          { value: "knockout", label: "Knockout" },
+          { value: "last-chance", label: "Last Chance" },
+          { value: "grand-finals", label: "Grand Finals" },
+        ]}
+      />
 
-          <SelectButton
-            active={stage === "last-chance"}
-            onClick={() => chooseStage("last-chance")}
-          >
-            Last Chance
-          </SelectButton>
-
-          <SelectButton
-            active={stage === "grand-finals"}
-            onClick={() => chooseStage("grand-finals")}
-          >
-            Grand Finals
-          </SelectButton>
-        </NavigationSection>
-      </section>
-
-      {/* KNOCKOUT: PHASES, WEEKS AND MATCHDAYS */}
+      {/* KNOCKOUT ONLY: PHASE, MATCHDAY, SESSION */}
       {stage === "knockout" && (
-        <section className="space-y-5 border-l-2 border-ember/40 pl-4">
-          <NavigationSection title="Phase">
-            <SelectButton
-              active={phase === "phase-1"}
-              onClick={() => choosePhase("phase-1")}
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            ariaLabel="Phase"
+            value={phase}
+            onChange={choosePhase}
+            options={[
+              { value: "phase-1", label: "Phase 1" },
+              { value: "phase-2", label: "Phase 2" },
+            ]}
+          />
+
+          <div className="relative min-w-[11rem] flex-1 sm:w-60 sm:flex-none">
+            <select
+              aria-label="Matchday"
+              value={matchdayValue}
+              disabled={phaseDays.length === 0}
+              onChange={(event) =>
+                event.target.value === "overall"
+                  ? chooseOverall()
+                  : chooseDay(Number(event.target.value))
+              }
+              className="h-10 w-full appearance-none border border-bone/10 bg-char-2 pl-3 pr-9 font-stat text-xs font-bold uppercase tracking-wider text-bone outline-none transition-colors hover:border-bone/30 focus:border-ember disabled:text-ash"
             >
-              Phase 1
-            </SelectButton>
+              {phaseDays.length === 0 && <option value="">No matchdays yet</option>}
 
-            <SelectButton
-              active={phase === "phase-2"}
-              onClick={() => choosePhase("phase-2")}
-            >
-              Phase 2
-            </SelectButton>
-          </NavigationSection>
-
-          {isPhaseOne && (
-            <>
-              <NavigationSection title="Week">
-                <SelectButton
-                  active={week === "week-1"}
-                  onClick={() => chooseWeek("week-1")}
-                >
-                  Week 1
-                </SelectButton>
-
-                <SelectButton
-                  active={week === "week-2"}
-                  onClick={() => chooseWeek("week-2")}
-                >
-                  Week 2
-                </SelectButton>
-              </NavigationSection>
-
-              <NavigationSection title="Phase 1 Standings">
-                <SelectButton
-                  active={viewMode === "overall"}
-                  onClick={() => {
-                    setViewMode("overall");
-                    setSession("overall");
-                  }}
-                >
-                  Overall · 24 Teams
-                </SelectButton>
-              </NavigationSection>
-            </>
-          )}
-
-          {isPhaseTwo && (
-            <NavigationSection title="Week">
-              <SelectButton
-                active={week === "week-3"}
-                onClick={() => chooseWeek("week-3")}
-              >
-                Week 3
-              </SelectButton>
-            </NavigationSection>
-          )}
-
-          <NavigationSection
-            title={isPhaseOne ? "Matchdays" : "Week 3 Matchdays"}
-          >
-            {weekDays.length > 0 ? (
-              weekDays.map(({ day }) => (
-                <SelectButton
-                  key={day.id}
-                  active={
-                    selectedDayId === day.id &&
-                    (viewMode === "day" || viewMode === "session")
-                  }
-                  onClick={() => chooseDay(day.id)}
-                >
-                  {day.name}
-                </SelectButton>
-              ))
-            ) : (
-              <p className="border border-bone/10 bg-char-2 p-3 text-sm text-ash">
-                No matchdays configured for this selection yet.
-              </p>
-            )}
-          </NavigationSection>
-
-          {/* MATCHDAY VIEWS: PHASE 1 HAS 24-TEAM OVERALL AND TWO SESSIONS */}
-          {selectedDay && selectedDayIsVisible && (
-            <div className="space-y-3 border-l border-bone/10 pl-4">
-              <NavigationSection title={`${selectedDay.day.name} Standings`}>
-                <SelectButton
-                  active={viewMode === "day"}
-                  onClick={() => {
-                    setViewMode("day");
-                    setSession("overall");
-                  }}
-                >
-                  Overall
-                  {isPhaseOne ? " · 24 Teams" : ""}
-                </SelectButton>
-
-                {isPhaseOne && (
-                  <>
-                    <SelectButton
-                      active={
-                        viewMode === "session" && session === "session-1"
-                      }
-                      onClick={() => {
-                        setViewMode("session");
-                        setSession("session-1");
-                      }}
-                    >
-                      Session 1
-                    </SelectButton>
-
-                    <SelectButton
-                      active={
-                        viewMode === "session" && session === "session-2"
-                      }
-                      onClick={() => {
-                        setViewMode("session");
-                        setSession("session-2");
-                      }}
-                    >
-                      Session 2
-                    </SelectButton>
-                  </>
-                )}
-              </NavigationSection>
-
-              {isPhaseOne && (
-                <SessionLineup
-                  day={selectedDay.day}
-                  active={viewMode === "session" ? session : null}
-                />
+              {isPhaseOne && phaseDays.length > 0 && (
+                <option value="overall">Overall · 24 teams</option>
               )}
-            </div>
+
+              {dayOptionGroups.map((group) => (
+                <optgroup key={group.week} label={weekLabel(group.week)}>
+                  {group.days.map((day) => (
+                    <option key={day.id} value={String(day.id)}>
+                      {dayOptionLabel(day.name)}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+              <Chevron />
+            </span>
+          </div>
+
+          {showSessionControl && lineupDay && (
+            <Segmented
+              ariaLabel="Session"
+              value={viewMode === "session" ? session : "all"}
+              onChange={(next) =>
+                chooseSessionView(next as "all" | "session-1" | "session-2")
+              }
+              options={[
+                { value: "all", label: "Both" },
+                ...(["session-1", "session-2"] as const).map((key) => {
+                  const pair = sessionGroups(lineupDay.day_order, key);
+                  return {
+                    value: key,
+                    label: (
+                      <>
+                        {key === "session-1" ? "Session 1" : "Session 2"}
+                        {pair && <GroupChips pair={pair} />}
+                      </>
+                    ),
+                  };
+                }),
+              ]}
+            />
           )}
-        </section>
+        </div>
       )}
 
-      {/* LAST CHANCE AND GRAND FINALS */}
-      {stage !== "knockout" && (
-        <section className="border-l-2 border-ember/40 pl-4">
-          <NavigationSection title="Standings">
-            <SelectButton
-              active={viewMode === "overall"}
-              onClick={() => {
-                setViewMode("overall");
-                setSession("overall");
-              }}
-            >
-              Overall
-            </SelectButton>
-          </NavigationSection>
-        </section>
-      )}
+      {/* FORMAT / QUALIFICATION (collapsed by default) */}
+      {(activeDef || lineupDay) && (
+        <Collapsible
+          title={activeDef ? "Format & qualification" : "Session lineup"}
+          subtitle={
+            activeDef ? `${activeDef.title} · ${activeDef.date}` : dayLabel
+          }
+        >
+          <div className="space-y-4">
+            {lineupDay && (
+              <SessionLineup
+                day={lineupDay}
+                active={viewMode === "session" ? session : null}
+              />
+            )}
 
-      {/* QUALIFICATION RULES */}
-      {activeDef && (
-        <section>
-          <p className="mb-2 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
-            {activeDef.title} · {activeDef.date}
-          </p>
-          <StageRules def={activeDef} />
-        </section>
+            {activeDef && <StageRules def={activeDef} />}
+          </div>
+        </Collapsible>
       )}
 
       {/* STANDINGS TABLE */}
       <section className="overflow-hidden border border-bone/10 bg-char">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bone/10 px-4 py-4 sm:px-6">
-          <div>
-            <h2 className="font-display text-2xl font-black uppercase text-bone">
-              {stage === "knockout"
-                ? isPhaseOne
-                  ? "Phase 1 Placements"
-                  : "Phase 2 Placements"
-                : stage === "last-chance"
-                  ? "Last Chance Placements"
-                  : "Grand Finals Placements"}
-            </h2>
+        <div className="flex items-center justify-between gap-3 border-b border-bone/10 px-4 py-3 sm:px-6">
+          <h2 className="min-w-0 truncate font-display text-lg font-black uppercase text-bone sm:text-xl">
+            {viewTitle}
+          </h2>
 
-            <p className="mt-1 font-stat text-[10px] uppercase tracking-wider text-ash">
-              {viewMode === "overall"
-                ? isPhaseOne
-                  ? "Phase 1 · All matchdays · 24 teams"
-                  : "Cumulative standings"
-                : viewMode === "week"
-                  ? `${week === "week-1" ? "Week 1" : "Week 2"} · cumulative standings`
-                  : viewMode === "session"
-                    ? `${selectedDay?.day.name ?? "Selected matchday"} · ${
-                        session === "session-1" ? "Session 1" : "Session 2"
-                      }`
-                    : selectedDay?.day.name ?? "Selected matchday"}
-            </p>
-          </div>
-
-          <div className="font-stat text-xs uppercase tracking-wider text-ash">
+          <span className="shrink-0 font-stat text-xs uppercase tracking-wider text-ash">
             {activeRows.length} teams
-          </div>
+          </span>
         </div>
 
         {activeRows.length === 0 ? (
@@ -769,18 +812,18 @@ export default function StandingsExperience({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left">
+            <table className="w-full min-w-[47.5rem] text-left">
               <thead>
-                <tr className="border-b border-bone/10 bg-char-2 font-stat text-[10px] uppercase tracking-wider text-ash">
+                <tr className="border-b border-bone/10 bg-char-2 font-stat text-[0.625rem] uppercase tracking-wider text-ash">
                   <th className="px-4 py-3">#</th>
                   <th className="py-3">Team</th>
-                  {showGroup && <th className="px-3 py-3">Group</th>}
+                  {showGroup && <th className="px-3 py-3">Grp</th>}
                   <th className="px-3 py-3 text-right">Rooms</th>
-                  <th className="px-3 py-3 text-right">Placement</th>
+                  <th className="px-3 py-3 text-right">Place</th>
                   <th className="px-3 py-3 text-right">Kills</th>
-                  <th className="px-4 py-3 text-right text-ember">Points</th>
+                  <th className="px-4 py-3 text-right text-ember">Pts</th>
                   {showQualification && (
-                    <th className="px-4 py-3">Advances to</th>
+                    <th className="px-4 py-3">Advances</th>
                   )}
                 </tr>
               </thead>
@@ -873,7 +916,7 @@ export default function StandingsExperience({
                         <td className="px-3 py-3">
                           {row.group ? (
                             <span
-                              className="inline-flex h-6 min-w-6 items-center justify-center px-1.5 font-stat text-[10px] font-bold uppercase text-char"
+                              className="inline-flex h-6 min-w-6 items-center justify-center px-1.5 font-stat text-[0.625rem] font-bold uppercase text-char"
                               style={{
                                 backgroundColor: GROUP_BY_KEY[row.group].color,
                               }}
@@ -906,7 +949,7 @@ export default function StandingsExperience({
                         <td className="px-4 py-3">
                           {qualification && (
                             <span
-                              className="font-stat text-[10px] font-bold uppercase tracking-wider"
+                              className="font-stat text-[0.625rem] font-bold uppercase tracking-wider"
                               style={{
                                 color: colored ? color : undefined,
                                 opacity: colored ? 1 : 0.6,
@@ -957,8 +1000,8 @@ function SessionLineup({
                 : "border-bone/10 bg-char"
             }`}
           >
-            <span className="font-stat text-[10px] uppercase tracking-widest text-ash">
-              {day.name} · Session {index + 1}
+            <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ash">
+              Session {index + 1}
             </span>
 
             <span className="flex items-center gap-1.5">
@@ -969,7 +1012,7 @@ function SessionLineup({
                   )}
 
                   <span
-                    className="inline-flex h-6 items-center px-2 font-stat text-[10px] font-bold uppercase text-char"
+                    className="inline-flex h-6 items-center px-2 font-stat text-[0.625rem] font-bold uppercase text-char"
                     style={{
                       backgroundColor: GROUP_BY_KEY[group].color,
                     }}
@@ -979,7 +1022,7 @@ function SessionLineup({
                 </span>
               ))}
 
-              <span className="ml-1 font-stat text-[10px] text-ash">
+              <span className="ml-1 font-stat text-[0.625rem] text-ash">
                 12 teams
               </span>
             </span>
