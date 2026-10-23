@@ -27,16 +27,13 @@ export default async function StandingsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
+      <div className="mb-5">
         <p className="font-stat text-xs uppercase tracking-[0.25em] text-ember">
           FFWS 2026
         </p>
-        <h1 className="mt-2 font-display text-4xl font-black uppercase text-bone sm:text-6xl">
+        <h1 className="mt-1 font-display text-3xl font-black uppercase text-bone sm:text-5xl">
           Placements
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-ash">
-          Follow team standings by stage, phase, week, day, and session.
-        </p>
       </div>
 
       <StandingsExperience tournamentId={tournament.id} />
