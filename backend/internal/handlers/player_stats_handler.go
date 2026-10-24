@@ -29,7 +29,17 @@ func (h *PlayerStatsHandler) GetLeaderboard(c *gin.Context) {
 		return
 	}
 
-	entries, err := h.repo.GetLeaderboard(uint(tournamentID))
+	// Optional: only count the rooms of one tournament day.
+	var dayID uint64
+	if dayIDStr := c.Query("day_id"); dayIDStr != "" {
+		dayID, err = strconv.ParseUint(dayIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day_id"})
+			return
+		}
+	}
+
+	entries, err := h.repo.GetLeaderboard(uint(tournamentID), uint(dayID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player leaderboard"})
 		return
