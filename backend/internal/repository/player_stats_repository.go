@@ -21,6 +21,7 @@ type PlayerLeaderboardEntry struct {
 	TeamName    string `json:"team_name" gorm:"column:team_name"`
 	TotalKills  int    `json:"total_kills" gorm:"column:total_kills"`
 	RoomsPlayed int    `json:"rooms_played" gorm:"column:rooms_played"`
+	FirstBloods int    `json:"first_bloods" gorm:"column:first_bloods"`
 }
 
 func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error) {
@@ -332,20 +333,33 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 }
 
 // GetLeaderboard returns every player in the tournament ranked by total kills.
-func (r *PlayerStatsRepository) GetLeaderboard(tournamentID uint) ([]PlayerLeaderboardEntry, error) {
+// When dayID is non-zero only the rooms of that tournament day are counted (kills,
+// rooms played and first bloods for that day); players with no stats still appear
+// with zeros. Ties are broken by first bloods, then fewer rooms played, then IGN.
+func (r *PlayerStatsRepository) GetLeaderboard(tournamentID uint, dayID uint) ([]PlayerLeaderboardEntry, error) {
 	var entries []PlayerLeaderboardEntry
+
+	roomFilter := ""
+	args := []interface{}{}
+	if dayID != 0 {
+		roomFilter = " AND prs.room_id IN (SELECT id FROM rooms WHERE tournament_day_id = ?)"
+		args = append(args, dayID)
+	}
+	args = append(args, tournamentID)
+
 	err := r.db.Raw(`
 		SELECT p.id AS player_id, p.ign AS ign,
 		       t.id AS team_id, t.name AS team_name,
 		       COALESCE(SUM(prs.kills), 0) AS total_kills,
-		       COUNT(DISTINCT prs.room_id) AS rooms_played
+		       COUNT(DISTINCT prs.room_id) AS rooms_played,
+		       COALESCE(SUM(CASE WHEN prs.first_blood THEN 1 ELSE 0 END), 0) AS first_bloods
 		FROM players p
 		JOIN teams t ON t.id = p.team_id
-		LEFT JOIN player_room_stats prs ON prs.player_id = p.id
+		LEFT JOIN player_room_stats prs ON prs.player_id = p.id`+roomFilter+`
 		WHERE t.tournament_id = ?
 		GROUP BY p.id, p.ign, t.id, t.name
-		ORDER BY total_kills DESC, p.ign ASC
-	`, tournamentID).Scan(&entries).Error
+		ORDER BY total_kills DESC, first_bloods DESC, rooms_played ASC, p.ign ASC
+	`, args...).Scan(&entries).Error
 	return entries, err
 }
 
