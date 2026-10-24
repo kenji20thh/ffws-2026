@@ -3,6 +3,7 @@ import PlayersDirectory from "@/components/players/PlayersDirectory";
 import PlayersHeroMarquee from "@/components/players/PlayersHeroMarquee";
 import ErrorState from "@/components/ui/ErrorState";
 import {
+  getDays,
   getPlayerLeaderboard,
   getPlayers,
   getTeams,
@@ -19,9 +20,10 @@ export default async function PlayersPage() {
   try {
     const tournament = await getTournament("ffws-2026");
 
-    const [teams, leaderboard] = await Promise.all([
+    const [teams, leaderboard, days] = await Promise.all([
       getTeams(tournament.id),
       getPlayerLeaderboard(tournament.id),
+      getDays(tournament.id),
     ]);
 
     const playersByTeam = await Promise.all(
@@ -46,6 +48,7 @@ export default async function PlayersPage() {
           team,
           total_kills: stats?.total_kills ?? 0,
           rooms_played: stats?.rooms_played ?? 0,
+          first_bloods: stats?.first_bloods ?? 0,
         };
       }),
     );
@@ -61,6 +64,8 @@ export default async function PlayersPage() {
         <PlayersDirectory
           players={players}
           teams={teams}
+          tournamentId={tournament.id}
+          days={days}
         />
       </>
     );
