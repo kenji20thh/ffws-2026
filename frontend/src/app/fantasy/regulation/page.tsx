@@ -272,7 +272,7 @@ export default function FantasyRegulationPage() {
                 card="legendary"
                 captain
               />
-              <ExampleCard number="02" price={22} role="Support" card="epic" />
+              <ExampleCard number="02" price={22} role="Support" card="diamond" />
               <ExampleCard number="03" price={19} role="Sniper" card="gold" />
               <ExampleCard number="04" price={17} role="Flex" card="silver" />
             </div>
