@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Player, Team, TournamentDay } from "@/types";
 import { getPlayerLeaderboard } from "@/lib/api";
-import { buildDayMenu, shortDayName } from "@/lib/dayMenu";
+import { buildDayMenu, resolveSelection } from "@/lib/dayMenu";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Flag from "@/components/ui/Flag";
 import MatchdayMenu from "@/components/standings/MatchdayMenu";
@@ -60,22 +60,37 @@ export default function PlayersDirectory({
   const [selectedTeam, setSelectedTeam] = useState("all");
   const [selectedDay, setSelectedDay] = useState("all");
 
-  // Kills per day are loaded on demand and cached once fetched.
-  const [dayStats, setDayStats] = useState<Record<string, DayStats>>({});
+  // Kills per day are loaded on demand and cached once fetched. A week or a phase is the
+  // sum of its days (rooms never overlap between days, so the sums are exact).
+  const [dayStats, setDayStats] = useState<Record<number, DayStats>>({});
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
 
   const daySections = useMemo(() => buildDayMenu(days), [days]);
+  const selection = useMemo(
+    () => resolveSelection(selectedDay, days),
+    [selectedDay, days],
+  );
+
+  // The loader reads the cache through a ref so that saving a loaded day doesn't make it
+  // run again (only a new selection or "Try again" should trigger requests).
+  const cacheRef = useRef(dayStats);
+  useEffect(() => {
+    cacheRef.current = dayStats;
+  }, [dayStats]);
 
   useEffect(() => {
-    if (selectedDay === "all" || dayStats[selectedDay]) return;
+    if (selection.scope === "all") return;
+
+    const missing = selection.dayIds.filter((id) => !cacheRef.current[id]);
+    if (missing.length === 0) return;
 
     let cancelled = false;
     setError("");
 
-    getPlayerLeaderboard(tournamentId, Number(selectedDay))
-      .then((entries) => {
-        if (cancelled) return;
+    Promise.allSettled(
+      missing.map(async (id) => {
+        const entries = await getPlayerLeaderboard(tournamentId, id);
         const map: DayStats = new Map(
           entries.map((entry) => [
             entry.player_id,
@@ -86,32 +101,56 @@ export default function PlayersDirectory({
             },
           ]),
         );
-        setDayStats((prev) => ({ ...prev, [selectedDay]: map }));
-      })
-      .catch(() => {
-        if (!cancelled) setError("Unable to load this day's stats.");
-      });
+        return [id, map] as const;
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+
+      // keep every day that did load, so "Try again" only re-requests the failed ones
+      const loaded = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      if (loaded.length > 0) {
+        setDayStats((prev) => ({ ...prev, ...Object.fromEntries(loaded) }));
+      }
+
+      if (loaded.length < results.length) setError("Unable to load these stats.");
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [selectedDay, tournamentId, attempt, dayStats]);
+  }, [selection, tournamentId, attempt]);
 
-  const stats = selectedDay === "all" ? null : (dayStats[selectedDay] ?? null);
-  const dayLoading = selectedDay !== "all" && !stats && !error;
+  const selectionLoaded =
+    selection.scope !== "all" && selection.dayIds.every((id) => dayStats[id]);
 
-  const dayName =
-    selectedDay === "all"
-      ? "All days"
-      : shortDayName(
-          days.find((day) => String(day.id) === selectedDay)?.name ?? "Matchday",
-        );
+  // Totals of the selected day / week / phase, per player.
+  const stats = useMemo<DayStats | null>(() => {
+    if (selection.scope === "all" || !selectionLoaded) return null;
+
+    const total: DayStats = new Map();
+    for (const id of selection.dayIds) {
+      for (const [playerId, entry] of dayStats[id]) {
+        const current = total.get(playerId) ?? { kills: 0, rooms: 0, firstBloods: 0 };
+        total.set(playerId, {
+          kills: current.kills + entry.kills,
+          rooms: current.rooms + entry.rooms,
+          firstBloods: current.firstBloods + entry.firstBloods,
+        });
+      }
+    }
+    return total;
+  }, [selection, selectionLoaded, dayStats]);
+
+  const dayLoading = selection.scope !== "all" && !stats && !error;
+  const dayName = selection.label;
 
   // Every player with the numbers of the selected day (or the whole tournament).
   // For a single day, only players who actually played that day are ranked.
   const ranked = useMemo<MvpEntry[]>(() => {
     const rows: MvpEntry[] = players.map((player) => {
-      if (selectedDay === "all") {
+      if (selection.scope === "all") {
         return {
           ...player,
           kills: player.total_kills,
@@ -129,9 +168,9 @@ export default function PlayersDirectory({
       };
     });
 
-    const played = selectedDay === "all" ? rows : rows.filter((r) => r.rooms > 0);
+    const played = selection.scope === "all" ? rows : rows.filter((r) => r.rooms > 0);
     return played.sort(compareRanking);
-  }, [players, selectedDay, stats]);
+  }, [players, selection, stats]);
 
   // MVP is picked from everyone that day, whatever the search / team filters say.
   const mvp = ranked[0] && ranked[0].kills > 0 ? ranked[0] : null;
@@ -159,7 +198,12 @@ export default function PlayersDirectory({
   );
 
   const noResultsForDay =
-    selectedDay !== "all" && !dayLoading && !error && ranked.length === 0;
+    selection.scope !== "all" && !dayLoading && !error && ranked.length === 0;
+
+  const mvpTitle =
+    selection.scope === "all"
+      ? "Tournament MVP"
+      : `MVP of the ${selection.scope}`;
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -199,7 +243,7 @@ export default function PlayersDirectory({
           ) : (
             <MvpCard
               mvp={error ? null : mvp}
-              title={selectedDay === "all" ? "Tournament MVP" : "MVP of the day"}
+              title={mvpTitle}
               dayLabel={dayName}
             />
           )}
