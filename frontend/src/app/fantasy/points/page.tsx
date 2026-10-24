@@ -298,7 +298,7 @@ export default function FantasyPointsPage() {
         {items.map((l) => (
           <li key={l.slug}>
             <Link
-              href={`/leaderboard?league=${encodeURIComponent(l.slug)}`}
+              href={`/fantasy/leagues/${encodeURIComponent(l.slug)}`}
               className="flex items-center justify-between gap-3 px-3 py-3 transition hover:bg-white/[0.04]"
             >
               <div className="min-w-0">
