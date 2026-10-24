@@ -87,6 +87,7 @@ export interface PlayerLeaderboardEntry {
   team_name: string;
   total_kills: number;
   rooms_played: number;
+  first_bloods?: number;
 }
 
 export interface SubmitTeamResult {
