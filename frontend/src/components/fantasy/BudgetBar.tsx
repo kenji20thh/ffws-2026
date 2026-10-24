@@ -10,7 +10,7 @@ export default function BudgetBar({ spent, unlimited = false }: { spent: number;
       </div>
       <div className="h-2.5 w-full bg-char-3">
         <div
-          className={`h-full transition-all ${over ? "bg-danger" : unlimited ? "bg-amber" : "bg-ember"}`}
+          className={`h-full transition-all ${over ? "bg-danger" : unlimited ? "bg-amber" : "text-green-500"}`}
           style={{ width: unlimited ? "100%" : `${Math.min((spent / 100) * 100, 100)}%` }}
         />
       </div>
