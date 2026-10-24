@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Flag from "@/components/ui/Flag";
 import Skeleton from "@/components/ui/Skeleton";
 import FantasyPlayerCard from "@/components/fantasy/FantasyPlayerCard";
 import {
   getDays,
   getFantasyLeagueStandings,
+  getFantasyStandings,
   getFantasyTeamProfile,
   getMyFantasyLeagues,
   getMyFantasyTeam,
   getTournament,
 } from "@/lib/api";
-import { getToken } from "@/lib/auth";
-import type { FantasyTeam, TournamentDay } from "@/types";
+import { getName, getToken } from "@/lib/auth";
+import { shortDayName } from "@/lib/dayMenu";
+import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 
 /* ------------------------------------------------------------------ */
 /* ADAPTERS: the only place that touches field names I couldn't see.   */
@@ -57,7 +60,18 @@ function toCards(profile: any): CardData[] {
 const dayPoints = (profile: any): number | undefined =>
   profile?.day_points ?? profile?.points ?? profile?.total_points;
 
-type LeagueRow = { slug: string; name: string; rank?: number; size: number };
+type LeagueRow = {
+  slug: string;
+  name: string;
+  type: FantasyLeague["type"];
+  rank?: number;
+  size: number;
+};
+
+type Overall = { points?: number; rank?: number; total: number };
+
+/** "$36.5" / "$36": prices can have decimals. */
+const money = (value: number) => `$${Number.isInteger(value) ? value : value.toFixed(1)}`;
 
 /* ------------------------------------------------------------------ */
 
@@ -68,6 +82,9 @@ export default function FantasyPointsPage() {
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [index, setIndex] = useState(0);
   const [leagues, setLeagues] = useState<LeagueRow[]>([]);
+  const [username, setUsername] = useState("");
+  const [overall, setOverall] = useState<Overall | null>(null);
+  const [lastIdx, setLastIdx] = useState(-1); // last matchday that has started (-1 = none yet)
   const [profiles, setProfiles] = useState<Record<number, any>>({});
   const [dayLoading, setDayLoading] = useState(false);
 
@@ -91,9 +108,24 @@ export default function FantasyPointsPage() {
 
         setTournamentId(t.id);
         setTeam(myTeam);
+        setUsername(getName() ?? "");
         setDays(sorted);
+        setLastIdx(lastStarted);
         setIndex(Math.max(lastStarted, 0));
         setStatus("ready");
+
+        // overall points / rank / number of players: the global standings (all matchdays)
+        getFantasyStandings(t.id)
+          .then((all: any[]) => {
+            const me = all.find((r) => r.fantasy_team_id === (myTeam as any).id);
+            setOverall({
+              points: me?.points,
+              // ties share a rank: 1 + number of teams with strictly more points
+              rank: me ? 1 + all.filter((r) => r.points > me.points).length : undefined,
+              total: all.length,
+            });
+          })
+          .catch(() => setOverall({ total: 0 }));
 
         // rank per league: find my row in each league's standings
         const rows = await Promise.all(
@@ -106,11 +138,12 @@ export default function FantasyPointsPage() {
               return {
                 slug: l.slug,
                 name: l.name,
+                type: l.type,
                 rank: i >= 0 ? (st[i].rank ?? i + 1) : undefined,
                 size: st.length,
               };
             } catch {
-              return { slug: l.slug, name: l.name, size: 0 };
+              return { slug: l.slug, name: l.name, type: l.type, size: l.teams ?? 0 };
             }
           }),
         );
@@ -150,12 +183,23 @@ export default function FantasyPointsPage() {
   const cards = useMemo(() => toCards(profile), [profile]);
   const total = dayPoints(profile);
 
+  const lastDay = lastIdx >= 0 ? days[lastIdx] : undefined;
+  const lastMatchdayPoints = lastDay ? dayPoints(profiles[lastDay.id]) : undefined;
+
+  const generalLeagues = leagues.filter((l) => l.type !== "private");
+  const privateLeagues = leagues.filter((l) => l.type === "private");
+
+  // value of the squad shown on screen (sum of the four picked players' prices)
+  const squadValue = cards.length > 0 && cards.some((c) => c.price !== undefined)
+    ? cards.reduce((sum, c) => sum + (c.price ?? 0), 0)
+    : undefined;
+
   /* states */
   if (status === "loading") {
     return (
       <div className="mx-auto max-w-6xl px-5 py-10">
         <Skeleton className="h-24" />
-        <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
+        <div className="mt-6 grid gap-8 lg:grid-cols-[17.5rem_1fr]">
           <Skeleton className="h-64" />
           <Skeleton className="h-96" />
         </div>
@@ -187,56 +231,107 @@ export default function FantasyPointsPage() {
   }
 
   const teamName = (team as any).team_name ?? (team as any).name;
-  const teamTotal = (team as any).total_points ?? (team as any).points;
+
+  const leagueList = (items: LeagueRow[], empty: React.ReactNode) =>
+    items.length === 0 ? (
+      <div className="px-5 py-3 font-stat text-xs text-ash">{empty}</div>
+    ) : (
+      <ul className="divide-y divide-white/10">
+        {items.map((l) => (
+          <li key={l.slug}>
+            <Link
+              href={`/leaderboard?league=${encodeURIComponent(l.slug)}`}
+              className="flex items-center justify-between gap-3 px-5 py-2.5 transition hover:bg-white/5"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-black uppercase leading-tight">{l.name}</p>
+                {l.size > 0 && <p className="font-stat text-[0.6875rem] text-ash">{l.size} players</p>}
+              </div>
+              <p className={`shrink-0 font-display text-xl font-black ${l.rank && l.rank <= 3 ? "text-ember" : ""}`}>
+                {l.rank ? `#${l.rank}` : "–"}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    );
+
+  const statRow = (label: string, value: React.ReactNode, hint?: string) => (
+    <div className="flex items-baseline justify-between gap-3 px-5 py-2.5">
+      <div className="min-w-0">
+        <p className="font-stat text-[0.6875rem] uppercase tracking-widest text-ash">{label}</p>
+        {hint && <p className="truncate font-stat text-[0.625rem] text-ash/70">{hint}</p>}
+      </div>
+      <p className="shrink-0 font-display text-2xl font-black leading-none tabular-nums">{value}</p>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-10">
-      <header className="flex items-end justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <p className="font-stat text-xs uppercase tracking-widest text-ash">Your fantasy team</p>
-          <h1 className="font-display text-4xl font-black uppercase">{teamName}</h1>
-        </div>
-        <div className="flex items-end gap-6">
-          {teamTotal !== undefined && (
-            <div className="text-right">
-              <p className="font-stat text-xs uppercase tracking-widest text-ash">Total points</p>
-              <p className="font-display text-4xl font-black text-ember">{teamTotal}</p>
-            </div>
-          )}
-          <Link href="/fantasy/pick-team" className="font-stat text-xs uppercase tracking-widest text-ember hover:underline">
-            Edit this pick →
-          </Link>
-        </div>
-      </header>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[280px_1fr]">
-        {/* Leagues */}
-        <aside className="order-2 lg:order-1">
-          <h2 className="font-stat text-xs uppercase tracking-widest text-ash">My leagues</h2>
-          {leagues.length === 0 ? (
-            <p className="mt-3 border border-white/10 p-4 font-stat text-sm text-ash">
-              You haven&apos;t joined any league yet.
+      <div className="grid gap-8 lg:grid-cols-[19rem_1fr] lg:items-start">
+        {/* Profile, standings, leagues and squad value */}
+        <aside className="order-2 border border-white/10 bg-char-2 lg:sticky lg:top-24 lg:order-1">
+          {/* Team */}
+          <div className="border-b border-white/10 px-5 py-5">
+            <h1 className="break-words font-display text-4xl font-black uppercase leading-none">{teamName}</h1>
+            <p className="mt-2 flex items-center gap-2 font-stat text-sm text-ash">
+              {username && <span className="truncate">{username}</span>}
+              <Flag country={(team as any).country} height={14} />
             </p>
-          ) : (
-            <ul className="mt-3 divide-y divide-white/10 border border-white/10">
-              {leagues.map((l) => (
-                <li key={l.slug}>
-                  <Link
-                    href={`/leaderboard?league=${encodeURIComponent(l.slug)}`}
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-white/5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-display text-lg font-black uppercase">{l.name}</p>
-                      {l.size > 0 && <p className="font-stat text-xs text-ash">{l.size} players</p>}
-                    </div>
-                    <p className={`shrink-0 font-display text-2xl font-black ${l.rank && l.rank <= 3 ? "text-ember" : ""}`}>
-                      {l.rank ? `#${l.rank}` : "–"}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          </div>
+
+          {/* Overall numbers */}
+          <div className="divide-y divide-white/10 border-b border-white/10">
+            <div className="px-5 py-4">
+              <p className="font-stat text-[0.6875rem] uppercase tracking-widest text-ash">Overall points</p>
+              <p className="mt-1 font-display text-5xl font-black leading-none tabular-nums text-ember">
+                {overall?.points ?? "–"}
+              </p>
+            </div>
+            {statRow("Overall rank", overall?.rank ? `#${overall.rank}` : "–")}
+            {statRow("Total players", overall ? overall.total : "–")}
+            {statRow(
+              "Last matchday",
+              lastMatchdayPoints ?? "–",
+              lastDay ? shortDayName(dayLabel(lastDay)) : "No matchday played yet",
+            )}
+          </div>
+
+          {/* Leagues */}
+          <div className="border-b border-white/10">
+            <h2 className="px-5 pt-4 font-stat text-[0.6875rem] uppercase tracking-widest text-ash">General leagues</h2>
+            {leagueList(generalLeagues, "No general league yet.")}
+
+            <h2 className="mt-1 border-t border-white/10 px-5 pt-4 font-stat text-[0.6875rem] uppercase tracking-widest text-ash">
+              Private leagues
+            </h2>
+            {leagueList(
+              privateLeagues,
+              <>
+                No private league yet.{" "}
+                <Link href="/fantasy/leagues" className="text-ember hover:underline">
+                  Create or join one →
+                </Link>
+              </>,
+            )}
+          </div>
+
+          {/* Squad value */}
+          <div className="flex items-baseline justify-between gap-3 px-5 py-4">
+            <div>
+              <p className="font-stat text-[0.6875rem] uppercase tracking-widest text-ash">Squad value</p>
+              <p className="font-stat text-[0.625rem] text-ash/70">Matchday {index + 1}</p>
+            </div>
+            <p className="font-display text-3xl font-black leading-none tabular-nums">
+              {squadValue !== undefined ? money(squadValue) : "–"}
+            </p>
+          </div>
+
+          <div className="border-t border-white/10 px-5 py-3">
+            <Link href="/fantasy/pick-team" className="font-stat text-xs uppercase tracking-widest text-ember hover:underline">
+              Edit this pick →
+            </Link>
+          </div>
         </aside>
 
         {/* Matchday + cards */}
