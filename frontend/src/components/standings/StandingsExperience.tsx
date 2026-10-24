@@ -25,6 +25,7 @@ import {
   type StageDef,
 } from "@/lib/tournamentFormat";
 import { StageRules } from "@/components/schedule/StageRules";
+import MatchdayMenu, { type MenuSection } from "./MatchdayMenu";
 import type {
   DayTeam,
   Room,
@@ -221,7 +222,7 @@ function Segmented<T extends string>({
     <div
       role="group"
       aria-label={ariaLabel}
-      className={`inline-flex border border-bone/10 bg-char-2 ${grow ? "w-full sm:w-auto" : ""}`}
+      className={`inline-flex divide-x divide-bone/20 border border-bone/10 bg-char-2 ${grow ? "w-full sm:w-auto" : ""}`}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -567,6 +568,12 @@ export default function StandingsExperience({
     setSession("overall");
   }
 
+  function chooseWeekOverall(nextWeek: Week) {
+    setWeek(nextWeek);
+    setViewMode("week");
+    setSession("overall");
+  }
+
   function chooseDay(dayId: number) {
     const picked = dayData.find(({ day }) => day.id === dayId);
 
@@ -638,7 +645,7 @@ export default function StandingsExperience({
 
   const showSessionControl =
     isPhaseOne &&
-    viewMode !== "overall" &&
+    (viewMode === "day" || viewMode === "session") &&
     selectedDay !== null &&
     selectedDayIsVisible;
 
@@ -657,9 +664,59 @@ export default function StandingsExperience({
   const matchdayValue =
     viewMode === "overall" && isPhaseOne
       ? "overall"
-      : selectedDayId !== null
-        ? String(selectedDayId)
-        : "";
+      : viewMode === "week" && isPhaseOne
+        ? `week:${week}`
+        : selectedDayId !== null
+          ? String(selectedDayId)
+          : "";
+
+  const menuSections: MenuSection[] = [
+    ...(isPhaseOne && phaseDays.length > 0
+      ? [
+          {
+            key: "phase",
+            items: [
+              {
+                value: "overall",
+                label: "Phase 1 · Overall",
+                display: "Phase 1 · Overall",
+                hint: "24 teams",
+                strong: true,
+              },
+            ],
+          },
+        ]
+      : []),
+    ...dayOptionGroups.map((group) => ({
+      key: group.week,
+      label: weekLabel(group.week),
+      items: [
+        // Phase 1 weeks can be viewed as a cumulative table of their matchdays.
+        ...(isPhaseOne
+          ? [
+              {
+                value: `week:${group.week}`,
+                label: "Overall",
+                display: `${weekLabel(group.week)} · Overall`,
+                hint: `${group.days.length} days`,
+                strong: true,
+              },
+            ]
+          : []),
+        ...group.days.map((day) => ({
+          value: String(day.id),
+          label: dayOptionLabel(day.name),
+          display: shortDayName(day.name),
+        })),
+      ],
+    })),
+  ];
+
+  function onMatchdayChange(value: string) {
+    if (value === "overall") chooseOverall();
+    else if (value.startsWith("week:")) chooseWeekOverall(value.slice(5) as Week);
+    else chooseDay(Number(value));
+  }
 
   const lineupDay = showSessionControl && selectedDay ? selectedDay.day : null;
 
@@ -672,7 +729,7 @@ export default function StandingsExperience({
   } else if (viewMode === "overall") {
     viewTitle = `${isPhaseOne ? "Phase 1" : "Phase 2"} · Overall`;
   } else if (viewMode === "week") {
-    viewTitle = `${weekLabel(week)} · Cumulative`;
+    viewTitle = `${weekLabel(week)} · Overall`;
   } else if (viewMode === "session") {
     viewTitle = `${dayLabel} · ${session === "session-1" ? "Session 1" : "Session 2"}`;
   } else {
@@ -707,39 +764,14 @@ export default function StandingsExperience({
             ]}
           />
 
-          <div className="relative min-w-[11rem] flex-1 sm:w-60 sm:flex-none">
-            <select
-              aria-label="Matchday"
-              value={matchdayValue}
-              disabled={phaseDays.length === 0}
-              onChange={(event) =>
-                event.target.value === "overall"
-                  ? chooseOverall()
-                  : chooseDay(Number(event.target.value))
-              }
-              className="h-10 w-full appearance-none border border-bone/10 bg-char-2 pl-3 pr-9 font-stat text-xs font-bold uppercase tracking-wider text-bone outline-none transition-colors hover:border-bone/30 focus:border-ember disabled:text-ash"
-            >
-              {phaseDays.length === 0 && <option value="">No matchdays yet</option>}
-
-              {isPhaseOne && phaseDays.length > 0 && (
-                <option value="overall">Overall · 24 teams</option>
-              )}
-
-              {dayOptionGroups.map((group) => (
-                <optgroup key={group.week} label={weekLabel(group.week)}>
-                  {group.days.map((day) => (
-                    <option key={day.id} value={String(day.id)}>
-                      {dayOptionLabel(day.name)}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <Chevron />
-            </span>
-          </div>
+          <MatchdayMenu
+            ariaLabel="Matchday"
+            sections={menuSections}
+            value={matchdayValue}
+            onChange={onMatchdayChange}
+            disabled={phaseDays.length === 0}
+            placeholder="No matchdays yet"
+          />
 
           {showSessionControl && lineupDay && (
             <Segmented
