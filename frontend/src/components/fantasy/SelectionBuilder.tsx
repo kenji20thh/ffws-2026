@@ -208,10 +208,19 @@ export default function SelectionBuilder({
     if (locked) return;
 
     setSlots((prev) => prev.map((x) => (x === id ? null : x)));
+    setError("");
 
     if (captainId === id) {
       setCaptainId(null);
     }
+  }
+
+  function clearAll() {
+    if (locked || picked.length === 0) return;
+
+    setSlots(Array.from({ length: SQUAD_SIZE }, () => null));
+    setCaptainId(null);
+    setError("");
   }
 
   function toggle(o: PoolPlayer) {
@@ -463,9 +472,21 @@ export default function SelectionBuilder({
                     Starting lineup
                   </span>
                 </div>
-                <span className="font-stat text-[9px] uppercase tracking-widest text-ash">
-                  2 × 2
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-stat text-[9px] uppercase tracking-widest text-ash">
+                    2 × 2
+                  </span>
+                  {!locked && (
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      disabled={picked.length === 0}
+                      className="chamfer-sm border border-bone/25 px-3 py-1.5 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition hover:border-danger/60 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-bone/25 disabled:hover:text-bone"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -562,8 +583,9 @@ export default function SelectionBuilder({
                         <button
                           type="button"
                           onClick={() => remove(player.player_id)}
-                          className="absolute bottom-[5%] right-[5%] z-30 flex h-8 w-8 items-center justify-center border border-bone/15 bg-char/80 text-ash opacity-0 backdrop-blur-sm transition hover:border-danger/50 hover:text-danger group-hover:opacity-100"
-                          aria-label={`Remove ${player.ign}`}
+                          className="absolute bottom-[5%] right-[5%] z-30 flex h-8 w-8 items-center justify-center border border-bone/25 bg-char/80 text-bone backdrop-blur-sm transition hover:border-danger/60 hover:text-danger"
+                          aria-label={`Clear ${player.ign}`}
+                          title={`Clear ${player.ign}`}
                         >
                           ×
                         </button>
