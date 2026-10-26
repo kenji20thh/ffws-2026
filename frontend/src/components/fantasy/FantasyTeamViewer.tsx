@@ -9,6 +9,7 @@ import { getDays, getFantasyTeamProfile, getMyFantasyTeam, getTeams } from "@/li
 import { getToken } from "@/lib/auth";
 import { chipName } from "@/lib/chips";
 import type { FantasyTeamProfile, Team, TournamentDay } from "@/types";
+import FantasyDayPlayerDetails from "./FantasyDayPlayerDetails";
 import FantasyPlayerCard from "./FantasyPlayerCard";
 
 const hasDeadline = (d: TournamentDay) => Boolean(d.deadline) && !d.deadline.startsWith("0001");
@@ -228,6 +229,13 @@ export default function FantasyTeamViewer({
                       );
                     })}
                   </div>
+                )}
+                {scored && dayId && (
+                  <FantasyDayPlayerDetails
+                    dayId={dayId}
+                    breakdown={profile.breakdown ?? []}
+                    chipName={profile.chip ? chipName(profile.chip) : undefined}
+                  />
                 )}
               </div>
             )
