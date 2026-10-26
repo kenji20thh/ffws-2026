@@ -184,9 +184,21 @@ export default function FantasyPlayerCard({
 
   const clickable = typeof onClick === "function";
 
+  // Match the glow to the rarity artwork currently displayed on the card.
+  const tierGlow: Record<string, string> = {
+    bronze: "rgba(205, 127, 50, 0.62)",
+    silver: "rgba(192, 201, 211, 0.62)",
+    gold: "rgba(255, 215, 0, 0.62)",
+    diamond: "rgba(80, 205, 255, 0.68)",
+    legendary: "rgba(255, 91, 130, 0.68)",
+  };
+
   const rootStyle: CSSProperties = {
     containerType: "inline-size",
     aspectRatio: `${ART_WIDTH} / ${ART_HEIGHT}`,
+    filter: selected
+      ? `drop-shadow(0 0 14px ${tierGlow[selectedTier] ?? "rgba(255, 215, 0, 0.5)"})`
+      : undefined,
   };
 
   const nameSize =
@@ -460,9 +472,7 @@ export default function FantasyPlayerCard({
   );
 
   const rootClass =
-    `relative isolate block overflow-hidden ${condensed.className} ${SIZE_CLASS[size]} ${
-      selected ? "drop-shadow-[0_0_14px_rgba(255,170,40,.6)]" : ""
-    } ${className}`.trim();
+    `relative isolate block overflow-hidden ${condensed.className} ${SIZE_CLASS[size]} ${className}`.trim();
 
   if (clickable) {
     return (
