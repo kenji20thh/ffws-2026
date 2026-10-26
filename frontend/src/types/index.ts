@@ -102,6 +102,19 @@ export interface LoginResponse {
   username: string;
 }
 
+/** The logged-in user's own account (GET /auth/me). */
+export interface Me {
+  id: number;
+  username: string;
+  email: string;
+  email_verified: boolean;
+  role: "user" | "admin";
+  /** false for accounts that only use Google (they can set a password) */
+  has_password: boolean;
+  google_linked: boolean;
+  created_at: string;
+}
+
 /** Google sign-in either logs the user in, or asks a new user to confirm a username. */
 export interface GoogleNeedsUsername {
   needs_username: true;

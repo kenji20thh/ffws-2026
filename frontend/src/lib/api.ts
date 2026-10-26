@@ -2,6 +2,7 @@ import type {
   DayTeam,
   GoogleAuthResponse,
   LoginResponse,
+  Me,
   Player,
   PlayerLeaderboardEntry,
   PlayerProfile,
@@ -151,6 +152,28 @@ export const googleComplete = (signupToken: string, username: string) =>
     method: "POST",
     body: JSON.stringify({ signup_token: signupToken, username }),
   });
+
+/* ---------- my account (logged in) ---------- */
+export const getMe = () => request<Me>("/auth/me", {}, true);
+
+/** Returns a fresh token: the old one still carries the old username. */
+export const changeUsername = (username: string) =>
+  request<LoginResponse>(
+    "/auth/username",
+    { method: "PUT", body: JSON.stringify({ username }) },
+    true,
+  );
+
+/** currentPassword can be left empty for Google-only accounts setting their first password. */
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  request<{ message: string }>(
+    "/auth/password",
+    {
+      method: "PUT",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    },
+    true,
+  );
 
 /* ---------- admin ---------- */
 export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
