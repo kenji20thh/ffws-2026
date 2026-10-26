@@ -156,6 +156,10 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.RequireAuth(cfg))
 		{
+			protected.GET("/auth/me", authHandler.Me)
+			protected.PUT("/auth/username", middleware.RateLimit(rate.Every(30*time.Second), 5), authHandler.ChangeUsername)
+			protected.PUT("/auth/password", middleware.RateLimit(rate.Every(15*time.Second), 5), authHandler.ChangePassword)
+
 			protected.POST("/fantasy/team", fantasyHandler.CreateTeam)
 			protected.GET("/fantasy/team", fantasyHandler.GetMyTeam)
 			protected.GET("/fantasy/leagues", fantasyHandler.GetMyLeagues)
