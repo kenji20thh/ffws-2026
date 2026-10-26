@@ -147,8 +147,9 @@ export default function FantasyPlayerCard({
 }: FantasyPlayerCardProps) {
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
   const [failedLogo, setFailedLogo] = useState<string | null>(null);
-  const [failedBackgroundLogo, setFailedBackgroundLogo] =
-    useState<string | null>(null);
+  const [failedBackgroundLogo, setFailedBackgroundLogo] = useState<
+    string | null
+  >(null);
   const [failedRoleIcon, setFailedRoleIcon] = useState<string | null>(null);
 
   const photo = player.photo_url || undefined;
@@ -158,7 +159,6 @@ export default function FantasyPlayerCard({
   const logoSrc = logo && failedLogo !== logo ? logo : undefined;
   const backgroundLogoSrc =
     logo && failedBackgroundLogo !== logo ? logo : undefined;
-
 
   const playerPrice = price ?? player.fantasy_price;
   const displayPrice =
@@ -254,8 +254,7 @@ export default function FantasyPlayerCard({
             height: "62%",
             WebkitMaskImage:
               "linear-gradient(to bottom, #000 80%, transparent 100%)",
-            maskImage:
-              "linear-gradient(to bottom, #000 80%, transparent 100%)",
+            maskImage: "linear-gradient(to bottom, #000 80%, transparent 100%)",
           }}
         >
           <Image
@@ -361,10 +360,7 @@ export default function FantasyPlayerCard({
           )
         )}
 
-        <Flag
-          country={player.country}
-          height="clamp(10px, 5.5cqw, 26px)"
-        />
+        <Flag country={player.country} height="clamp(10px, 5.5cqw, 26px)" />
 
         {logoSrc && (
           <div className="relative aspect-square" style={{ width: "85%" }}>
@@ -399,7 +395,8 @@ export default function FantasyPlayerCard({
           style={{
             fontSize: `clamp(12px, ${nameSize}cqw, 48px)`,
             letterSpacing: "0.04em",
-            backgroundImage: "linear-gradient(180deg, #ffffff 35%, #ffe3ad 100%)",
+            backgroundImage:
+              "linear-gradient(180deg, #ffffff 35%, #ffe3ad 100%)",
             WebkitBackgroundClip: "text",
             backgroundClip: "text",
             WebkitTextFillColor: "transparent",
@@ -455,17 +452,50 @@ export default function FantasyPlayerCard({
       {/* Captain marker */}
       {captain && (
         <span
-          className="absolute z-[4] flex items-center justify-center rounded-full bg-amber font-black text-char"
+          className="absolute z-[4] flex items-center justify-center"
           style={{
-            right: "7%",
-            top: "4%",
-            width: "10%",
-            aspectRatio: "1",
-            fontSize: "clamp(12px, 5cqw, 36px)",
+            right: "6%",
+            top: "3.5%",
+            width: "12%",
+            aspectRatio: "0.88",
+            background: "#ff5a1f",
+            clipPath:
+              "polygon(50% 0%, 100% 22%, 100% 76%, 50% 100%, 0% 76%, 0% 22%)",
+            filter: "drop-shadow(0 2px 3px rgba(0,0,0,.8))",
           }}
           aria-label="Captain"
+          title="Captain"
         >
-          C
+          <span
+            className="absolute flex items-center justify-center"
+            style={{
+              inset: "2px",
+              background: "rgba(11,9,8,.94)",
+              clipPath:
+                "polygon(50% 0%, 100% 22%, 100% 76%, 50% 100%, 0% 76%, 0% 22%)",
+            }}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              style={{ width: "62%", height: "62%" }}
+              fill="none"
+            >
+              <path
+                d="M4 18.5h16l1-10-5 3.5L12 5l-4 7-5-3.5 1 10Z"
+                fill="#ff5a1f"
+                stroke="#ffb18f"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M5 21h14"
+                stroke="#ffb18f"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
         </span>
       )}
     </>
