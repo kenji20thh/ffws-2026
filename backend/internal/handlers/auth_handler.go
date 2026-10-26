@@ -405,3 +405,163 @@ func (h *AuthHandler) ListAccounts(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }
+
+// ---------- my account ----------
+
+// currentUser loads the logged-in user. A token whose account no longer exists answers 401,
+// so the client logs out.
+func (h *AuthHandler) currentUser(c *gin.Context) (*models.User, bool) {
+	id, ok := c.Get("user_id")
+	userID, isUint := id.(uint)
+	if !ok || !isUint {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not logged in"})
+		return nil, false
+	}
+
+	user, err := h.repo.FindByID(userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "account not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load account"})
+		}
+		return nil, false
+	}
+	return user, true
+}
+
+// Me returns what the profile page needs, including whether the account has a password
+// (Google-only accounts do not, so the page shows "set a password" instead).
+func (h *AuthHandler) Me(c *gin.Context) {
+	user, ok := h.currentUser(c)
+	if !ok {
+		return
+	}
+
+	email := ""
+	if user.Email != nil {
+		email = *user.Email
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id":             user.ID,
+		"username":       user.Username,
+		"email":          email,
+		"email_verified": user.EmailVerified,
+		"role":           user.Role,
+		"has_password":   user.PasswordHash != "",
+		"google_linked":  user.GoogleSub != nil,
+		"created_at":     user.CreatedAt,
+	})
+}
+
+type changeUsernameRequest struct {
+	Username string `json:"username" binding:"required"`
+}
+
+// ChangeUsername renames the logged-in user and returns a fresh token, because the old one
+// still carries the old username.
+func (h *AuthHandler) ChangeUsername(c *gin.Context) {
+	var req changeUsernameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username is required"})
+		return
+	}
+	user, ok := h.currentUser(c)
+	if !ok {
+		return
+	}
+
+	username, valid := validUsername(req.Username)
+	if !valid || !usernameChars.MatchString(username) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username must be 3 to 32 characters: letters, numbers, . _ -"})
+		return
+	}
+	if username == user.Username {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "that is already your username"})
+		return
+	}
+
+	conflict := func() {
+		suggestion, _ := h.repo.SuggestUsername(username, maxUsernameLen)
+		c.JSON(http.StatusConflict, gin.H{"error": "username is already taken", "suggested_username": suggestion})
+	}
+
+	taken, err := h.repo.UsernameTakenByOther(username, user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change username"})
+		return
+	}
+	if taken {
+		conflict()
+		return
+	}
+
+	if err := h.repo.UpdateUsername(user.ID, username); err != nil {
+		// Lost a race for the name (the unique index rejected it).
+		if taken, _ := h.repo.UsernameTakenByOther(username, user.ID); taken {
+			conflict()
+			return
+		}
+		log.Printf("change username failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change username"})
+		return
+	}
+
+	user.Username = username
+	h.issueLogin(c, user)
+}
+
+type changePasswordRequest struct {
+	// Required when the account already has a password; ignored for Google-only accounts
+	// that are setting their first one.
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password" binding:"required,min=8,max=72"` // bcrypt rejects > 72 bytes
+}
+
+// ChangePassword changes the password after checking the current one. Google-only accounts
+// (no password yet) can set one without it. A wrong current password answers 400, not 401,
+// because the client treats 401 as "your session ended".
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req changePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be 8 to 72 characters"})
+		return
+	}
+	user, ok := h.currentUser(c)
+	if !ok {
+		return
+	}
+
+	hadPassword := user.PasswordHash != ""
+	if hadPassword {
+		if req.CurrentPassword == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "current password is required"})
+			return
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "current password is incorrect"})
+			return
+		}
+		if req.CurrentPassword == req.NewPassword {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be different from the current one"})
+			return
+		}
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+	if err := h.repo.UpdatePasswordHash(user.ID, string(hash)); err != nil {
+		log.Printf("change password failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change password"})
+		return
+	}
+
+	message := "password updated"
+	if !hadPassword {
+		message = "password set"
+	}
+	c.JSON(http.StatusOK, gin.H{"message": message})
+}
