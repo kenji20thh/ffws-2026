@@ -115,3 +115,21 @@ func (r *UserRepository) FindAll() ([]models.User, error) {
 	err := r.db.Find(&users).Error
 	return users, err
 }
+
+// UsernameTakenByOther is UsernameTaken ignoring one user, so people can change just the
+// capitalisation of their own username ("amine" -> "Amine").
+func (r *UserRepository) UsernameTakenByOther(username string, userID uint) (bool, error) {
+	var n int64
+	err := r.db.Model(&models.User{}).
+		Where("LOWER(username) = LOWER(?) AND id <> ?", username, userID).
+		Count(&n).Error
+	return n > 0, err
+}
+
+func (r *UserRepository) UpdateUsername(id uint, username string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("username", username).Error
+}
+
+func (r *UserRepository) UpdatePasswordHash(id uint, hash string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("password_hash", hash).Error
+}
