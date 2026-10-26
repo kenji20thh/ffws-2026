@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getPlayerProfile } from "@/lib/api";
 import { FANTASY_FIRST_BLOOD_POINTS, FANTASY_KILL_POINTS } from "@/lib/scoring";
-import type { FantasyPlayerDayScore, PlayerDayStats } from "@/types";
+import type { FantasyPlayerDayScore, FantasySelectionEntry, PlayerDayStats } from "@/types";
 
 const per = (value: number, rooms: number) => (rooms > 0 ? (value / rooms).toFixed(2) : "–");
 
@@ -14,26 +14,31 @@ const per = (value: number, rooms: number) => (rooms > 0 ? (value / rooms).toFix
  */
 export default function FantasyDayPlayerDetails({
   dayId,
+  selections,
   breakdown,
+  scored,
   chipName,
 }: {
   dayId: number;
+  selections: FantasySelectionEntry[];
   breakdown: FantasyPlayerDayScore[];
+  scored: boolean;
   chipName?: string;
 }) {
   // player_id -> that player's stats for this day (undefined = still loading, null = no data)
   const [dayStats, setDayStats] = useState<Map<number, PlayerDayStats | null>>(new Map());
 
-  const idsKey = breakdown.map((b) => b.player_id).join(",");
+  const idsKey = selections.map((x) => x.player_id).join(",");
 
   useEffect(() => {
     let cancelled = false;
     setDayStats(new Map());
+    if (!scored) return;
     Promise.all(
-      breakdown.map((b) =>
-        getPlayerProfile(b.player_id)
-          .then((p) => [b.player_id, p.days.find((d) => d.day_id === dayId) ?? null] as const)
-          .catch(() => [b.player_id, null] as const),
+      selections.map((x) =>
+        getPlayerProfile(x.player_id)
+          .then((p) => [x.player_id, p.days.find((d) => d.day_id === dayId) ?? null] as const)
+          .catch(() => [x.player_id, null] as const),
       ),
     ).then((entries) => {
       if (!cancelled) setDayStats(new Map(entries));
@@ -42,11 +47,23 @@ export default function FantasyDayPlayerDetails({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayId, idsKey]);
+  }, [dayId, idsKey, scored]);
 
-  if (breakdown.length === 0) return null;
+  if (selections.length === 0) return null;
 
-  const rows = breakdown.map((b) => {
+  const byPlayer = new Map(breakdown.map((b) => [b.player_id, b]));
+
+  const rows = selections.map((sel) => {
+    const b: FantasyPlayerDayScore = byPlayer.get(sel.player_id) ?? {
+      player_id: sel.player_id,
+      ign: sel.player.ign,
+      is_captain: sel.is_captain,
+      kills: 0,
+      first_bloods: 0,
+      placement_points: 0,
+      base_points: 0,
+      final_points: 0,
+    };
     const stats = dayStats.get(b.player_id);
     const rooms = stats?.rooms_played ?? stats?.rooms?.length ?? 0;
     const killPts = b.kills * FANTASY_KILL_POINTS;
@@ -54,6 +71,7 @@ export default function FantasyDayPlayerDetails({
     return { b, stats, rooms, killPts, fbPts, loaded: dayStats.has(b.player_id) };
   });
 
+  const dash = "–";
   const totalFinal = rows.reduce((s, r) => s + r.b.final_points, 0);
 
   const th = "px-3 py-3 text-right font-stat text-[10px] font-normal uppercase tracking-widest text-ash";
@@ -93,23 +111,24 @@ export default function FantasyDayPlayerDetails({
           </thead>
           <tbody>
             {rows.map(({ b, rooms, killPts, fbPts, loaded }) => {
-              const roomsLabel = loaded ? (rooms > 0 ? rooms : "–") : "…";
-              const hasRooms = loaded && rooms > 0;
+              const roomsLabel = !scored ? dash : loaded ? (rooms > 0 ? rooms : dash) : "…";
+              const hasRooms = scored && loaded && rooms > 0;
+              const v = (n: number | string) => (scored ? n : dash);
               return (
                 <tr key={b.player_id} className="border-b border-bone/5 last:border-0">
                   <td className="px-3 py-3 text-left font-display font-bold uppercase">
                     {b.ign} {b.is_captain && <span className="text-amber">(C)</span>}
                   </td>
                   <td className={td}>{roomsLabel}</td>
-                  <td className={td}>{b.kills}</td>
-                  <td className={td}>{hasRooms ? per(b.kills, rooms) : "–"}</td>
-                  <td className={td}>{killPts}</td>
-                  <td className={td}>{fbPts}</td>
-                  <td className={td}>{b.placement_points}</td>
-                  <td className={td}>{hasRooms ? per(b.placement_points, rooms) : "–"}</td>
-                  <td className={td}>{b.base_points}</td>
-                  <td className={td}>{hasRooms ? per(b.final_points, rooms) : "–"}</td>
-                  <td className={`${td} font-black text-ember`}>{b.final_points}</td>
+                  <td className={td}>{v(b.kills)}</td>
+                  <td className={td}>{hasRooms ? per(b.kills, rooms) : dash}</td>
+                  <td className={td}>{v(killPts)}</td>
+                  <td className={td}>{v(fbPts)}</td>
+                  <td className={td}>{v(b.placement_points)}</td>
+                  <td className={td}>{hasRooms ? per(b.placement_points, rooms) : dash}</td>
+                  <td className={td}>{v(b.base_points)}</td>
+                  <td className={td}>{hasRooms ? per(b.final_points, rooms) : dash}</td>
+                  <td className={`${td} font-black text-ember`}>{v(b.final_points)}</td>
                 </tr>
               );
             })}
@@ -119,14 +138,14 @@ export default function FantasyDayPlayerDetails({
               <td colSpan={10} className="px-3 py-3 text-right font-stat text-[10px] uppercase tracking-widest text-ash">
                 Day total
               </td>
-              <td className={`${td} text-lg font-black text-ember`}>{totalFinal}</td>
+              <td className={`${td} text-lg font-black text-ember`}>{scored ? totalFinal : dash}</td>
             </tr>
           </tfoot>
         </table>
       </div>
 
       <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
-        Total = base points × captain multiplier (or chip). Pts / room uses the final total.
+        {!scored ? "Stats appear here once this matchday has been played and scored. " : ""}Total = base points × captain multiplier (or chip). Pts / room uses the final total.
       </p>
     </section>
   );
