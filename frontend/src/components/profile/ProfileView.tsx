@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getMyFantasyTeam, getTournament } from "@/lib/api";
+import { ApiError, getMe, getMyFantasyTeam, getTournament } from "@/lib/api";
 import { clearSession, getName, getRole, getToken } from "@/lib/auth";
+import type { Me } from "@/types";
+import AccountSettings from "./AccountSettings";
 
 interface Session {
   name: string;
@@ -17,6 +19,7 @@ export default function ProfileView() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [fantasyTeamId, setFantasyTeamId] = useState<number | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
@@ -26,6 +29,21 @@ export default function ProfileView() {
     setSession({ name: getName() || "User", role: getRole() || "user" });
 
     let cancelled = false;
+
+    // the account details (email, has a password...) for the settings below
+    getMe()
+      .then((account) => {
+        if (cancelled) return;
+        setMe(account);
+        setSession({ name: account.username, role: account.role });
+      })
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 401) {
+          clearSession();
+          router.replace("/login");
+        }
+      });
+
     getTournament("ffws-2026")
       .then((t) => getMyFantasyTeam(t.id))
       .then((team) => {
@@ -54,6 +72,7 @@ export default function ProfileView() {
   const isAdmin = session.role === "admin";
 
   return (
+    <div className="space-y-6">
     <div className="chamfer border border-bone/10 bg-char-2 p-6">
       <div className="flex items-center gap-4">
         <span className="flex h-16 w-16 shrink-0 items-center justify-center bg-ember font-display text-3xl font-black uppercase text-char">
@@ -95,6 +114,19 @@ export default function ProfileView() {
           Log out
         </Button>
       </div>
+    </div>
+
+    {me && (
+      <AccountSettings
+        me={me}
+        onChanged={(patch) => {
+          setMe((current) => (current ? { ...current, ...patch } : current));
+          if (patch.username) {
+            setSession((current) => (current ? { ...current, name: patch.username as string } : current));
+          }
+        }}
+      />
+    )}
     </div>
   );
 }
