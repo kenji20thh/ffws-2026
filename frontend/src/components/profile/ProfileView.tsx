@@ -15,18 +15,6 @@ interface Session {
   role: string;
 }
 
-function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return (
-    <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="font-stat text-[10px] font-bold uppercase tracking-[0.28em] text-ember">{eyebrow}</p>
-        <h2 className="mt-1 font-display text-2xl font-black uppercase leading-none text-bone sm:text-3xl">{title}</h2>
-      </div>
-      <p className="max-w-md font-stat text-xs leading-relaxed text-ash">{description}</p>
-    </div>
-  );
-}
-
 export default function ProfileView() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
@@ -80,9 +68,9 @@ export default function ProfileView() {
 
   if (!session) {
     return (
-      <div className="space-y-5">
-        <Skeleton className="h-56" />
-        <Skeleton className="h-72" />
+      <div className="mx-auto max-w-5xl space-y-4">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-64" />
       </div>
     );
   }
@@ -91,95 +79,76 @@ export default function ProfileView() {
   const initial = session.name.trim().charAt(0).toUpperCase() || "U";
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-8 pb-10">
-      <section className="relative isolate overflow-hidden border border-bone/10 bg-char-2">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-ember/10 blur-3xl" />
-          <div className="absolute right-12 top-0 h-full w-px rotate-[25deg] bg-bone/[0.06]" />
-          <div className="absolute right-32 top-0 h-full w-px rotate-[25deg] bg-bone/[0.04]" />
-          <div className="absolute bottom-0 left-0 h-1 w-32 bg-ember" />
-        </div>
-
-        <div className="relative p-5 sm:p-8 lg:p-10">
-          <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-center gap-4 sm:gap-6">
-              <div className="relative shrink-0">
-                <div className="flex h-20 w-20 items-center justify-center border border-ember/60 bg-ember font-display text-4xl font-black uppercase text-char shadow-[0_0_35px_rgba(255,90,31,0.16)] sm:h-24 sm:w-24 sm:text-5xl">
-                  {initial}
-                </div>
-                <span className="absolute -bottom-2 -right-2 flex h-7 w-7 items-center justify-center border-4 border-char-2 bg-char text-xs text-ember" aria-hidden="true">
-                  ✦
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="font-stat text-[10px] font-bold uppercase tracking-[0.3em] text-ember">Player profile</p>
-                <h1 className="mt-2 break-words font-display text-3xl font-black uppercase leading-[0.95] text-bone sm:text-5xl">
-                  {session.name}
-                </h1>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 border border-bone/10 bg-char/70 px-2.5 py-1 font-stat text-[10px] font-bold uppercase tracking-widest text-ash">
-                    <span className="h-1.5 w-1.5 rounded-full bg-ember" />
-                    {isAdmin ? "Administrator" : "FFWS Member"}
-                  </span>
-                  {me?.email_verified && (
-                    <span className="inline-flex items-center gap-1.5 border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 font-stat text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-                      <span aria-hidden="true">✓</span> Email verified
-                    </span>
-                  )}
-                </div>
-              </div>
+    <main className="mx-auto w-full max-w-5xl space-y-6 pb-8">
+      <section className="border border-bone/10 bg-char-2">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-ember/40 bg-ember/10 font-display text-2xl font-bold uppercase text-ember">
+              {initial}
             </div>
-
-            <div className="flex flex-wrap gap-2 md:justify-end">
-              {fantasyTeamId ? (
-                <Link href={`/fantasy/${fantasyTeamId}`} className="inline-flex min-h-12 items-center justify-center gap-2 bg-ember px-5 py-3 font-display text-sm font-extrabold uppercase tracking-wider text-char transition hover:bg-amber focus:outline-none focus:ring-2 focus:ring-ember focus:ring-offset-2 focus:ring-offset-char-2">
-                  <span aria-hidden="true">◆</span> My fantasy team
-                </Link>
-              ) : (
-                <Link href="/fantasy/pick-team" className="inline-flex min-h-12 items-center justify-center gap-2 bg-ember px-5 py-3 font-display text-sm font-extrabold uppercase tracking-wider text-char transition hover:bg-amber focus:outline-none focus:ring-2 focus:ring-ember focus:ring-offset-2 focus:ring-offset-char-2">
-                  <span aria-hidden="true">＋</span> Build fantasy team
-                </Link>
-              )}
-              {isAdmin && (
-                <Link href="/admin" className="inline-flex min-h-12 items-center justify-center border border-bone/20 px-5 py-3 font-display text-sm font-extrabold uppercase tracking-wider text-bone transition hover:border-ember hover:text-ember">
-                  Admin console
-                </Link>
-              )}
+            <div className="min-w-0">
+              <p className="font-stat text-[10px] uppercase tracking-[0.18em] text-ash">Your FFWS account</p>
+              <h1 className="mt-1 break-words font-display text-2xl font-bold uppercase leading-tight text-bone">{session.name}</h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 font-stat text-[11px] text-ash">
+                <span>{isAdmin ? "Administrator" : "FFWS Member"}</span>
+                {me?.email_verified && (
+                  <span className="inline-flex items-center gap-1 text-emerald-300">
+                    <span aria-hidden="true">✓</span> Email verified
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-3 border-t border-bone/10 pt-5 sm:grid-cols-3">
-            <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-bone/10 bg-char font-display text-lg text-ember" aria-hidden="true">◎</span>
-              <div>
-                <p className="font-stat text-[10px] uppercase tracking-[0.18em] text-ash">Username</p>
-                <p className="mt-1 break-all font-stat text-sm font-semibold text-bone">@{session.name}</p>
-              </div>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {fantasyTeamId ? (
+              <Link href={`/fantasy/${fantasyTeamId}`} className="inline-flex min-h-10 items-center justify-center bg-ember px-4 py-2 font-stat text-xs font-bold uppercase tracking-wide text-char transition-colors hover:bg-amber">
+                My fantasy team
+              </Link>
+            ) : (
+              <Link href="/fantasy/pick-team" className="inline-flex min-h-10 items-center justify-center bg-ember px-4 py-2 font-stat text-xs font-bold uppercase tracking-wide text-char transition-colors hover:bg-amber">
+                Build fantasy team
+              </Link>
+            )}
+            {isAdmin && (
+              <Link href="/admin" className="inline-flex min-h-10 items-center justify-center border border-bone/20 px-4 py-2 font-stat text-xs font-bold uppercase tracking-wide text-bone transition-colors hover:border-ember hover:text-ember">
+                Admin console
+              </Link>
+            )}
+            <Button type="button" variant="ghost" onClick={logout}>Log out</Button>
+          </div>
+        </div>
+
+        <div className="grid border-t border-bone/10 sm:grid-cols-3 sm:divide-x sm:divide-bone/10">
+          <div className="flex min-w-0 items-center gap-3 border-b border-bone/10 px-4 py-3 sm:border-b-0 sm:px-5">
+            <span className="text-sm text-ember" aria-hidden="true">@</span>
+            <div className="min-w-0">
+              <p className="font-stat text-[10px] uppercase tracking-wider text-ash">Username</p>
+              <p className="mt-0.5 break-all font-stat text-sm text-bone">{session.name}</p>
             </div>
-            <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-bone/10 bg-char font-display text-lg text-ember" aria-hidden="true">✉</span>
-              <div className="min-w-0">
-                <p className="font-stat text-[10px] uppercase tracking-[0.18em] text-ash">Email address</p>
-                <p className="mt-1 break-all font-stat text-sm font-semibold text-bone">{me?.email || "Not provided"}</p>
-              </div>
+          </div>
+          <div className="flex min-w-0 items-center gap-3 border-b border-bone/10 px-4 py-3 sm:border-b-0 sm:px-5">
+            <span className="text-sm text-ember" aria-hidden="true">✉</span>
+            <div className="min-w-0">
+              <p className="font-stat text-[10px] uppercase tracking-wider text-ash">Email address</p>
+              <p className="mt-0.5 break-all font-stat text-sm text-bone">{me?.email || "Not provided"}</p>
             </div>
-            <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-bone/10 bg-char font-display text-lg text-ember" aria-hidden="true">⌁</span>
-              <div>
-                <p className="font-stat text-[10px] uppercase tracking-[0.18em] text-ash">Sign-in method</p>
-                <p className="mt-1 font-stat text-sm font-semibold text-bone">{me?.has_password ? "Password enabled" : "Google / password not set"}</p>
-              </div>
+          </div>
+          <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
+            <span className="text-sm text-ember" aria-hidden="true">⌑</span>
+            <div className="min-w-0">
+              <p className="font-stat text-[10px] uppercase tracking-wider text-ash">Sign-in method</p>
+              <p className="mt-0.5 font-stat text-sm text-bone">{me ? (me.has_password ? "Password enabled" : "Google / no password") : "Loading…"}</p>
             </div>
           </div>
         </div>
       </section>
 
       <section>
-        <SectionHeading
-          eyebrow="Manage your account"
-          title="Account settings"
-          description="Keep your sign-in details up to date and make sure your account stays secure."
-        />
+        <div className="mb-3">
+          <h2 className="font-display text-xl font-bold uppercase text-bone">Account settings</h2>
+          <p className="mt-1 font-stat text-xs text-ash">Manage your username and sign-in details.</p>
+        </div>
         {me ? (
           <AccountSettings
             me={me}
@@ -191,23 +160,12 @@ export default function ProfileView() {
             }}
           />
         ) : (
-          <div className="border border-bone/10 bg-char-2 p-5">
-            <Skeleton className="h-14" />
-            <div className="mt-3"><Skeleton className="h-14" /></div>
-            <div className="mt-3"><Skeleton className="h-14" /></div>
+          <div className="border border-bone/10 bg-char-2 p-4">
+            <Skeleton className="h-12" />
+            <div className="mt-2"><Skeleton className="h-12" /></div>
+            <div className="mt-2"><Skeleton className="h-12" /></div>
           </div>
         )}
-      </section>
-
-      <section className="flex flex-col gap-4 border border-bone/10 bg-char-2 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-danger/20 bg-danger/5 text-danger" aria-hidden="true">↗</span>
-          <div>
-            <h2 className="font-display text-lg font-extrabold uppercase text-bone">Finished for now?</h2>
-            <p className="mt-1 max-w-xl font-stat text-xs leading-relaxed text-ash">Log out of your FFWS account on this device. You can sign back in at any time.</p>
-          </div>
-        </div>
-        <Button type="button" variant="ghost" onClick={logout}>Log out</Button>
       </section>
     </main>
   );
