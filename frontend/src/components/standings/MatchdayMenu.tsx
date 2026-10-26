@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type MenuItem = {
   value: string;
@@ -56,7 +57,17 @@ export default function MatchdayMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // Where the list sits on screen. The list is rendered at the top level of the page
+  // (portal), so no card around the menu can clip it or paint over it.
+  const [pos, setPos] = useState<{
+    left: number;
+    width: number;
+    top?: number;
+    bottom?: number;
+    maxHeight: number;
+  } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const listId = useId();
 
@@ -67,10 +78,45 @@ export default function MatchdayMenu({
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  // Keep the list glued under (or above, when there is no room) the button.
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    function place() {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const margin = 8;
+      const below = window.innerHeight - rect.bottom - margin;
+      const above = rect.top - margin;
+      const openUp = below < 240 && above > below;
+      const room = Math.max(openUp ? above : below, 120);
+
+      setPos({
+        left: Math.max(margin, Math.min(rect.left, window.innerWidth - margin - Math.max(rect.width, 224))),
+        width: Math.max(rect.width, 224),
+        maxHeight: Math.min(room, 384),
+        ...(openUp
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 }),
+      });
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -78,7 +124,7 @@ export default function MatchdayMenu({
     listRef.current
       ?.querySelector<HTMLElement>(`[data-index="${active}"]`)
       ?.scrollIntoView({ block: "nearest" });
-  }, [active, open]);
+  }, [active, open, pos]);
 
   function openList() {
     if (disabled || items.length === 0) return;
@@ -140,6 +186,7 @@ export default function MatchdayMenu({
   return (
     <div ref={rootRef} className="relative min-w-[12rem] flex-1 sm:w-64 sm:flex-none">
       <button
+        ref={buttonRef}
         type="button"
         role="combobox"
         aria-label={ariaLabel}
@@ -155,13 +202,23 @@ export default function MatchdayMenu({
         <Chevron open={open} />
       </button>
 
-      {open && (
+      {open &&
+        pos &&
+        createPortal(
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-96 min-w-[14rem] overflow-y-auto border border-bone/20 bg-char-2 py-1 shadow-xl shadow-black/60"
+          style={{
+            position: "fixed",
+            left: pos.left,
+            width: pos.width,
+            top: pos.top,
+            bottom: pos.bottom,
+            maxHeight: pos.maxHeight,
+          }}
+          className="z-[100] overflow-y-auto border border-bone/20 bg-char-2 py-1 shadow-xl shadow-black/60"
         >
           {sections.map((section, sectionIndex) => (
             <li key={section.key} role="presentation">
@@ -211,7 +268,8 @@ export default function MatchdayMenu({
               </ul>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
     </div>
   );

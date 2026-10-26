@@ -49,7 +49,7 @@ function guessName(slug: string) {
   return slug.replace(/-/g, " ").toUpperCase();
 }
 
-const leagueHref = (slug: string) => `/leaderboard?league=${encodeURIComponent(slug)}`;
+const leagueHref = (slug: string) => `/fantasy/leagues/${encodeURIComponent(slug)}`;
 
 function LeagueChip({ league, active }: { league: FantasyLeague; active: boolean }) {
   return (
@@ -71,10 +71,17 @@ export default function LeagueLeaderboard({
   tournamentId,
   days,
   slug,
+  embedded = false,
+  highlightTeamId,
 }: {
   tournamentId: number;
   days: TournamentDay[];
   slug: string;
+  /** Inside the /fantasy/leagues tabs: no league chips, invite card or footer link
+   *  (that page already has its own). */
+  embedded?: boolean;
+  /** Marks this team's row even before (or without) loading the logged-in team. */
+  highlightTeamId?: number;
 }) {
   const router = useRouter();
 
@@ -214,7 +221,8 @@ export default function LeagueLeaderboard({
   const current = leagues.find((l) => l.slug === slug);
   const type = current?.type ?? guessType(slug);
   const name = current?.name ?? guessName(slug);
-  const mine = myTeam ? rows.find((r) => r.id === myTeam.id) : undefined;
+  const myId = myTeam?.id ?? highlightTeamId;
+  const mine = myId !== undefined ? rows.find((r) => r.id === myId) : undefined;
 
   const query = search.trim().toLowerCase();
   const filtered = query ? rows.filter((r) => r.team_name.toLowerCase().includes(query)) : rows;
@@ -329,7 +337,7 @@ export default function LeagueLeaderboard({
 
               <tbody>
                 {visible.map((r) => {
-                  const isMe = r.id === myTeam?.id;
+                  const isMe = r.id === myId;
                   return (
                     <tr
                       key={r.id}
@@ -391,7 +399,7 @@ export default function LeagueLeaderboard({
   return (
     <div className="space-y-6">
       {/* My leagues */}
-      {leagues.length > 0 && (
+      {!embedded && leagues.length > 0 && (
         <nav aria-label="My leagues" className="flex items-center gap-2 overflow-x-auto pb-1">
           {generalLeagues.map((l) => (
             <LeagueChip key={l.slug} league={l} active={l.slug === slug} />
@@ -406,7 +414,7 @@ export default function LeagueLeaderboard({
       )}
 
       {/* League header + day selector */}
-      <div className="flex flex-col gap-4 chamfer border border-bone/10 bg-char-2 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border border-bone/10 bg-char-2 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="font-stat text-[0.625rem] uppercase tracking-[0.3em] text-ember">
             {TYPE_LABEL[type]}
@@ -435,18 +443,20 @@ export default function LeagueLeaderboard({
       </div>
 
       {/* Invite code (private leagues you are in) */}
-      {type === "private" && current?.code && (
+      {!embedded && type === "private" && current?.code && (
         <LeagueCodeCard name={current.name} code={current.code} onLeave={leave} />
       )}
-      {leaveError && <p className="font-stat text-xs text-danger">{leaveError}</p>}
+      {!embedded && leaveError && <p className="font-stat text-xs text-danger">{leaveError}</p>}
 
       <section>{body}</section>
 
-      <p className="text-center font-stat text-[0.625rem] uppercase tracking-widest text-ash">
-        <Link href="/fantasy/leagues" className="hover:text-ember">
-          Create or join a private league →
-        </Link>
-      </p>
+      {!embedded && (
+        <p className="text-center font-stat text-[0.625rem] uppercase tracking-widest text-ash">
+          <Link href="/fantasy/leagues" className="hover:text-ember">
+            Create or join a private league →
+          </Link>
+        </p>
+      )}
     </div>
   );
 }
