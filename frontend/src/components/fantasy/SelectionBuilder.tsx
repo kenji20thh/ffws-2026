@@ -535,12 +535,16 @@ export default function SelectionBuilder({
 
                   return (
                     <div
-                      key={player.player_id}
                       className={`relative mx-auto w-full max-w-[240px] min-w-0 ${
                         isCaptain
-                          ? "drop-shadow-[0_0_22px_rgba(255,90,31,0.16)]"
+                          ? "drop-shadow-[0_0_12px_var(--card-glow-color)]"
                           : ""
                       }`}
+                      style={
+                        {
+                          "--card-glow-color": "rgba(255, 90, 31, 0.35)",
+                        } as React.CSSProperties
+                      }
                     >
                       <FantasyPlayerCard
                         size="fluid"
