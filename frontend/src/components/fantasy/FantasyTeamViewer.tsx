@@ -5,12 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
-import { getDays, getFantasyTeamProfile, getMyFantasyTeam, getTeams } from "@/lib/api";
+import { getDays, getFantasyStandings, getFantasyTeamProfile, getMe, getMyFantasyTeam, getTeams } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { chipName } from "@/lib/chips";
-import type { FantasyTeamProfile, Team, TournamentDay } from "@/types";
+import type { FantasyStanding, FantasyTeamProfile, Team, TournamentDay } from "@/types";
 import FantasyDayPlayerDetails from "./FantasyDayPlayerDetails";
 import FantasyPlayerCard from "./FantasyPlayerCard";
+import FantasyTeamSummary from "./FantasyTeamSummary";
 
 const hasDeadline = (d: TournamentDay) => Boolean(d.deadline) && !d.deadline.startsWith("0001");
 const isOpen = (d: TournamentDay) => !hasDeadline(d) || new Date(d.deadline).getTime() > Date.now();
@@ -39,6 +40,9 @@ export default function FantasyTeamViewer({
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teamsById, setTeamsById] = useState<Map<number, Team>>(new Map());
+  const [standings, setStandings] = useState<FantasyStanding[] | null>(null);
+  const [standingsLoading, setStandingsLoading] = useState(true);
+  const [myUsername, setMyUsername] = useState<string | undefined>();
 
   const selectedDay = days[index] ?? null;
   const dayId = selectedDay?.id ?? null;
@@ -91,6 +95,44 @@ export default function FantasyTeamViewer({
     };
   }, [tournamentId]);
 
+  // overall standings (all days) -> total points, placement and world percentile
+  useEffect(() => {
+    let cancelled = false;
+    setStandingsLoading(true);
+    getFantasyStandings(tournamentId)
+      .then((st) => {
+        if (!cancelled) setStandings(st);
+      })
+      .catch(() => {
+        if (!cancelled) setStandings(null);
+      })
+      .finally(() => {
+        if (!cancelled) setStandingsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tournamentId]);
+
+  // the public profile has no username, but for your own team we know it
+  useEffect(() => {
+    if (!isMine || !getToken()) {
+      setMyUsername(undefined);
+      return;
+    }
+    let cancelled = false;
+    getMe()
+      .then((me) => {
+        if (!cancelled) setMyUsername(me.username);
+      })
+      .catch(() => {
+        /* username is optional */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isMine]);
+
   // picks for the selected day; ignore answers that arrive after the day changed
   useEffect(() => {
     if (!dayId) {
@@ -138,6 +180,11 @@ export default function FantasyTeamViewer({
   const scores = new Map((profile?.breakdown ?? []).map((b) => [b.player_id, b]));
   const scored = (profile?.breakdown ?? []).some((b) => b.final_points !== 0);
   const loading = !daysLoaded || profileLoading;
+
+  // ties share a rank (1, 2, 2, 4 ...), same as the leaderboard
+  const mineStanding = standings?.find((x) => x.fantasy_team_id === fantasyTeamId);
+  const overallRank = mineStanding && standings ? 1 + standings.filter((x) => x.points > mineStanding.points).length : undefined;
+  const ownerName = profile?.team.username ?? myUsername;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-5 py-10">
@@ -210,26 +257,39 @@ export default function FantasyTeamViewer({
                     <span className="ml-2 bg-amber px-2 py-0.5 font-black text-char">{chipName(profile.chip)}</span>
                   </p>
                 )}
-                {(profile.selections ?? []).length === 0 ? (
-                  <EmptyState title="No selection made for this day" />
-                ) : (
-                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    {(profile.selections ?? []).map((sel) => {
-                      const score = scored ? scores.get(sel.player_id) : undefined;
-                      const realTeam = teamsById.get(sel.player.team_id);
-                      return (
-                        <FantasyPlayerCard
-                          key={sel.player_id}
-                          player={sel.player}
-                          team={realTeam}
-                          price={(sel.player as typeof sel.player & { fantasy_price?: number }).fantasy_price}
-                          captain={sel.is_captain}
-                          stats={score ? { kills: score.kills, fantasyPoints: score.final_points } : undefined}
-                        />
-                      );
-                    })}
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+                  <FantasyTeamSummary
+                    username={ownerName}
+                    teamName={profile.team.team_name}
+                    country={profile.team.country}
+                    points={mineStanding?.points}
+                    rank={overallRank}
+                    total={standings?.length}
+                    loading={standingsLoading}
+                  />
+                  <div className="min-w-0 flex-1">
+                    {(profile.selections ?? []).length === 0 ? (
+                      <EmptyState title="No selection made for this day" />
+                    ) : (
+                      <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 lg:grid-cols-4">
+                        {(profile.selections ?? []).map((sel) => {
+                          const score = scored ? scores.get(sel.player_id) : undefined;
+                          const realTeam = teamsById.get(sel.player.team_id);
+                          return (
+                            <FantasyPlayerCard
+                              key={sel.player_id}
+                              player={sel.player}
+                              team={realTeam}
+                              price={(sel.player as typeof sel.player & { fantasy_price?: number }).fantasy_price}
+                              captain={sel.is_captain}
+                              stats={score ? { kills: score.kills, fantasyPoints: score.final_points } : undefined}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
                 {dayId && (
                   <FantasyDayPlayerDetails
                     dayId={dayId}

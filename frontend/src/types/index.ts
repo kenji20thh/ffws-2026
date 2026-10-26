@@ -231,6 +231,7 @@ export interface TeamProfile {
 export interface FantasyTeam {
   id: number;
   user_id?: number; // only present on your own team, never on public profiles
+  username?: string; // owner's username, if the API sends it
   tournament_id: number;
   team_name: string;
   country: string;
