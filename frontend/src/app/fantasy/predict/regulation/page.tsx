@@ -1,11 +1,14 @@
-
 import type { ReactNode } from "react";
 import RegulationView, {
   RuleTable,
   type RuleSection,
 } from "@/components/fantasy/RegulationView";
 import Monogram from "@/components/ui/Monogram";
+import { getTeams, getTournament } from "@/lib/api";
+import type { Team } from "@/types";
 import { pointsTone } from "@/lib/predictionTone";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Regulation · Predictions · FFWS 2026",
@@ -37,8 +40,6 @@ const PREDICTION_POINTS: [string, string][] = [
   ["7 or more places off", "0"],
 ];
 
-// Illustrative results for one complete 12-team matchday.
-// Actual placements are unique. Points use the prediction scoring rules above.
 const EXAMPLE_TEAMS = [
   { name: "LYON", tag: "LYN", predicted: 1, actual: 1 },
   { name: "TEAM FLASH", tag: "FL", predicted: 2, actual: 4 },
@@ -53,6 +54,46 @@ const EXAMPLE_TEAMS = [
   { name: "RRQ", tag: "RRQ", predicted: 11, actual: 11 },
   { name: "LOUD", tag: "LOUD", predicted: 12, actual: 7 },
 ];
+
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findTeamLogo(team: (typeof EXAMPLE_TEAMS)[number], teams: Team[]) {
+  const tag = normalizeName(team.tag);
+  const name = normalizeName(team.name);
+
+  const aliases: Record<string, string[]> = {
+    lyon: ["lyon", "lyonesports"],
+    teamflash: ["teamflash", "flash"],
+    onicolympus: ["onicolympus", "onic"],
+    losgrandes: ["losgrandes", "los"],
+    horaaesports: ["horaaesports", "horaa"],
+    xprojekt: ["xprojekt", "xprojekt"],
+    bigetron: ["bigetron", "bigetronbyvitality", "btr"],
+    bluecheese: ["bluecheese"],
+    pesports: ["pesports"],
+    fluxo: ["fluxo", "fx"],
+    rrq: ["rrq"],
+    loud: ["loud"],
+  };
+
+  const candidates = aliases[name] ?? [name, tag];
+
+  const match = teams.find((candidate) => {
+    const candidateName = normalizeName(candidate.name);
+    const candidateTag = normalizeName(candidate.tag);
+
+    return (
+      candidates.includes(candidateName) ||
+      candidates.includes(candidateTag) ||
+      candidateName === name ||
+      candidateTag === tag
+    );
+  });
+
+  return match?.logo_url || undefined;
+}
 
 function predictionPoints(predicted: number, actual: number) {
   const difference = Math.abs(predicted - actual);
@@ -79,8 +120,8 @@ const EXAMPLE_TOTAL = EXAMPLE_RESULTS.reduce(
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-3 flex items-center gap-2 font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-ember">
-      <span className="h-1.5 w-1.5 shrink-0 bg-ember" />
+    <div className="mb-3 flex items-center gap-2 font-stat text-[10px] font-bold uppercase tracking-[0.18em] text-ember">
+      <span className="h-1 w-1 shrink-0 bg-ember" />
       {children}
     </div>
   );
@@ -95,10 +136,10 @@ function Position({
 }) {
   return (
     <span
-      className={`inline-flex h-8 min-w-8 items-center justify-center border px-1.5 font-stat text-xs font-black tabular-nums ${
+      className={`inline-flex h-7 w-7 items-center justify-center font-stat text-xs font-bold tabular-nums ${
         highlight
-          ? "border-ember/40 bg-ember/10 text-ember"
-          : "border-bone/10 bg-char text-bone/80"
+          ? "bg-ember text-char"
+          : "border border-bone/10 bg-char text-bone/80"
       }`}
     >
       {value}
@@ -106,54 +147,80 @@ function Position({
   );
 }
 
-function PredictionExample() {
+async function PredictionExample() {
+  let teams: Team[] = [];
+
+  try {
+    const tournament = await getTournament("ffws-2026");
+    teams = await getTeams(tournament.id);
+  } catch {
+    // Keep the example available if the API is temporarily unreachable.
+  }
+
+  const results = EXAMPLE_RESULTS.map((team) => ({
+    ...team,
+    logoUrl: findTeamLogo(team, teams),
+  }));
+
+  const exact = results.filter(
+    (team) => team.predicted === team.actual,
+  ).length;
+
   return (
     <div className="my-5 overflow-hidden border border-bone/10 bg-char-2">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bone/10 px-4 py-4 sm:px-5">
         <div>
-          <SectionLabel>Matchday breakdown</SectionLabel>
+          <SectionLabel>Scoring example</SectionLabel>
           <h3 className="font-display text-xl font-black uppercase leading-tight text-bone sm:text-2xl">
-            Your prediction vs. results
+            Prediction vs. result
           </h3>
-          <p className="mt-1 font-stat text-[10px] uppercase tracking-wider text-ash">
-            12 teams · 1 prediction · 144 maximum points
+          <p className="mt-1 text-xs text-ash">
+            12 teams · Maximum 144 points
           </p>
         </div>
-        <span className="border border-ember/30 bg-ember/10 px-2.5 py-1.5 font-stat text-[9px] font-bold uppercase tracking-wider text-ember">
-          Example only
+
+        <span className="border border-bone/10 px-2.5 py-1 font-stat text-[9px] font-semibold uppercase tracking-wider text-ash">
+          Illustrative example
         </span>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_42px_42px_64px] items-center gap-1 border-b border-bone/10 px-2 py-2 font-stat text-[9px] uppercase tracking-wider text-ash sm:grid-cols-[minmax(0,1fr)_64px_64px_76px] sm:gap-2 sm:px-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_36px_36px_58px] items-center gap-2 border-b border-bone/10 px-3 py-2 font-stat text-[9px] uppercase tracking-wider text-ash sm:grid-cols-[minmax(0,1fr)_48px_48px_76px] sm:px-5">
         <span>Team</span>
-        <span className="text-center">Pred.</span>
-        <span className="text-center">Actual</span>
+        <span className="text-center">Pick</span>
+        <span className="text-center">Result</span>
         <span className="text-right">Points</span>
       </div>
 
-      <div className="space-y-1.5 p-2 sm:p-3">
-        {EXAMPLE_RESULTS.map((team) => {
+      <div>
+        {results.map((team) => {
           const tone = pointsTone(team.points);
           const difference = Math.abs(team.predicted - team.actual);
 
           return (
             <div
               key={team.tag}
-              style={{
-                borderLeftColor: tone.color,
-                backgroundColor: tone.bg,
-              }}
-              className="grid grid-cols-[minmax(0,1fr)_42px_42px_64px] items-center gap-1 border border-bone/10 border-l-4 px-2 py-2.5 sm:grid-cols-[minmax(0,1fr)_64px_64px_76px] sm:gap-2 sm:px-3"
+              className="grid grid-cols-[minmax(0,1fr)_36px_36px_58px] items-center gap-2 border-b border-bone/[0.06] px-3 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_48px_48px_76px] sm:px-5"
             >
-              <div className="flex min-w-0 items-center gap-2">
-                <Monogram label={team.tag} size={30} />
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+                  {team.logoUrl ? (
+                    <Monogram
+                      label={team.tag}
+                      imageUrl={team.logoUrl}
+                      size={32}
+                    />
+                  ) : (
+                    <Monogram label={team.tag} size={32} />
+                  )}
+                </div>
+
                 <div className="min-w-0">
-                  <p className="truncate font-display text-[11px] font-extrabold uppercase leading-tight text-bone sm:text-sm">
+                  <p className="truncate font-display text-xs font-bold uppercase leading-tight text-bone sm:text-sm">
                     {team.name}
                   </p>
-                  <p className="mt-0.5 font-stat text-[9px] text-ash">
+                  <p className="mt-0.5 text-[10px] text-ash">
                     {difference === 0
-                      ? "Exact"
+                      ? "Exact prediction"
                       : `${difference} ${difference === 1 ? "place" : "places"} off`}
                   </p>
                 </div>
@@ -172,15 +239,10 @@ function PredictionExample() {
 
               <div className="flex justify-end">
                 <span
-                  style={{
-                    backgroundColor: tone.color,
-                    color: tone.ink,
-                  }}
-                  className="inline-flex min-w-[54px] justify-center px-1.5 py-1.5 font-stat text-xs font-black tabular-nums sm:min-w-[64px] sm:text-sm"
+                  style={{ color: tone.color }}
+                  className="font-stat text-sm font-black tabular-nums sm:text-base"
                 >
-                  {team.points > 0 ? "+" : ""}
-                  {team.points}
-                  <span className="ml-1 hidden sm:inline">pts</span>
+                  +{team.points}
                 </span>
               </div>
             </div>
@@ -188,23 +250,24 @@ function PredictionExample() {
         })}
       </div>
 
-      <div className="grid grid-cols-2 gap-px border-t border-bone/10 bg-bone/10">
-        <div className="bg-char-2 px-4 py-3 sm:px-5">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+      <div className="grid grid-cols-2 border-t border-bone/10">
+        <div className="border-r border-bone/10 px-4 py-3 sm:px-5">
+          <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
             Exact predictions
           </p>
           <p className="mt-1 font-display text-2xl font-black text-bone">
-            {EXAMPLE_RESULTS.filter(
-              (team) => team.predicted === team.actual,
-            ).length}
-            <span className="ml-1 font-stat text-xs text-ash">/ 12</span>
+            {exact}
+            <span className="ml-1 font-stat text-xs font-normal text-ash">
+              / 12
+            </span>
           </p>
         </div>
-        <div className="bg-char-2 px-4 py-3 text-right sm:px-5">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+
+        <div className="px-4 py-3 text-right sm:px-5">
+          <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
             Total points
           </p>
-          <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums text-ember">
+          <p className="mt-1 font-display text-2xl font-black tabular-nums text-ember">
             {EXAMPLE_TOTAL}
             <span className="ml-1 font-stat text-xs font-normal text-ash">
               / 144
@@ -213,13 +276,11 @@ function PredictionExample() {
         </div>
       </div>
 
-      <div className="border-t border-bone/10 px-4 py-3 sm:px-5">
-        <p className="font-stat text-[10px] leading-relaxed text-ash">
-          Each row is colored by the points earned, just like your scored
-          predictions. A smaller difference between predicted and actual
-          placement earns more points.
-        </p>
-      </div>
+      <p className="border-t border-bone/10 px-4 py-3 text-[11px] leading-relaxed text-ash sm:px-5">
+        The logos come from the tournament&apos;s team records. The placements
+        above are illustrative, not official match results. Points are awarded
+        according to the difference between each predicted and actual position.
+      </p>
     </div>
   );
 }
@@ -237,23 +298,23 @@ function ScoringLadder() {
           return (
             <div
               key={label}
-              className="grid grid-cols-[minmax(0,1fr)_minmax(52px,1fr)_40px] items-center gap-3"
+              className="grid grid-cols-[minmax(0,1fr)_minmax(52px,1fr)_28px] items-center gap-3"
             >
               <span className="text-xs text-bone/75">{label}</span>
 
-              <div className="h-2 overflow-hidden bg-bone/[0.06]">
+              <div className="h-1.5 overflow-hidden bg-bone/[0.06]">
                 <div
                   style={{
                     width: `${(points / 12) * 100}%`,
                     backgroundColor: tone.color,
                   }}
-                  className="h-full transition-[width]"
+                  className="h-full"
                 />
               </div>
 
               <span
                 style={{ color: tone.color }}
-                className="text-right font-stat text-sm font-black tabular-nums"
+                className="text-right font-stat text-sm font-bold tabular-nums"
               >
                 {points}
               </span>
@@ -262,13 +323,11 @@ function ScoringLadder() {
         })}
       </div>
 
-      <div className="mt-4 border-t border-bone/10 pt-3">
-        <p className="font-stat text-[10px] leading-relaxed text-ash">
-          The points depend on the absolute difference between your predicted
-          position and the final position. The same scoring applies to all
-          12 teams.
-        </p>
-      </div>
+      <p className="mt-4 border-t border-bone/10 pt-3 text-[11px] leading-relaxed text-ash">
+        Points are based on the absolute difference between your predicted
+        position and the final position. The same scoring applies to all
+        12 teams.
+      </p>
     </div>
   );
 }
@@ -294,20 +353,15 @@ function MatchdayFlow() {
 
   return (
     <div className="my-5 grid gap-2 sm:grid-cols-3">
-      {steps.map((step, index) => (
+      {steps.map((step) => (
         <div
           key={step.number}
-          className="relative border border-bone/10 bg-char-2 p-4"
+          className="border border-bone/10 bg-char-2 p-4"
         >
-          <div className="mb-4 flex items-center justify-between">
-            <span className="font-stat text-xs font-black text-ember">
-              {step.number}
-            </span>
-            {index < steps.length - 1 && (
-              <span className="font-stat text-sm text-ash/50">→</span>
-            )}
-          </div>
-          <h3 className="font-display text-base font-extrabold uppercase text-bone">
+          <p className="font-stat text-[10px] font-bold text-ember">
+            {step.number}
+          </p>
+          <h3 className="mt-3 font-display text-sm font-bold uppercase text-bone">
             {step.title}
           </h3>
           <p className="mt-1.5 text-xs leading-relaxed text-ash">
@@ -322,8 +376,8 @@ function MatchdayFlow() {
 function ScoreSummary() {
   const stats = [
     { label: "Teams per prediction", value: "12", detail: "Every team once" },
-    { label: "Points per exact pick", value: "12", detail: "Maximum per team" },
-    { label: "Maximum day score", value: "144", detail: "12 teams × 12 points" },
+    { label: "Points per exact pick", value: "12", detail: "Per team" },
+    { label: "Maximum day score", value: "144", detail: "12 × 12 points" },
   ];
 
   return (
@@ -331,9 +385,9 @@ function ScoreSummary() {
       {stats.map((stat, index) => (
         <div
           key={stat.label}
-          className={`border p-4 ${
+          className={`border p-3 sm:p-4 ${
             index === 2
-              ? "col-span-2 border-ember/25 bg-ember/[0.06] sm:col-span-1"
+              ? "col-span-2 border-ember/20 bg-ember/[0.04] sm:col-span-1"
               : "border-bone/10 bg-char-2"
           }`}
         >
@@ -372,24 +426,22 @@ const sections: RuleSection[] = [
   {
     title: "Making a prediction",
     content: (
-      <>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>Rank all 12 teams. Every team must appear exactly once.</li>
-          <li>
-            Drag teams to reorder them, or use the arrow buttons. 1st place
-            is at the top.
-          </li>
-          <li>Review your ranking, then confirm to submit.</li>
-          <li>
-            You get one prediction per day and can change it as often as you
-            like until that day locks.
-          </li>
-          <li>
-            You need a team profile with a team name and country before you
-            can predict. It is shared with Fantasy.
-          </li>
-        </ul>
-      </>
+      <ul className="list-disc space-y-2 pl-5">
+        <li>Rank all 12 teams. Every team must appear exactly once.</li>
+        <li>
+          Drag teams to reorder them, or use the arrow buttons. 1st place
+          is at the top.
+        </li>
+        <li>Review your ranking, then confirm to submit.</li>
+        <li>
+          You get one prediction per day and can change it as often as you
+          like until that day locks.
+        </li>
+        <li>
+          You need a team profile with a team name and country before you
+          can predict. It is shared with Fantasy.
+        </li>
+      </ul>
     ),
   },
   {
@@ -457,9 +509,7 @@ const sections: RuleSection[] = [
         </p>
 
         <ScoringLadder />
-
         <PredictionExample />
-
         <ScoreSummary />
 
         <p>
@@ -475,11 +525,11 @@ const sections: RuleSection[] = [
     content: (
       <>
         <div className="my-4 grid gap-2 sm:grid-cols-2">
-          <div className="border border-ember/20 bg-ember/[0.05] p-4">
+          <div className="border border-ember/20 bg-ember/[0.04] p-4">
             <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-ember">
               Before lock
             </p>
-            <h3 className="mt-2 font-display text-lg font-black uppercase text-bone">
+            <h3 className="mt-2 font-display text-base font-bold uppercase text-bone">
               Make changes
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-ash">
@@ -490,7 +540,7 @@ const sections: RuleSection[] = [
             <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-ash">
               After lock
             </p>
-            <h3 className="mt-2 font-display text-lg font-black uppercase text-bone">
+            <h3 className="mt-2 font-display text-base font-bold uppercase text-bone">
               Prediction locked
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-ash">
