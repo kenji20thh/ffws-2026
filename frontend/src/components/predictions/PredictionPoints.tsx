@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Badge from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
@@ -61,7 +61,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
   const [rows, setRows] = useState<DayRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
-  const selectedDayRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     setLoggedIn(!!getToken());
@@ -119,14 +118,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
     };
   }, [loggedIn, days]);
 
-  useEffect(() => {
-    selectedDayRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
-  }, [index, rows]);
-
   const count = rows?.length ?? 0;
 
   const go = useCallback(
@@ -140,7 +131,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
 
-      if (target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName)) return;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
 
       if (e.key === "ArrowLeft") go(-1);
       if (e.key === "ArrowRight") go(1);
@@ -303,89 +294,73 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
         </div>
       </header>
 
-      {/* Matchday selector: prominent, centered, and immediately below the header. */}
-      <section className="border border-white/10 bg-char-2">
-        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-6">
-          <div>
-            <p className="font-stat text-[10px] uppercase tracking-[0.22em] text-ember">
-              Navigate the tournament
-            </p>
-            <h2 className="mt-1 font-display text-2xl font-black uppercase sm:text-3xl">
-              Select matchday
-            </h2>
-          </div>
-          <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
-            {String(index + 1).padStart(2, "0")} / {String(rows.length).padStart(2, "0")} selected
-          </p>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start">
+        <aside className="order-2 space-y-4 lg:sticky lg:top-24 lg:order-1">
+          <div className="border border-white/10 bg-char-2">
+            <div className="border-b border-white/10 px-4 py-3">
+              <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+                Your tournament
+              </p>
+              <h2 className="mt-1 font-display text-xl font-black uppercase">
+                Matchdays
+              </h2>
+            </div>
 
-        <div className="px-3 py-4 sm:px-5 sm:py-5">
-          <div className="flex justify-center">
-            <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+            <div className="max-h-[24rem] space-y-1 overflow-y-auto p-2">
               {rows.map((row, i) => {
                 const selected = i === index;
                 const scored = !!row.detail?.scored;
-                const submitted = !!row.detail;
                 const points = scored ? row.detail?.total_points : null;
 
                 return (
                   <button
                     key={row.day.id}
-                    ref={selected ? selectedDayRef : null}
                     type="button"
                     onClick={() => setIndex(i)}
                     aria-current={selected ? "step" : undefined}
-                    aria-label={`Matchday ${i + 1}: ${row.day.name}${scored ? `, ${points} points` : ""}`}
-                    className={`relative flex min-h-[104px] min-w-0 flex-col items-center justify-center border px-3 py-3 text-center transition duration-150 sm:min-h-[116px] ${
+                    className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
                       selected
-                        ? "border-ember bg-ember text-char shadow-[inset_0_-3px_0_0_#0b0908]"
-                        : "border-white/10 bg-white/[0.02] text-bone hover:border-ember/60 hover:bg-white/[0.05]"
+                        ? "border-ember/50 bg-ember/[0.09]"
+                        : "border-transparent hover:border-white/10 hover:bg-white/[0.03]"
                     }`}
                   >
                     <span
-                      className={`font-stat text-[10px] font-bold uppercase tracking-[0.2em] ${
-                        selected ? "text-char/65" : "text-ash"
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center font-stat text-xs font-bold tabular-nums ${
+                        selected
+                          ? "bg-ember text-char"
+                          : scored
+                            ? "bg-white/10 text-bone"
+                            : "border border-white/10 text-ash"
                       }`}
                     >
-                      Matchday
-                    </span>
-                    <span className="mt-1 font-display text-3xl font-black leading-none tabular-nums sm:text-4xl">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span
-                      className={`mt-2 line-clamp-2 w-full text-xs font-semibold leading-tight ${
-                        selected ? "text-char" : "text-bone/80"
-                      }`}
-                    >
-                      {shortDayName(row.day.name)}
-                    </span>
-                    <span
-                      className={`mt-2 flex items-center gap-1.5 font-stat text-[9px] uppercase tracking-wider ${
-                        selected ? "text-char/70" : "text-ash"
-                      }`}
-                    >
+                    <span className="min-w-0 flex-1">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          scored
-                            ? selected
-                              ? "bg-char"
-                              : "bg-emerald-400"
-                            : submitted
-                              ? selected
-                                ? "bg-char/50"
-                                : "bg-amber-400"
-                              : selected
-                                ? "bg-char/40"
-                                : "bg-white/20"
+                        className={`block truncate font-stat text-[10px] uppercase tracking-wide ${
+                          selected ? "text-bone" : "text-ash"
                         }`}
-                      />
-                      {scored
-                        ? `${points} pts`
-                        : submitted
-                          ? "Submitted"
-                          : deadlinePassed(row.day)
-                            ? "No pick"
-                            : "Upcoming"}
+                      >
+                        {shortDayName(row.day.name)}
+                      </span>
+                      <span className="mt-1 block font-stat text-[9px] uppercase tracking-wider text-ash/60">
+                        {scored
+                          ? "Scored"
+                          : row.detail
+                            ? "Submitted"
+                            : deadlinePassed(row.day)
+                              ? "No prediction"
+                              : "Not submitted"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span
+                        className={`font-display text-lg font-black tabular-nums ${
+                          scored ? "text-ember" : "text-ash/50"
+                        }`}
+                      >
+                        {points ?? "–"}
+                      </span>
                     </span>
                   </button>
                 );
@@ -393,30 +368,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-4 border-t border-white/10 pt-4">
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              disabled={index === 0}
-              className="flex items-center gap-2 px-3 py-2 font-stat text-[10px] uppercase tracking-widest text-ash transition hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              <span className="text-lg">←</span> Previous
-            </button>
-            <span className="h-4 w-px bg-white/10" />
-            <button
-              type="button"
-              onClick={() => go(1)}
-              disabled={index >= rows.length - 1}
-              className="flex items-center gap-2 px-3 py-2 font-stat text-[10px] uppercase tracking-widest text-ash transition hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              Next <span className="text-lg">→</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start">
-        <aside className="order-2 space-y-4 lg:sticky lg:top-24 lg:order-1">
           <div className="border border-white/10 bg-char-2 p-4">
             <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
               Quick links
@@ -438,23 +389,35 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
 
         <section className="order-1 min-w-0 lg:order-2">
           <div className="border border-white/10 bg-char-2">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
-              <div className="min-w-0">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-4 sm:px-5">
+              <button
+                type="button"
+                onClick={() => go(-1)}
+                disabled={index === 0}
+                aria-label="Previous matchday"
+                className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                ←
+              </button>
+
+              <div className="min-w-0 flex-1 text-center">
                 <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash sm:text-[10px]">
                   Matchday {String(index + 1).padStart(2, "0")} / {rows.length}
                 </p>
-                <h2 className="mt-1 break-words font-display text-xl font-black uppercase leading-tight sm:text-2xl">
+                <h2 className="mt-1 break-words font-display text-lg font-black uppercase leading-tight sm:text-2xl">
                   {day.name}
                 </h2>
               </div>
-              {detail && (
-                <Link
-                  href={`/fantasy/predict/${detail.prediction.id}`}
-                  className="font-stat text-[10px] uppercase tracking-widest text-ember transition hover:text-bone"
-                >
-                  Full prediction details ↗
-                </Link>
-              )}
+
+              <button
+                type="button"
+                onClick={() => go(1)}
+                disabled={index >= rows.length - 1}
+                aria-label="Next matchday"
+                className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                →
+              </button>
             </div>
 
             <div className="grid grid-cols-2 divide-x divide-white/10">
@@ -505,6 +468,14 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                       : "No prediction submitted"}
                 </span>
               </div>
+              {detail && (
+                <Link
+                  href={`/fantasy/predict/${detail.prediction.id}`}
+                  className="font-stat text-[10px] uppercase tracking-widest text-ember transition hover:text-bone"
+                >
+                  Full prediction details ↗
+                </Link>
+              )}
             </div>
           </div>
 
