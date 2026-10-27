@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
 import {
   ApiError,
+  getFantasyLeagueStandings,
+  getFantasyStandings,
   getMyFantasyLeagues,
   getMyFantasyTeam,
   leavePrivateLeague,
@@ -14,7 +16,9 @@ import {
 import { clearSession, getToken } from "@/lib/auth";
 import Flag from "@/components/ui/Flag";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
-import LeagueOverview from "./LeagueOverview";
+import FantasyLeaderboard from "./FantasyLeaderboard";
+import LeagueCodeCard from "./LeagueCodeCard";
+import LeagueOverview, { type LeagueStanding } from "./LeagueOverview";
 import PrivateLeagueTools from "./PrivateLeagueTools";
 
 type State =
@@ -29,29 +33,39 @@ const linkBtn =
 
 export default function FantasyLeagues({
   tournamentId,
-  days: _days,
+  days,
 }: {
   tournamentId: number;
   days: TournamentDay[];
 }) {
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [active, setActive] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [actionError, setActionError] = useState("");
+  const [standings, setStandings] = useState<
+    Record<string, LeagueStanding>
+  >({});
+  const requested = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("join");
-
-    if (code) {
-      setInviteCode(code);
-    }
+    if (code) setInviteCode(code);
   }, []);
 
-  async function refreshLeagues() {
+  async function refreshLeagues(select?: string) {
     try {
       const leagues = await getMyFantasyLeagues(tournamentId);
 
       setState((current) =>
         current.kind === "ready" ? { ...current, leagues } : current,
+      );
+
+      setActive((current) =>
+        select && leagues.some((league) => league.slug === select)
+          ? select
+          : leagues.some((league) => league.slug === current)
+            ? current
+            : leagues[0]?.slug ?? "",
       );
     } catch (error) {
       setActionError(
@@ -65,6 +79,12 @@ export default function FantasyLeagues({
 
     try {
       await leavePrivateLeague(tournamentId, slug);
+      requested.current.delete(slug);
+      setStandings((current) => {
+        const next = { ...current };
+        delete next[slug];
+        return next;
+      });
       await refreshLeagues();
     } catch (error) {
       setActionError(
@@ -89,6 +109,11 @@ export default function FantasyLeagues({
         if (cancelled) return;
 
         setState({ kind: "ready", team, leagues });
+        setActive((current) =>
+          leagues.some((league) => league.slug === current)
+            ? current
+            : leagues[0]?.slug ?? "",
+        );
       })
       .catch((error) => {
         if (cancelled) return;
@@ -102,9 +127,7 @@ export default function FantasyLeagues({
           setState({
             kind: "error",
             message:
-              error instanceof Error
-                ? error.message
-                : "Failed to load your leagues",
+              error instanceof Error ? error.message : "Failed to load your leagues",
           });
         }
       });
@@ -113,6 +136,53 @@ export default function FantasyLeagues({
       cancelled = true;
     };
   }, [tournamentId]);
+
+  const readyTeamId = state.kind === "ready" ? state.team.id : null;
+  const readyLeagues = state.kind === "ready" ? state.leagues : null;
+
+  useEffect(() => {
+    if (readyTeamId === null || !readyLeagues) return;
+
+    for (const league of readyLeagues) {
+      if (requested.current.has(league.slug)) continue;
+
+      requested.current.add(league.slug);
+
+      const load =
+        league.type === "global"
+          ? getFantasyStandings(tournamentId)
+          : getFantasyLeagueStandings(tournamentId, league.slug);
+
+      load
+        .then((rows) => {
+          const mine = rows.find(
+            (row) => row.fantasy_team_id === readyTeamId,
+          );
+
+          const result: LeagueStanding = mine
+            ? {
+                status: "ok",
+                rank:
+                  1 + rows.filter((row) => row.points > mine.points).length,
+                total: rows.length,
+                points: mine.points,
+              }
+            : { status: "error" };
+
+          setStandings((current) => ({
+            ...current,
+            [league.slug]: result,
+          }));
+        })
+        .catch(() => {
+          requested.current.delete(league.slug);
+          setStandings((current) => ({
+            ...current,
+            [league.slug]: { status: "error" },
+          }));
+        });
+    }
+  }, [readyTeamId, readyLeagues, tournamentId]);
 
   if (state.kind === "loading") {
     return <Skeleton className="h-64" />;
@@ -129,7 +199,6 @@ export default function FantasyLeagues({
           title="Log in to see your leagues"
           hint="You are placed in a league based on your country."
         />
-
         <Link href="/login" className={linkBtn}>
           Go to login <span className="ml-3 text-base">→</span>
         </Link>
@@ -144,7 +213,6 @@ export default function FantasyLeagues({
           title="Create your fantasy team first"
           hint="Your country decides which league you play in."
         />
-
         <Link href="/fantasy/pick-team" className={linkBtn}>
           Create team <span className="ml-3 text-base">→</span>
         </Link>
@@ -154,31 +222,33 @@ export default function FantasyLeagues({
 
   const { team, leagues } = state;
   const hasRegion = leagues.some((league) => league.type === "region");
-  const privateLeague = leagues.find((league) => league.type === "private");
+  const current = leagues.find((league) => league.slug === active) ?? leagues[0];
 
   return (
     <div className="space-y-6">
       <div className="border border-bone/10 bg-char-2 px-4 py-4 sm:px-5">
         <div className="flex items-center gap-3">
           <Flag country={team.country} height={20} />
-
           <div className="min-w-0">
             <p className="font-stat text-[9px] uppercase tracking-[0.22em] text-ash">
               Competing from
             </p>
-
             <p className="mt-1 text-sm font-semibold text-bone">
               {team.country}
             </p>
           </div>
-
           <span className="ml-auto shrink-0 font-stat text-[9px] uppercase tracking-widest text-ash">
             {hasRegion ? "Regional + Global" : "Global"}
           </span>
         </div>
       </div>
 
-      <LeagueOverview leagues={leagues} />
+      <LeagueOverview
+        leagues={leagues}
+        active={current?.slug ?? ""}
+        standings={standings}
+        onSelect={setActive}
+      />
 
       <PrivateLeagueTools
         tournamentId={tournamentId}
@@ -186,10 +256,7 @@ export default function FantasyLeagues({
         onDone={(league) => {
           setInviteCode("");
           setActionError("");
-          void refreshLeagues();
-          window.location.assign(
-            `/fantasy/leagues/${encodeURIComponent(league.slug)}`,
-          );
+          void refreshLeagues(league.slug);
         }}
       />
 
@@ -199,20 +266,23 @@ export default function FantasyLeagues({
         </p>
       )}
 
-      {privateLeague?.code && (
-        <div className="border-t border-bone/10 pt-4">
-          <p className="mb-3 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
-            Private league management
-          </p>
+      {current?.type === "private" && current.code && (
+        <LeagueCodeCard
+          key={`code-${current.slug}`}
+          name={current.name}
+          code={current.code}
+          onLeave={() => void leave(current.slug)}
+        />
+      )}
 
-          <button
-            type="button"
-            onClick={() => void leave(privateLeague.slug)}
-            className="border border-bone/15 px-4 py-2 font-stat text-[10px] uppercase tracking-widest text-ash transition hover:border-red-400/60 hover:text-red-400"
-          >
-            Leave {privateLeague.name}
-          </button>
-        </div>
+      {current && (
+        <FantasyLeaderboard
+          key={current.slug}
+          tournamentId={tournamentId}
+          days={days}
+          leagueSlug={current.slug}
+          highlightTeamId={team.id}
+        />
       )}
     </div>
   );
