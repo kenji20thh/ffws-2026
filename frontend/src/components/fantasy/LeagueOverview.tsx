@@ -21,16 +21,16 @@ function Standing({
 }) {
   if (!standing) {
     return (
-      <div className="mt-4 animate-pulse space-y-2">
-        <div className="h-7 w-20 bg-bone/10" />
-        <div className="h-3 w-16 bg-bone/10" />
+      <div className="mt-2 shrink-0 space-y-2" aria-label="Loading ranking">
+        <div className="h-7 w-24 animate-pulse bg-bone/10" />
+        <div className="h-3 w-16 animate-pulse bg-bone/10" />
       </div>
     );
   }
 
   if (standing.status === "error") {
     return (
-      <div className="mt-4">
+      <div className="mt-2 shrink-0">
         <p className="font-display text-2xl font-black leading-none text-ash">
           —
         </p>
@@ -43,7 +43,7 @@ function Standing({
 
   if (standing.total < 2) {
     return (
-      <div className="mt-4">
+      <div className="mt-2 shrink-0">
         <p className="font-display text-2xl font-black uppercase leading-none text-bone">
           Solo
         </p>
@@ -57,9 +57,9 @@ function Standing({
   const pct = topPercent(standing.rank, standing.total);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2 shrink-0">
       <p
-        className={`font-display text-3xl font-black uppercase leading-none tabular-nums ${
+        className={`whitespace-nowrap font-display text-2xl font-black uppercase leading-none tabular-nums sm:text-3xl ${
           pct <= 10 ? "text-ember" : "text-bone"
         }`}
       >
@@ -88,7 +88,7 @@ function LeagueCard({
   return (
     <li className="min-w-0">
       <div
-        className={`group relative flex aspect-square flex-col overflow-hidden border transition-all duration-300 ${
+        className={`group relative flex aspect-square min-w-0 flex-col overflow-hidden border transition-colors duration-200 ${
           active
             ? "border-ember bg-ember/[0.08]"
             : "border-bone/10 bg-char-2 hover:border-ember/60 hover:bg-char-3"
@@ -98,30 +98,36 @@ function LeagueCard({
           type="button"
           aria-pressed={active}
           onClick={onSelect}
-          className="relative flex min-h-0 flex-1 flex-col items-start overflow-hidden p-4 text-left sm:p-5"
+          className="relative flex min-h-0 flex-1 flex-col items-stretch overflow-hidden p-3 text-left sm:p-4 lg:p-5"
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -right-3 -top-5 select-none font-display text-[7rem] font-black leading-none text-bone/[0.025] transition-colors group-hover:text-ember/[0.06] sm:text-[8rem]"
+            className="pointer-events-none absolute -right-3 -top-4 select-none font-display text-[6rem] font-black leading-none text-bone/[0.025] transition-colors group-hover:text-ember/[0.06] sm:text-[8rem]"
           >
             {isPrivate ? "P" : league.type === "global" ? "G" : "R"}
           </span>
 
-          <span className="relative z-10 flex w-full items-center justify-between gap-2">
+          <span className="relative z-10 flex shrink-0 items-center justify-between gap-2">
             <span
-              className={`h-1 w-8 transition-all duration-300 group-hover:w-12 ${
+              className={`h-1 w-7 transition-all duration-200 group-hover:w-10 ${
                 active ? "bg-ember" : "bg-bone/20 group-hover:bg-ember"
               }`}
             />
+
             {isPrivate && (
-              <span className="text-sm" role="img" aria-label="Private league">
+              <span
+                className="text-xs"
+                role="img"
+                aria-label="Private league"
+                title="Private league"
+              >
                 🔒
               </span>
             )}
           </span>
 
-          <div className="relative z-10 mt-5 min-w-0 w-full">
-            <p className="mb-2 font-stat text-[9px] uppercase tracking-[0.16em] text-ash">
+          <div className="relative z-10 mt-3 min-h-0 min-w-0">
+            <p className="mb-1.5 truncate font-stat text-[8px] uppercase tracking-[0.12em] text-ash sm:text-[9px] sm:tracking-[0.16em]">
               {isPrivate
                 ? "Private competition"
                 : league.type === "global"
@@ -129,22 +135,22 @@ function LeagueCard({
                   : "Regional competition"}
             </p>
 
-            <h3 className="break-words font-display text-xl font-black uppercase leading-[0.98] tracking-tight text-bone transition-colors group-hover:text-ember sm:text-2xl">
+            <h3 className="line-clamp-2 break-words font-display text-[clamp(1rem,2.1vw,1.75rem)] font-black uppercase leading-[0.98] tracking-tight text-bone [overflow-wrap:anywhere] transition-colors group-hover:text-ember">
               {league.name}
             </h3>
           </div>
 
-          <div className="relative z-10 mt-auto w-full">
+          <div className="relative z-10 mt-auto shrink-0 pt-2">
             <Standing standing={standing} teams={league.teams} />
           </div>
         </button>
 
-        <div className="relative z-10 flex items-center justify-between border-t border-bone/10 px-4 py-3 sm:px-5">
-          <div>
-            <p className="font-display text-lg font-bold leading-none tabular-nums text-bone">
+        <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-t border-bone/10 px-3 py-2 sm:px-4 sm:py-3">
+          <div className="min-w-0">
+            <p className="font-display text-lg font-bold leading-none tabular-nums text-bone sm:text-xl">
               {league.teams}
             </p>
-            <p className="mt-1 font-stat text-[9px] uppercase tracking-widest text-ash">
+            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash sm:text-[9px]">
               {league.teams === 1 ? "Player" : "Players"}
             </p>
           </div>
@@ -152,7 +158,7 @@ function LeagueCard({
           <Link
             href={`/fantasy/leagues/${encodeURIComponent(league.slug)}`}
             aria-label={`Open the ${league.name} league page`}
-            className="flex h-8 w-8 shrink-0 items-center justify-center border border-bone/10 text-lg text-bone/60 transition-colors hover:border-ember hover:bg-ember hover:text-char"
+            className="flex h-7 w-7 shrink-0 items-center justify-center border border-bone/10 text-base text-bone/60 transition-colors hover:border-ember hover:bg-ember hover:text-char sm:h-8 sm:w-8"
           >
             ↗
           </Link>
@@ -190,7 +196,9 @@ function Section({
         <h2 className="shrink-0 font-stat text-[10px] font-bold uppercase tracking-[0.22em] text-ember sm:text-xs sm:tracking-[0.28em]">
           {title}
         </h2>
+
         <span className="h-px flex-1 bg-bone/10" />
+
         <span className="font-stat text-[10px] tabular-nums text-ash">
           {String(leagues.length).padStart(2, "0")}
         </span>
