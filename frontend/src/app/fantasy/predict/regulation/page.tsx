@@ -1,7 +1,11 @@
+
+import type { ReactNode } from "react";
 import RegulationView, {
   RuleTable,
   type RuleSection,
 } from "@/components/fantasy/RegulationView";
+import Monogram from "@/components/ui/Monogram";
+import { pointsTone } from "@/lib/predictionTone";
 
 export const metadata = {
   title: "Regulation · Predictions · FFWS 2026",
@@ -33,151 +37,237 @@ const PREDICTION_POINTS: [string, string][] = [
   ["7 or more places off", "0"],
 ];
 
-const scoringExamples = [
-  { team: "TEAM ALPHA", predicted: 1, actual: 1, points: 12 },
-  { team: "TEAM BRAVO", predicted: 2, actual: 4, points: 7 },
-  { team: "TEAM CHARLIE", predicted: 3, actual: 6, points: 5 },
-  { team: "TEAM DELTA", predicted: 4, actual: 3, points: 9 },
+// Illustrative results for one complete 12-team matchday.
+// Actual placements are unique. Points use the prediction scoring rules above.
+const EXAMPLE_TEAMS = [
+  { name: "LYON", tag: "LYN", predicted: 1, actual: 1 },
+  { name: "TEAM FLASH", tag: "FL", predicted: 2, actual: 4 },
+  { name: "ONIC OLYMPUS", tag: "ONIC", predicted: 3, actual: 6 },
+  { name: "LOS GRANDES", tag: "LOS", predicted: 4, actual: 3 },
+  { name: "HORAA ESPORTS", tag: "HR", predicted: 5, actual: 10 },
+  { name: "XPROJEKT", tag: "XP", predicted: 6, actual: 5 },
+  { name: "BIGETRON", tag: "BTR", predicted: 7, actual: 2 },
+  { name: "BLUE CHEESE", tag: "BC", predicted: 8, actual: 12 },
+  { name: "P ESPORTS", tag: "PES", predicted: 9, actual: 9 },
+  { name: "FLUXO", tag: "FX", predicted: 10, actual: 8 },
+  { name: "RRQ", tag: "RRQ", predicted: 11, actual: 11 },
+  { name: "LOUD", tag: "LOUD", predicted: 12, actual: 7 },
 ];
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function predictionPoints(predicted: number, actual: number) {
+  const difference = Math.abs(predicted - actual);
+
+  if (difference === 0) return 12;
+  if (difference === 1) return 9;
+  if (difference === 2) return 7;
+  if (difference === 3) return 5;
+  if (difference === 4) return 3;
+  if (difference === 5) return 2;
+  if (difference === 6) return 1;
+  return 0;
+}
+
+const EXAMPLE_RESULTS = EXAMPLE_TEAMS.map((team) => ({
+  ...team,
+  points: predictionPoints(team.predicted, team.actual),
+}));
+
+const EXAMPLE_TOTAL = EXAMPLE_RESULTS.reduce(
+  (total, team) => total + team.points,
+  0,
+);
+
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+    <div className="mb-3 flex items-center gap-2 font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-ember">
+      <span className="h-1.5 w-1.5 shrink-0 bg-ember" />
       {children}
     </div>
   );
 }
 
-function PositionBadge({
-  position,
-  accent = false,
+function Position({
+  value,
+  highlight = false,
 }: {
-  position: number;
-  accent?: boolean;
+  value: number;
+  highlight?: boolean;
 }) {
   return (
     <span
-      className={`inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 text-xs font-black ${
-        accent
-          ? "border-orange-400/40 bg-orange-500/15 text-orange-300"
-          : "border-white/10 bg-white/[0.04] text-white/75"
+      className={`inline-flex h-8 min-w-8 items-center justify-center border px-1.5 font-stat text-xs font-black tabular-nums ${
+        highlight
+          ? "border-ember/40 bg-ember/10 text-ember"
+          : "border-bone/10 bg-char text-bone/80"
       }`}
     >
-      {position}
+      {value}
     </span>
   );
 }
 
 function PredictionExample() {
   return (
-    <div className="my-5 overflow-hidden rounded-xl border border-white/10 bg-[#0b0908]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+    <div className="my-5 overflow-hidden border border-bone/10 bg-char-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bone/10 px-4 py-4 sm:px-5">
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
-            Example matchday
-          </div>
-          <div className="mt-1 text-sm font-bold text-white">
-            Your prediction vs. actual results
-          </div>
+          <SectionLabel>Matchday breakdown</SectionLabel>
+          <h3 className="font-display text-xl font-black uppercase leading-tight text-bone sm:text-2xl">
+            Your prediction vs. results
+          </h3>
+          <p className="mt-1 font-stat text-[10px] uppercase tracking-wider text-ash">
+            12 teams · 1 prediction · 144 maximum points
+          </p>
         </div>
-        <span className="rounded-md border border-orange-400/20 bg-orange-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-300">
-          Sample data
+        <span className="border border-ember/30 bg-ember/10 px-2.5 py-1.5 font-stat text-[9px] font-bold uppercase tracking-wider text-ember">
+          Example only
         </span>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_54px] gap-2 border-b border-white/[0.06] px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-white/40 sm:grid-cols-[minmax(0,1fr)_90px_90px_64px]">
+      <div className="grid grid-cols-[minmax(0,1fr)_42px_42px_64px] items-center gap-1 border-b border-bone/10 px-2 py-2 font-stat text-[9px] uppercase tracking-wider text-ash sm:grid-cols-[minmax(0,1fr)_64px_64px_76px] sm:gap-2 sm:px-4">
         <span>Team</span>
-        <span className="text-center">Predicted</span>
+        <span className="text-center">Pred.</span>
         <span className="text-center">Actual</span>
         <span className="text-right">Points</span>
       </div>
 
-      {scoringExamples.map((example, index) => (
-        <div
-          key={example.team}
-          className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_54px] items-center gap-2 border-b border-white/[0.05] px-4 py-3 last:border-0 sm:grid-cols-[minmax(0,1fr)_90px_90px_64px]"
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="text-[10px] font-mono text-white/25">
-              0{index + 1}
-            </span>
-            <span className="truncate text-[10px] font-bold tracking-wide text-white/80 sm:text-xs">
-              {example.team}
-            </span>
-          </div>
+      <div className="space-y-1.5 p-2 sm:p-3">
+        {EXAMPLE_RESULTS.map((team) => {
+          const tone = pointsTone(team.points);
+          const difference = Math.abs(team.predicted - team.actual);
 
-          <div className="flex justify-center">
-            <PositionBadge position={example.predicted} />
-          </div>
+          return (
+            <div
+              key={team.tag}
+              style={{
+                borderLeftColor: tone.color,
+                backgroundColor: tone.bg,
+              }}
+              className="grid grid-cols-[minmax(0,1fr)_42px_42px_64px] items-center gap-1 border border-bone/10 border-l-4 px-2 py-2.5 sm:grid-cols-[minmax(0,1fr)_64px_64px_76px] sm:gap-2 sm:px-3"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <Monogram label={team.tag} size={30} />
+                <div className="min-w-0">
+                  <p className="truncate font-display text-[11px] font-extrabold uppercase leading-tight text-bone sm:text-sm">
+                    {team.name}
+                  </p>
+                  <p className="mt-0.5 font-stat text-[9px] text-ash">
+                    {difference === 0
+                      ? "Exact"
+                      : `${difference} ${difference === 1 ? "place" : "places"} off`}
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex justify-center">
-            <PositionBadge
-              position={example.actual}
-              accent={example.predicted === example.actual}
-            />
-          </div>
+              <div className="flex justify-center">
+                <Position value={team.predicted} />
+              </div>
 
-          <div className="text-right">
-            <span className="text-sm font-black tabular-nums text-orange-300">
-              +{example.points}
-            </span>
-          </div>
+              <div className="flex justify-center">
+                <Position
+                  value={team.actual}
+                  highlight={difference === 0}
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <span
+                  style={{
+                    backgroundColor: tone.color,
+                    color: tone.ink,
+                  }}
+                  className="inline-flex min-w-[54px] justify-center px-1.5 py-1.5 font-stat text-xs font-black tabular-nums sm:min-w-[64px] sm:text-sm"
+                >
+                  {team.points > 0 ? "+" : ""}
+                  {team.points}
+                  <span className="ml-1 hidden sm:inline">pts</span>
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-px border-t border-bone/10 bg-bone/10">
+        <div className="bg-char-2 px-4 py-3 sm:px-5">
+          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+            Exact predictions
+          </p>
+          <p className="mt-1 font-display text-2xl font-black text-bone">
+            {EXAMPLE_RESULTS.filter(
+              (team) => team.predicted === team.actual,
+            ).length}
+            <span className="ml-1 font-stat text-xs text-ash">/ 12</span>
+          </p>
         </div>
-      ))}
+        <div className="bg-char-2 px-4 py-3 text-right sm:px-5">
+          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+            Total points
+          </p>
+          <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums text-ember">
+            {EXAMPLE_TOTAL}
+            <span className="ml-1 font-stat text-xs font-normal text-ash">
+              / 144
+            </span>
+          </p>
+        </div>
+      </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-white/[0.025] px-4 py-3">
-        <span className="text-xs text-white/45">Points from these 4 teams</span>
-        <span className="text-lg font-black tabular-nums text-white">
-          33 <span className="text-xs font-medium text-white/35">/ 48</span>
-        </span>
+      <div className="border-t border-bone/10 px-4 py-3 sm:px-5">
+        <p className="font-stat text-[10px] leading-relaxed text-ash">
+          Each row is colored by the points earned, just like your scored
+          predictions. A smaller difference between predicted and actual
+          placement earns more points.
+        </p>
       </div>
     </div>
   );
 }
 
 function ScoringLadder() {
-  const maxPoints = 12;
-
   return (
-    <div className="my-5 rounded-xl border border-white/10 bg-[#0b0908] p-4 sm:p-5">
-      <SectionLabel>Points by position accuracy</SectionLabel>
+    <div className="my-5 border border-bone/10 bg-char-2 p-4 sm:p-5">
+      <SectionLabel>Prediction scoring</SectionLabel>
 
       <div className="space-y-3">
         {PREDICTION_POINTS.map(([label, value]) => {
           const points = Number(value);
+          const tone = pointsTone(points);
 
           return (
             <div
               key={label}
-              className="grid grid-cols-[minmax(0,1fr)_minmax(60px,1.1fr)_34px] items-center gap-3"
+              className="grid grid-cols-[minmax(0,1fr)_minmax(52px,1fr)_40px] items-center gap-3"
             >
-              <span className="text-xs text-white/65">{label}</span>
+              <span className="text-xs text-bone/75">{label}</span>
 
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+              <div className="h-2 overflow-hidden bg-bone/[0.06]">
                 <div
-                  className={`h-full rounded-full ${
-                    points === 12 ? "bg-orange-400" : "bg-white/35"
-                  }`}
-                  style={{ width: `${(points / maxPoints) * 100}%` }}
+                  style={{
+                    width: `${(points / 12) * 100}%`,
+                    backgroundColor: tone.color,
+                  }}
+                  className="h-full transition-[width]"
                 />
               </div>
 
               <span
-                className={`text-right text-xs font-black tabular-nums ${
-                  points === 12 ? "text-orange-300" : "text-white/75"
-                }`}
+                style={{ color: tone.color }}
+                className="text-right font-stat text-sm font-black tabular-nums"
               >
-                {value}
+                {points}
               </span>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-4 border-t border-white/[0.08] pt-3 text-[11px] leading-relaxed text-white/40">
-        Compare each team&apos;s predicted position with its actual position.
-        The smaller the difference, the more points you earn.
+      <div className="mt-4 border-t border-bone/10 pt-3">
+        <p className="font-stat text-[10px] leading-relaxed text-ash">
+          The points depend on the absolute difference between your predicted
+          position and the final position. The same scoring applies to all
+          12 teams.
+        </p>
       </div>
     </div>
   );
@@ -187,38 +277,40 @@ function MatchdayFlow() {
   const steps = [
     {
       number: "01",
-      title: "Rank 12 teams",
-      description: "Arrange every team from 1st to 12th.",
+      title: "Rank the lobby",
+      description: "Place all 12 teams from 1st to 12th.",
     },
     {
       number: "02",
-      title: "Confirm your order",
+      title: "Confirm your picks",
       description: "Submit before the matchday deadline.",
     },
     {
       number: "03",
-      title: "Earn points",
-      description: "Score points when official results are entered.",
+      title: "Collect your points",
+      description: "Earn points when results are scored.",
     },
   ];
 
   return (
-    <div className="my-5 grid gap-3 sm:grid-cols-3">
+    <div className="my-5 grid gap-2 sm:grid-cols-3">
       {steps.map((step, index) => (
         <div
           key={step.number}
-          className="relative rounded-xl border border-white/10 bg-[#0b0908] p-4"
+          className="relative border border-bone/10 bg-char-2 p-4"
         >
           <div className="mb-4 flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-orange-400">
+            <span className="font-stat text-xs font-black text-ember">
               {step.number}
             </span>
             {index < steps.length - 1 && (
-              <span className="hidden text-white/20 sm:block">→</span>
+              <span className="font-stat text-sm text-ash/50">→</span>
             )}
           </div>
-          <h3 className="text-sm font-bold text-white">{step.title}</h3>
-          <p className="mt-1.5 text-xs leading-relaxed text-white/45">
+          <h3 className="font-display text-base font-extrabold uppercase text-bone">
+            {step.title}
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-ash">
             {step.description}
           </p>
         </div>
@@ -228,31 +320,36 @@ function MatchdayFlow() {
 }
 
 function ScoreSummary() {
+  const stats = [
+    { label: "Teams per prediction", value: "12", detail: "Every team once" },
+    { label: "Points per exact pick", value: "12", detail: "Maximum per team" },
+    { label: "Maximum day score", value: "144", detail: "12 teams × 12 points" },
+  ];
+
   return (
-    <div className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <div className="rounded-xl border border-orange-400/20 bg-orange-400/[0.06] p-4">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-          Teams to predict
+    <div className="my-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {stats.map((stat, index) => (
+        <div
+          key={stat.label}
+          className={`border p-4 ${
+            index === 2
+              ? "col-span-2 border-ember/25 bg-ember/[0.06] sm:col-span-1"
+              : "border-bone/10 bg-char-2"
+          }`}
+        >
+          <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+            {stat.label}
+          </p>
+          <p
+            className={`mt-2 font-display text-3xl font-black tabular-nums ${
+              index === 2 ? "text-ember" : "text-bone"
+            }`}
+          >
+            {stat.value}
+          </p>
+          <p className="mt-1 text-[10px] text-ash">{stat.detail}</p>
         </div>
-        <div className="mt-2 text-3xl font-black text-white">12</div>
-        <div className="mt-1 text-[11px] text-white/40">Every team, once</div>
-      </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-          Max per team
-        </div>
-        <div className="mt-2 text-3xl font-black text-orange-300">12</div>
-        <div className="mt-1 text-[11px] text-white/40">Exact position</div>
-      </div>
-
-      <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.025] p-4 sm:col-span-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-          Maximum per day
-        </div>
-        <div className="mt-2 text-3xl font-black text-white">144</div>
-        <div className="mt-1 text-[11px] text-white/40">12 teams × 12 points</div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -264,9 +361,9 @@ const sections: RuleSection[] = [
       <>
         <p>
           Predict the final ranking of the 12 teams in a matchday lobby.
-          Place every team from 1st to 12th before the deadline. The closer
-          your predicted positions are to the official results, the more
-          points you earn.
+          Arrange every team from 1st to 12th before the deadline. The closer
+          your predictions are to the official results, the more points you
+          earn.
         </p>
         <MatchdayFlow />
       </>
@@ -276,73 +373,65 @@ const sections: RuleSection[] = [
     title: "Making a prediction",
     content: (
       <>
-        <div className="mb-4 rounded-lg border border-orange-400/15 bg-orange-400/[0.05] p-3">
-          <div className="text-xs font-bold text-orange-300">
-            Your matchday checklist
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-white/55">
-            Make sure your full ranking is correct before confirming your
-            prediction.
-          </p>
-        </div>
         <ul className="list-disc space-y-2 pl-5">
           <li>Rank all 12 teams. Every team must appear exactly once.</li>
           <li>
             Drag teams to reorder them, or use the arrow buttons. 1st place
             is at the top.
           </li>
-          <li>Review your ranking, then confirm to submit it.</li>
+          <li>Review your ranking, then confirm to submit.</li>
           <li>
             You get one prediction per day and can change it as often as you
             like until that day locks.
           </li>
           <li>
             You need a team profile with a team name and country before you
-            can predict. This is shared with Fantasy.
+            can predict. It is shared with Fantasy.
           </li>
         </ul>
       </>
     ),
   },
   {
-    title: "Understanding the real results",
+    title: "The real result",
     content: (
       <>
         <p>
-          A team&apos;s matchday ranking is based on its total points across
-          all rooms played that day. Each room contributes placement points
-          plus one point for every kill.
+          A team&apos;s matchday ranking is calculated from its total points
+          across all rooms played that day. Each room contributes placement
+          points plus one point for every kill.
         </p>
 
-        <div className="my-5 rounded-xl border border-white/10 bg-[#0b0908] p-4">
-          <SectionLabel>How a room is scored</SectionLabel>
+        <div className="my-5 border border-bone/10 bg-char-2 p-4">
+          <SectionLabel>Example room score</SectionLabel>
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-                Placement points
-              </div>
-              <div className="mt-2 text-2xl font-black text-white">12</div>
-              <div className="mt-1 text-[11px] text-white/40">
-                For 1st place
-              </div>
+            <div className="border border-bone/10 bg-char p-3">
+              <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+                1st-place finish
+              </p>
+              <p className="mt-2 font-display text-3xl font-black text-bone">
+                12
+              </p>
+              <p className="text-[10px] text-ash">Placement points</p>
             </div>
-            <div className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-                Kill points
-              </div>
-              <div className="mt-2 text-2xl font-black text-orange-300">5</div>
-              <div className="mt-1 text-[11px] text-white/40">
-                For 5 kills
-              </div>
+            <div className="border border-bone/10 bg-char p-3">
+              <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+                5 kills
+              </p>
+              <p className="mt-2 font-display text-3xl font-black text-ember">
+                +5
+              </p>
+              <p className="text-[10px] text-ash">Kill points</p>
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-            <span className="text-xs text-white/55">Example room total</span>
-            <span className="text-lg font-black text-white">17 points</span>
+          <div className="mt-3 flex items-center justify-between border-t border-bone/10 pt-3">
+            <span className="font-stat text-[10px] uppercase tracking-wider text-ash">
+              Total room points
+            </span>
+            <span className="font-display text-2xl font-black text-ember">
+              17
+            </span>
           </div>
-          <p className="mt-2 text-[10px] leading-relaxed text-white/35">
-            Illustrative example: 1st-place placement points plus 5 kills.
-          </p>
         </div>
 
         <RuleTable
@@ -358,64 +447,53 @@ const sections: RuleSection[] = [
     ),
   },
   {
-    title: "How prediction points work",
+    title: "Scoring",
     content: (
       <>
         <p>
-          Each team is scored independently according to the difference
-          between your predicted position and its actual final position.
-          The scoring is the same regardless of which position you predict.
+          Every team earns points independently. Compare its predicted
+          position with its actual final position to determine the points
+          awarded.
         </p>
 
         <ScoringLadder />
 
         <PredictionExample />
 
-        <div className="rounded-lg border border-white/10 bg-white/[0.025] p-3">
-          <div className="text-xs font-bold text-white">
-            Remember: score every team
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-white/50">
-            Your day score adds the points earned by all 12 teams. An exact
-            prediction earns 12 points; a difference of 7 or more positions
-            earns 0.
-          </p>
-        </div>
-
         <ScoreSummary />
 
         <p>
-          Your overall score is the sum of your scores across all scored
-          matchdays. Points appear after the organizers enter and score the
-          day&apos;s results.
+          Your day score is the sum of the points earned by all 12 teams.
+          Your overall score is the sum of all scored days. Points appear
+          after the organizers enter and score the day&apos;s results.
         </p>
       </>
     ),
   },
   {
-    title: "Deadlines and locking",
+    title: "Deadlines",
     content: (
       <>
-        <div className="my-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-[#0b0908] p-4">
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-orange-300">
+        <div className="my-4 grid gap-2 sm:grid-cols-2">
+          <div className="border border-ember/20 bg-ember/[0.05] p-4">
+            <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-ember">
               Before lock
-            </div>
-            <div className="text-sm font-bold text-white">
-              Edit your prediction
-            </div>
-            <p className="mt-1 text-xs leading-relaxed text-white/45">
-              Change your ranking as often as you want before the deadline.
+            </p>
+            <h3 className="mt-2 font-display text-lg font-black uppercase text-bone">
+              Make changes
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-ash">
+              Create or edit your prediction before the deadline.
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-[#0b0908] p-4">
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-white/35">
+          <div className="border border-bone/10 bg-char-2 p-4">
+            <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-ash">
               After lock
-            </div>
-            <div className="text-sm font-bold text-white">
-              Prediction is final
-            </div>
-            <p className="mt-1 text-xs leading-relaxed text-white/45">
+            </p>
+            <h3 className="mt-2 font-display text-lg font-black uppercase text-bone">
+              Prediction locked
+            </h3>
+            <p className="mt-1 text-xs leading-relaxed text-ash">
               You cannot create or change that day&apos;s prediction.
             </p>
           </div>
@@ -426,12 +504,12 @@ const sections: RuleSection[] = [
             Every day has its own lock time, shown on the Schedule tab.
           </li>
           <li>
-            Other players&apos; predictions remain hidden until the day
-            locks, so nobody can copy them beforehand.
+            Other players&apos; predictions remain hidden until the day locks,
+            so nobody can copy them beforehand.
           </li>
           <li>
-            Organizers can change lock times. Always check the Schedule tab
-            for the latest deadline.
+            Organizers can change lock times. The Schedule tab shows the
+            current deadline.
           </li>
         </ul>
       </>
@@ -444,7 +522,7 @@ export default function PredictionRegulationPage() {
     <RegulationView
       eyebrow="Predictions"
       title="Regulation"
-      intro="Learn how to rank the lobby, understand the official standings, and maximize your prediction points."
+      intro="Learn how to rank a 12-team lobby, understand the official results, and earn prediction points."
       sections={sections}
     />
   );
