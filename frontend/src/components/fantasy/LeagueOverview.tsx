@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -21,16 +22,15 @@ function Standing({
 }) {
   if (!standing) {
     return (
-      <div className="mt-2 shrink-0 space-y-2" aria-label="Loading ranking">
+      <div className="shrink-0 space-y-2" aria-label="Loading standing">
         <div className="h-7 w-24 animate-pulse bg-bone/10" />
-        <div className="h-3 w-16 animate-pulse bg-bone/10" />
       </div>
     );
   }
 
   if (standing.status === "error") {
     return (
-      <div className="mt-2 shrink-0">
+      <div className="shrink-0">
         <p className="font-display text-2xl font-black leading-none text-ash">
           —
         </p>
@@ -43,12 +43,12 @@ function Standing({
 
   if (standing.total < 2) {
     return (
-      <div className="mt-2 shrink-0">
+      <div className="shrink-0">
         <p className="font-display text-2xl font-black uppercase leading-none text-bone">
           Solo
         </p>
         <p className="mt-1 font-stat text-[9px] uppercase tracking-widest text-ash">
-          #{standing.rank} of {standing.total || teams}
+          {teams === 1 ? "Only player" : "Standing pending"}
         </p>
       </div>
     );
@@ -57,16 +57,13 @@ function Standing({
   const pct = topPercent(standing.rank, standing.total);
 
   return (
-    <div className="mt-2 shrink-0">
+    <div className="shrink-0">
       <p
         className={`whitespace-nowrap font-display text-2xl font-black uppercase leading-none tabular-nums sm:text-3xl ${
           pct <= 10 ? "text-ember" : "text-bone"
         }`}
       >
         Top {pct}%
-      </p>
-      <p className="mt-1 font-stat text-[9px] uppercase tracking-widest text-ash">
-        #{standing.rank} of {standing.total}
       </p>
     </div>
   );
@@ -87,8 +84,8 @@ function LeagueCard({
 
   return (
     <li className="min-w-0">
-      <div
-        className={`group relative flex aspect-square min-w-0 flex-col overflow-hidden border transition-colors duration-200 ${
+      <article
+        className={`group relative flex min-h-[238px] min-w-0 flex-col overflow-hidden border transition-colors duration-200 sm:min-h-[250px] ${
           active
             ? "border-ember bg-ember/[0.08]"
             : "border-bone/10 bg-char-2 hover:border-ember/60 hover:bg-char-3"
@@ -98,11 +95,11 @@ function LeagueCard({
           type="button"
           aria-pressed={active}
           onClick={onSelect}
-          className="relative flex min-h-0 flex-1 flex-col items-stretch overflow-hidden p-3 text-left sm:p-4 lg:p-5"
+          className="relative flex min-h-0 flex-1 flex-col items-stretch p-3 text-left sm:p-4"
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -right-3 -top-4 select-none font-display text-[6rem] font-black leading-none text-bone/[0.025] transition-colors group-hover:text-ember/[0.06] sm:text-[8rem]"
+            className="pointer-events-none absolute -right-2 -top-3 select-none font-display text-[6rem] font-black leading-none text-bone/[0.025] transition-colors group-hover:text-ember/[0.06] sm:text-[7rem]"
           >
             {isPrivate ? "P" : league.type === "global" ? "G" : "R"}
           </span>
@@ -126,8 +123,8 @@ function LeagueCard({
             )}
           </span>
 
-          <div className="relative z-10 mt-3 min-h-0 min-w-0">
-            <p className="mb-1.5 truncate font-stat text-[8px] uppercase tracking-[0.12em] text-ash sm:text-[9px] sm:tracking-[0.16em]">
+          <div className="relative z-10 mt-3 min-w-0">
+            <p className="mb-2 font-stat text-[8px] uppercase tracking-[0.12em] text-ash sm:text-[9px] sm:tracking-[0.16em]">
               {isPrivate
                 ? "Private competition"
                 : league.type === "global"
@@ -135,17 +132,17 @@ function LeagueCard({
                   : "Regional competition"}
             </p>
 
-            <h3 className="line-clamp-2 break-words font-display text-[clamp(1rem,2.1vw,1.75rem)] font-black uppercase leading-[0.98] tracking-tight text-bone [overflow-wrap:anywhere] transition-colors group-hover:text-ember">
+            <h3 className="min-w-0 break-words font-display text-base font-black uppercase leading-[1.05] tracking-tight text-bone transition-colors group-hover:text-ember [overflow-wrap:anywhere] sm:text-lg lg:text-xl">
               {league.name}
             </h3>
           </div>
 
-          <div className="relative z-10 mt-auto shrink-0 pt-2">
+          <div className="relative z-10 mt-auto shrink-0 pt-5">
             <Standing standing={standing} teams={league.teams} />
           </div>
         </button>
 
-        <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-t border-bone/10 px-3 py-2 sm:px-4 sm:py-3">
+        <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-t border-bone/10 px-3 py-3 sm:px-4">
           <div className="min-w-0">
             <p className="font-display text-lg font-bold leading-none tabular-nums text-bone sm:text-xl">
               {league.teams}
@@ -158,7 +155,7 @@ function LeagueCard({
           <Link
             href={`/fantasy/leagues/${encodeURIComponent(league.slug)}`}
             aria-label={`Open the ${league.name} league page`}
-            className="flex h-7 w-7 shrink-0 items-center justify-center border border-bone/10 text-base text-bone/60 transition-colors hover:border-ember hover:bg-ember hover:text-char sm:h-8 sm:w-8"
+            className="flex h-8 w-8 shrink-0 items-center justify-center border border-bone/10 text-base text-bone/60 transition-colors hover:border-ember hover:bg-ember hover:text-char"
           >
             ↗
           </Link>
@@ -170,7 +167,7 @@ function LeagueCard({
             active ? "w-full" : "w-0 group-hover:w-full"
           }`}
         />
-      </div>
+      </article>
     </li>
   );
 }
@@ -209,7 +206,7 @@ function Section({
           {empty}
         </p>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+        <ul className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
           {leagues.map((league) => (
             <LeagueCard
               key={league.slug}
