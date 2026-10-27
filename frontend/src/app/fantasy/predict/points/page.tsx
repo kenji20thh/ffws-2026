@@ -10,7 +10,7 @@ export default async function PredictionPointsPage() {
     const t = await getTournament("ffws-2026");
     const days = await getDays(t.id);
     return (
-      <div className="mx-auto max-w-3xl px-5 py-10">
+      <div className="mx-auto max-w-6xl px-5 py-10">
         <PredictionPoints days={days} />
       </div>
     );
