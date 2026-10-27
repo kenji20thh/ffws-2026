@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -236,71 +235,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
             </span>
           </div>
 
-          {/* Matchday selector: centered directly below the header label. */}
-          <div className="mt-5 border-y border-white/10 py-4">
-            <p className="mb-3 text-center font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
-              Matchdays
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {rows.map((row, i) => {
-                const selected = i === index;
-                const scored = !!row.detail?.scored;
-                const points = scored ? row.detail?.total_points : null;
-
-                return (
-                  <button
-                    key={row.day.id}
-                    type="button"
-                    onClick={() => setIndex(i)}
-                    aria-current={selected ? "step" : undefined}
-                    className={`flex min-w-[130px] max-w-[190px] flex-1 basis-[145px] items-center gap-2 border px-3 py-2.5 text-left transition ${
-                      selected
-                        ? "border-ember/50 bg-ember/[0.09]"
-                        : "border-transparent hover:border-white/10 hover:bg-white/[0.03]"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center font-stat text-xs font-bold tabular-nums ${
-                        selected
-                          ? "bg-ember text-char"
-                          : scored
-                            ? "bg-white/10 text-bone"
-                            : "border border-white/10 text-ash"
-                      }`}
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block truncate font-stat text-[10px] uppercase tracking-wide ${
-                          selected ? "text-bone" : "text-ash"
-                        }`}
-                      >
-                        {shortDayName(row.day.name)}
-                      </span>
-                      <span className="mt-1 block font-stat text-[9px] uppercase tracking-wider text-ash/60">
-                        {scored
-                          ? "Scored"
-                          : row.detail
-                            ? "Submitted"
-                            : deadlinePassed(row.day)
-                              ? "No prediction"
-                              : "Not submitted"}
-                      </span>
-                    </span>
-                    <span
-                      className={`shrink-0 font-display text-lg font-black tabular-nums ${
-                        scored ? "text-ember" : "text-ash/50"
-                      }`}
-                    >
-                      {points ?? "–"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           <div className="mt-6 grid gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl">
@@ -362,6 +296,78 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
 
       <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start">
         <aside className="order-2 space-y-4 lg:sticky lg:top-24 lg:order-1">
+          <div className="border border-white/10 bg-char-2">
+            <div className="border-b border-white/10 px-4 py-3">
+              <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+                Your tournament
+              </p>
+              <h2 className="mt-1 font-display text-xl font-black uppercase">
+                Matchdays
+              </h2>
+            </div>
+
+            <div className="max-h-[24rem] space-y-1 overflow-y-auto p-2">
+              {rows.map((row, i) => {
+                const selected = i === index;
+                const scored = !!row.detail?.scored;
+                const points = scored ? row.detail?.total_points : null;
+
+                return (
+                  <button
+                    key={row.day.id}
+                    type="button"
+                    onClick={() => setIndex(i)}
+                    aria-current={selected ? "step" : undefined}
+                    className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
+                      selected
+                        ? "border-ember/50 bg-ember/[0.09]"
+                        : "border-transparent hover:border-white/10 hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center font-stat text-xs font-bold tabular-nums ${
+                        selected
+                          ? "bg-ember text-char"
+                          : scored
+                            ? "bg-white/10 text-bone"
+                            : "border border-white/10 text-ash"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block truncate font-stat text-[10px] uppercase tracking-wide ${
+                          selected ? "text-bone" : "text-ash"
+                        }`}
+                      >
+                        {shortDayName(row.day.name)}
+                      </span>
+                      <span className="mt-1 block font-stat text-[9px] uppercase tracking-wider text-ash/60">
+                        {scored
+                          ? "Scored"
+                          : row.detail
+                            ? "Submitted"
+                            : deadlinePassed(row.day)
+                              ? "No prediction"
+                              : "Not submitted"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span
+                        className={`font-display text-lg font-black tabular-nums ${
+                          scored ? "text-ember" : "text-ash/50"
+                        }`}
+                      >
+                        {points ?? "–"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="border border-white/10 bg-char-2 p-4">
             <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
               Quick links
@@ -576,7 +582,10 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                       )}
                       <div className="space-y-2">
                         {bySession[session].map((entry) => (
-                          <PredictionResultRow key={entry.id} entry={entry} />
+                          <PredictionResultRow
+                            key={entry.id}
+                            entry={entry}
+                          />
                         ))}
                       </div>
                     </div>
