@@ -3,6 +3,11 @@
 import Link from "next/link";
 import type { FantasyLeague } from "@/types";
 
+/** Where the player stands in one league (loaded separately from the league list). */
+export type LeagueStanding =
+  | { status: "ok"; rank: number; total: number; points: number }
+  | { status: "error" };
+
 function LeagueCard({
   league,
   active,
@@ -14,9 +19,9 @@ function LeagueCard({
 }) {
   return (
     <li
-      className={`group relative flex min-h-[170px] flex-col justify-between overflow-hidden border transition-all duration-200 sm:min-h-[190px] ${
+      className={`group relative flex min-h-[170px] flex-col justify-between overflow-hidden border transition-colors duration-200 sm:min-h-[190px] ${
         active
-          ? "border-ember bg-ember/[0.09] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.15)]"
+          ? "border-ember bg-ember/[0.09]"
           : "border-bone/10 bg-char-2 hover:border-bone/30 hover:bg-char-3"
       }`}
     >
@@ -28,16 +33,13 @@ function LeagueCard({
       >
         <span className="flex w-full items-center justify-between gap-2">
           <span
-            className={`h-1 w-8 transition-all duration-200 ${
+            className={`h-1 w-8 transition-colors ${
               active ? "bg-ember" : "bg-bone/20 group-hover:bg-ember/70"
             }`}
           />
+
           {league.type === "private" && (
-            <span
-              role="img"
-              aria-label="Private league"
-              className="text-sm text-ash"
-            >
+            <span role="img" aria-label="Private league" className="text-sm">
               🔒
             </span>
           )}
@@ -58,13 +60,17 @@ function LeagueCard({
             active ? "text-ember" : "text-ash"
           }`}
         >
-          {active ? "Selected" : league.type === "private" ? "Private" : "League"}
+          {active
+            ? "Selected"
+            : league.type === "private"
+              ? "Private"
+              : "League"}
         </span>
 
         <Link
           href={`/fantasy/leagues/${encodeURIComponent(league.slug)}`}
           aria-label={`Open the ${league.name} league page`}
-          className="flex h-8 w-8 items-center justify-center border border-bone/10 text-lg text-ash transition-colors hover:border-ember hover:bg-ember hover:text-char"
+          className="flex h-8 w-8 shrink-0 items-center justify-center border border-bone/10 text-lg text-ash transition-colors hover:border-ember hover:bg-ember hover:text-char"
         >
           →
         </Link>
@@ -118,11 +124,12 @@ function Section({
 export default function LeagueOverview({
   leagues,
   active,
+  standings: _standings,
   onSelect,
 }: {
   leagues: FantasyLeague[];
   active: string;
-  standings: Record<string, unknown>;
+  standings: Record<string, LeagueStanding>;
   onSelect: (slug: string) => void;
 }) {
   const general = leagues.filter((league) => league.type !== "private");
