@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Flag from "@/components/ui/Flag";
 import Skeleton from "@/components/ui/Skeleton";
 import FantasyPlayerCard from "@/components/fantasy/FantasyPlayerCard";
+import FantasyDayPlayerDetails from "@/components/fantasy/FantasyDayPlayerDetails";
 import {
   getDays,
   getFantasyLeagueStandings,
@@ -15,6 +16,7 @@ import {
   getTournament,
 } from "@/lib/api";
 import { getName, getToken } from "@/lib/auth";
+import { chipName } from "@/lib/chips";
 import { shortDayName } from "@/lib/dayMenu";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 
@@ -221,6 +223,9 @@ export default function FantasyPointsPage() {
   const profile = day ? profiles[day.id] : undefined;
   const cards = useMemo(() => toCards(profile), [profile]);
   const total = dayPoints(profile);
+  const scored = ((profile?.breakdown ?? []) as any[]).some(
+    (b) => b.final_points !== 0,
+  );
 
   const lastDay = lastIdx >= 0 ? days[lastIdx] : undefined;
   const lastMatchdayPoints = lastDay
@@ -597,6 +602,18 @@ export default function FantasyPointsPage() {
                   }}
                 />
               ))}
+            </div>
+          )}
+
+          {day && cards.length > 0 && (
+            <div className="mt-10">
+              <FantasyDayPlayerDetails
+                dayId={day.id}
+                selections={profile?.selections ?? []}
+                breakdown={profile?.breakdown ?? []}
+                scored={scored}
+                chipName={profile?.chip ? chipName(profile.chip) : undefined}
+              />
             </div>
           )}
         </section>
