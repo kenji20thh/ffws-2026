@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -235,23 +236,23 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
             </span>
           </div>
 
-          <div className="mt-5 border border-white/10 bg-char-2">
-            <div className="flex items-center justify-center gap-3 border-b border-white/10 px-3 py-3">
+          <div className="mt-5 border border-ember/40 bg-ember/[0.06] shadow-[0_0_24px_rgba(255,90,31,0.08)]">
+            <div className="flex items-center justify-center gap-4 px-4 py-5 sm:px-6 sm:py-6">
               <button
                 type="button"
                 onClick={() => go(-1)}
                 disabled={index === 0}
                 aria-label="Previous matchday"
-                className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+                className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-char-2 text-2xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
               >
                 ←
               </button>
 
               <div className="min-w-0 flex-1 text-center">
-                <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash sm:text-[10px]">
+                <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember sm:text-xs">
                   Matchday {String(index + 1).padStart(2, "0")} / {rows.length}
                 </p>
-                <h2 className="mt-1 break-words font-display text-lg font-black uppercase leading-tight sm:text-2xl">
+                <h2 className="mt-2 break-words font-display text-xl font-black uppercase leading-tight text-bone sm:text-3xl">
                   {day.name}
                 </h2>
               </div>
@@ -261,29 +262,10 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                 onClick={() => go(1)}
                 disabled={index >= rows.length - 1}
                 aria-label="Next matchday"
-                className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+                className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-char-2 text-2xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
               >
                 →
               </button>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 p-3">
-              {rows.map((row, i) => (
-                <button
-                  key={row.day.id}
-                  type="button"
-                  onClick={() => setIndex(i)}
-                  aria-current={i === index ? "step" : undefined}
-                  aria-label={`Matchday ${i + 1}: ${row.day.name}`}
-                  className={`min-w-12 border px-3 py-2 font-stat text-xs font-bold tabular-nums transition ${
-                    i === index
-                      ? "border-ember bg-ember text-char"
-                      : "border-white/10 text-ash hover:border-ember hover:text-bone"
-                  }`}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </button>
-              ))}
             </div>
           </div>
 
