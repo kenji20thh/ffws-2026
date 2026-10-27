@@ -235,6 +235,58 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
             </span>
           </div>
 
+          <div className="mt-5 border border-white/10 bg-char-2">
+            <div className="flex items-center justify-center gap-3 border-b border-white/10 px-3 py-3">
+              <button
+                type="button"
+                onClick={() => go(-1)}
+                disabled={index === 0}
+                aria-label="Previous matchday"
+                className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                ←
+              </button>
+
+              <div className="min-w-0 flex-1 text-center">
+                <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash sm:text-[10px]">
+                  Matchday {String(index + 1).padStart(2, "0")} / {rows.length}
+                </p>
+                <h2 className="mt-1 break-words font-display text-lg font-black uppercase leading-tight sm:text-2xl">
+                  {day.name}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => go(1)}
+                disabled={index >= rows.length - 1}
+                aria-label="Next matchday"
+                className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
+              >
+                →
+              </button>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2 p-3">
+              {rows.map((row, i) => (
+                <button
+                  key={row.day.id}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  aria-current={i === index ? "step" : undefined}
+                  aria-label={`Matchday ${i + 1}: ${row.day.name}`}
+                  className={`min-w-12 border px-3 py-2 font-stat text-xs font-bold tabular-nums transition ${
+                    i === index
+                      ? "border-ember bg-ember text-char"
+                      : "border-white/10 text-ash hover:border-ember hover:text-bone"
+                  }`}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-6 grid gap-7 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <h1 className="font-display text-4xl font-black uppercase leading-[0.92] tracking-tight sm:text-6xl">
@@ -289,7 +341,9 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
           <Stat
             label="Best day"
             value={summary.best?.detail?.total_points ?? "–"}
-            detail={summary.best ? shortDayName(summary.best.day.name) : "no score yet"}
+            detail={
+              summary.best ? shortDayName(summary.best.day.name) : "no score yet"
+            }
           />
         </div>
       </header>
@@ -389,37 +443,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
 
         <section className="order-1 min-w-0 lg:order-2">
           <div className="border border-white/10 bg-char-2">
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-4 sm:px-5">
-              <button
-                type="button"
-                onClick={() => go(-1)}
-                disabled={index === 0}
-                aria-label="Previous matchday"
-                className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
-              >
-                ←
-              </button>
-
-              <div className="min-w-0 flex-1 text-center">
-                <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash sm:text-[10px]">
-                  Matchday {String(index + 1).padStart(2, "0")} / {rows.length}
-                </p>
-                <h2 className="mt-1 break-words font-display text-lg font-black uppercase leading-tight sm:text-2xl">
-                  {day.name}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => go(1)}
-                disabled={index >= rows.length - 1}
-                aria-label="Next matchday"
-                className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/10 text-xl transition hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:opacity-25"
-              >
-                →
-              </button>
-            </div>
-
             <div className="grid grid-cols-2 divide-x divide-white/10">
               <div className="px-4 py-4 sm:px-5">
                 <p className="font-stat text-[9px] uppercase tracking-[0.16em] text-ash">
@@ -520,7 +543,10 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
                     {PREDICTION_LEGEND.map((item) => (
-                      <div key={item.label} className="flex items-center gap-2">
+                      <div
+                        key={item.label}
+                        className="flex items-center gap-2"
+                      >
                         <span
                           aria-hidden="true"
                           className="h-2.5 w-2.5 shrink-0"
@@ -582,10 +608,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                       )}
                       <div className="space-y-2">
                         {bySession[session].map((entry) => (
-                          <PredictionResultRow
-                            key={entry.id}
-                            entry={entry}
-                          />
+                          <PredictionResultRow key={entry.id} entry={entry} />
                         ))}
                       </div>
                     </div>
