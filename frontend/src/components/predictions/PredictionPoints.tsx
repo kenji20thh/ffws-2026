@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -223,7 +224,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
           aria-hidden="true"
           className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-ember/[0.07] blur-3xl"
         />
-
         <div className="relative px-5 py-6 sm:px-8 sm:py-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember sm:text-xs">
@@ -236,8 +236,11 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
             </span>
           </div>
 
-          {/* Matchday selector: immediately below the Prediction centre label. */}
+          {/* Matchday selector: centered directly below the header label. */}
           <div className="mt-5 border-y border-white/10 py-4">
+            <p className="mb-3 text-center font-stat text-[10px] uppercase tracking-[0.2em] text-ash">
+              Matchdays
+            </p>
             <div className="flex flex-wrap justify-center gap-2">
               {rows.map((row, i) => {
                 const selected = i === index;
@@ -250,10 +253,10 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                     type="button"
                     onClick={() => setIndex(i)}
                     aria-current={selected ? "step" : undefined}
-                    className={`flex min-w-0 flex-1 basis-[140px] max-w-[190px] items-center gap-2 border px-3 py-2.5 text-left transition ${
+                    className={`flex min-w-[130px] max-w-[190px] flex-1 basis-[145px] items-center gap-2 border px-3 py-2.5 text-left transition ${
                       selected
                         ? "border-ember/50 bg-ember/[0.09]"
-                        : "border-white/10 hover:border-ember/40 hover:bg-white/[0.03]"
+                        : "border-transparent hover:border-white/10 hover:bg-white/[0.03]"
                     }`}
                   >
                     <span
@@ -267,7 +270,6 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                     >
                       {String(i + 1).padStart(2, "0")}
                     </span>
-
                     <span className="min-w-0 flex-1">
                       <span
                         className={`block truncate font-stat text-[10px] uppercase tracking-wide ${
@@ -276,7 +278,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                       >
                         {shortDayName(row.day.name)}
                       </span>
-                      <span className="mt-1 block truncate font-stat text-[9px] uppercase tracking-wider text-ash/60">
+                      <span className="mt-1 block font-stat text-[9px] uppercase tracking-wider text-ash/60">
                         {scored
                           ? "Scored"
                           : row.detail
@@ -286,9 +288,8 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                               : "Not submitted"}
                       </span>
                     </span>
-
                     <span
-                      className={`shrink-0 font-display text-base font-black tabular-nums ${
+                      className={`shrink-0 font-display text-lg font-black tabular-nums ${
                         scored ? "text-ember" : "text-ash/50"
                       }`}
                     >
@@ -354,11 +355,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
           <Stat
             label="Best day"
             value={summary.best?.detail?.total_points ?? "–"}
-            detail={
-              summary.best
-                ? shortDayName(summary.best.day.name)
-                : "no score yet"
-            }
+            detail={summary.best ? shortDayName(summary.best.day.name) : "no score yet"}
           />
         </div>
       </header>
@@ -579,10 +576,7 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
                       )}
                       <div className="space-y-2">
                         {bySession[session].map((entry) => (
-                          <PredictionResultRow
-                            key={entry.id}
-                            entry={entry}
-                          />
+                          <PredictionResultRow key={entry.id} entry={entry} />
                         ))}
                       </div>
                     </div>
