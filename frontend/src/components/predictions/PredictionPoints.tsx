@@ -13,6 +13,7 @@ import {
 } from "@/lib/predictionSessions";
 import type { PredictionDetail, TournamentDay } from "@/types";
 import PredictionResultRow from "./PredictionResultRow";
+import PredictionSummary from "./PredictionSummary";
 
 type DayState = PredictionDetail | null; // null = no prediction for that day
 
@@ -178,10 +179,31 @@ export default function PredictionPoints({ days }: { days: TournamentDay[] }) {
           Predictions stay hidden until this day locks
         </p>
       ) : !detail.scored ? (
-        <EmptyState
-          title="Not scored yet"
-          hint="Points appear after the organizers enter the day's results."
-        />
+        <div className="space-y-4">
+          <p className="font-stat text-xs uppercase tracking-widest text-ash">
+            Not scored yet. Points appear after the organizers enter the
+            day&apos;s results.
+          </p>
+          <div
+            className={
+              sessions.length > 1
+                ? "grid gap-6 lg:grid-cols-2 lg:items-start"
+                : "space-y-6"
+            }
+          >
+            {sessions.map((sn) => (
+              <PredictionSummary
+                key={sn}
+                order={bySession[sn].map((e) => e.team)}
+                heading={
+                  sessions.length > 1
+                    ? `Session ${sn}`
+                    : "Submitted prediction"
+                }
+              />
+            ))}
+          </div>
+        </div>
       ) : (
         <div
           className={
