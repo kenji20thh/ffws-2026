@@ -1,116 +1,74 @@
+"use client";
+
 import Link from "next/link";
 import type { FantasyLeague } from "@/types";
-
-/** Where the player stands in one league (loaded separately from the league list). */
-export type LeagueStanding =
-  | { status: "ok"; rank: number; total: number; points: number }
-  | { status: "error" };
-
-/** Rank 1 of 100 -> 1 ("Top 1%"). Rounded up and never below 1%. */
-export function topPercent(rank: number, total: number): number {
-  if (total <= 0) return 100;
-  return Math.min(100, Math.max(1, Math.ceil((rank / total) * 100)));
-}
-
-function Standing({ standing, teams }: { standing: LeagueStanding | undefined; teams: number }) {
-  if (!standing) {
-    // still loading
-    return (
-      <div aria-hidden="true" className="flex flex-col items-end gap-2">
-        <div className="h-7 w-20 animate-pulse bg-bone/10" />
-        <div className="h-3 w-14 animate-pulse bg-bone/10" />
-      </div>
-    );
-  }
-
-  if (standing.status === "error") {
-    return (
-      <div className="text-right">
-        <p className="font-display text-3xl font-black leading-none text-ash">–</p>
-        <p className="mt-1 font-stat text-[0.625rem] uppercase tracking-widest text-ash">Unavailable</p>
-      </div>
-    );
-  }
-
-  // Only member: a percentage would just say "Top 100%"
-  if (standing.total < 2) {
-    return (
-      <div className="text-right">
-        <p className="font-display text-2xl font-black uppercase leading-none text-bone">Solo</p>
-        <p className="mt-1 font-stat text-[0.625rem] uppercase tracking-widest text-ash">
-          #{standing.rank} of {standing.total || teams}
-        </p>
-      </div>
-    );
-  }
-
-  const pct = topPercent(standing.rank, standing.total);
-
-  return (
-    <div className="text-right">
-      <p
-        className={`font-display text-3xl font-black uppercase leading-none tabular-nums ${
-          pct <= 10 ? "text-ember" : "text-bone"
-        }`}
-      >
-        Top {pct}%
-      </p>
-      <p className="mt-1 font-stat text-[0.625rem] uppercase tracking-widest text-ash">
-        #{standing.rank} of {standing.total}
-      </p>
-    </div>
-  );
-}
 
 function LeagueCard({
   league,
   active,
-  standing,
   onSelect,
 }: {
   league: FantasyLeague;
   active: boolean;
-  standing: LeagueStanding | undefined;
   onSelect: () => void;
 }) {
   return (
     <li
-      className={`flex items-stretch border transition-colors ${
-        active ? "border-ember bg-ember/10" : "border-bone/10 bg-char-2 hover:border-bone/30"
+      className={`group relative flex min-h-[170px] flex-col justify-between overflow-hidden border transition-all duration-200 sm:min-h-[190px] ${
+        active
+          ? "border-ember bg-ember/[0.09] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.15)]"
+          : "border-bone/10 bg-char-2 hover:border-bone/30 hover:bg-char-3"
       }`}
     >
       <button
         type="button"
         aria-pressed={active}
         onClick={onSelect}
-        className="flex min-w-0 flex-1 items-center justify-between gap-4 px-5 py-4 text-left"
+        className="flex min-h-0 flex-1 flex-col items-start p-4 text-left sm:p-5"
       >
-        <span className="min-w-0">
-          <span className="flex items-center gap-2">
-            {league.type === "private" && (
-              <span role="img" aria-label="Private league" className="text-base">
-                🔒
-              </span>
-            )}
-            <span className="truncate font-display text-2xl font-black uppercase leading-none">
-              {league.name}
+        <span className="flex w-full items-center justify-between gap-2">
+          <span
+            className={`h-1 w-8 transition-all duration-200 ${
+              active ? "bg-ember" : "bg-bone/20 group-hover:bg-ember/70"
+            }`}
+          />
+          {league.type === "private" && (
+            <span
+              role="img"
+              aria-label="Private league"
+              className="text-sm text-ash"
+            >
+              🔒
             </span>
-          </span>
-          <span className="mt-1 block font-stat text-[0.625rem] uppercase tracking-widest text-ash">
-            {league.teams} {league.teams === 1 ? "player" : "players"}
-          </span>
+          )}
         </span>
 
-        <Standing standing={standing} teams={league.teams} />
+        <span className="mt-6 line-clamp-3 break-words font-display text-xl font-black uppercase leading-tight text-bone sm:text-2xl">
+          {league.name}
+        </span>
+
+        <span className="mt-3 font-stat text-[10px] uppercase tracking-[0.16em] text-ash sm:text-[11px]">
+          {league.teams} {league.teams === 1 ? "player" : "players"}
+        </span>
       </button>
 
-      <Link
-        href={`/fantasy/leagues/${encodeURIComponent(league.slug)}`}
-        aria-label={`Open the ${league.name} league page`}
-        className="flex w-12 shrink-0 items-center justify-center border-l border-bone/10 font-stat text-lg text-ash transition-colors hover:bg-char-3 hover:text-ember"
-      >
-        →
-      </Link>
+      <div className="flex items-center justify-between border-t border-bone/[0.08] px-4 py-3 sm:px-5">
+        <span
+          className={`font-stat text-[9px] uppercase tracking-[0.2em] ${
+            active ? "text-ember" : "text-ash"
+          }`}
+        >
+          {active ? "Selected" : league.type === "private" ? "Private" : "League"}
+        </span>
+
+        <Link
+          href={`/fantasy/leagues/${encodeURIComponent(league.slug)}`}
+          aria-label={`Open the ${league.name} league page`}
+          className="flex h-8 w-8 items-center justify-center border border-bone/10 text-lg text-ash transition-colors hover:border-ember hover:bg-ember hover:text-char"
+        >
+          →
+        </Link>
+      </div>
     </li>
   );
 }
@@ -120,33 +78,33 @@ function Section({
   empty,
   leagues,
   active,
-  standings,
   onSelect,
 }: {
   title: string;
   empty: string;
   leagues: FantasyLeague[];
   active: string;
-  standings: Record<string, LeagueStanding>;
   onSelect: (slug: string) => void;
 }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-3 flex items-center gap-3 font-stat text-[0.6875rem] uppercase tracking-[0.3em] text-ember">
+      <h2 className="mb-4 flex items-center gap-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember sm:text-[11px] sm:tracking-[0.3em]">
         {title}
         <span className="h-px flex-1 bg-bone/15" />
+        <span className="text-ash">{leagues.length}</span>
       </h2>
 
       {leagues.length === 0 ? (
-        <p className="border border-dashed border-bone/15 px-5 py-4 font-stat text-xs text-ash">{empty}</p>
+        <p className="border border-dashed border-bone/15 px-4 py-5 font-stat text-xs text-ash">
+          {empty}
+        </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {leagues.map((league) => (
             <LeagueCard
               key={league.slug}
               league={league}
               active={league.slug === active}
-              standing={standings[league.slug]}
               onSelect={() => onSelect(league.slug)}
             />
           ))}
@@ -156,37 +114,35 @@ function Section({
   );
 }
 
-/** Every league the player is in, split into general (Global + region) and private. */
+/** Displays all leagues in a compact card grid, separated by league type. */
 export default function LeagueOverview({
   leagues,
   active,
-  standings,
   onSelect,
 }: {
   leagues: FantasyLeague[];
   active: string;
-  standings: Record<string, LeagueStanding>;
+  standings: Record<string, unknown>;
   onSelect: (slug: string) => void;
 }) {
-  const general = leagues.filter((l) => l.type !== "private");
-  const priv = leagues.filter((l) => l.type === "private");
+  const general = leagues.filter((league) => league.type !== "private");
+  const priv = leagues.filter((league) => league.type === "private");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <Section
         title="General leagues"
-        empty="No general league yet."
+        empty="No general leagues yet."
         leagues={general}
         active={active}
-        standings={standings}
         onSelect={onSelect}
       />
+
       <Section
         title="Private leagues"
         empty="You haven't joined a private league yet. Create or join one below."
         leagues={priv}
         active={active}
-        standings={standings}
         onSelect={onSelect}
       />
     </div>
