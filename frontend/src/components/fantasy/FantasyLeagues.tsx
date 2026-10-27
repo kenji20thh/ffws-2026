@@ -1,16 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getMyFantasyLeagues, getMyFantasyTeam, leavePrivateLeague } from "@/lib/api";
+import {
+  ApiError,
+  getFantasyLeagueStandings,
+  getFantasyStandings,
+  getMyFantasyLeagues,
+  getMyFantasyTeam,
+  leavePrivateLeague,
+} from "@/lib/api";
 import { clearSession, getToken } from "@/lib/auth";
 import Flag from "@/components/ui/Flag";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 import FantasyLeaderboard from "./FantasyLeaderboard";
 import LeagueCodeCard from "./LeagueCodeCard";
+import LeagueOverview, { type LeagueStanding } from "./LeagueOverview";
 import PrivateLeagueTools from "./PrivateLeagueTools";
 
 type State =
@@ -34,6 +42,9 @@ export default function FantasyLeagues({
   const [active, setActive] = useState<string>("");
   const [inviteCode, setInviteCode] = useState("");
   const [actionError, setActionError] = useState("");
+  // where the player stands in each league (slug -> rank / total), loaded after the list
+  const [standings, setStandings] = useState<Record<string, LeagueStanding>>({});
+  const requested = useRef<Set<string>>(new Set());
 
   // An invite link looks like /fantasy/leagues?join=ABCD2345 and prefills the join form.
   useEffect(() => {
@@ -95,6 +106,44 @@ export default function FantasyLeagues({
     };
   }, [tournamentId]);
 
+  // Rank in every league the player is in. One request per league; leagues that were already
+  // loaded are not requested again (so joining a new league only fetches that one).
+  const readyTeamId = state.kind === "ready" ? state.team.id : null;
+  const readyLeagues = state.kind === "ready" ? state.leagues : null;
+  useEffect(() => {
+    if (readyTeamId === null || !readyLeagues) return;
+
+    for (const league of readyLeagues) {
+      if (requested.current.has(league.slug)) continue;
+      requested.current.add(league.slug);
+
+      const load =
+        league.type === "global"
+          ? getFantasyStandings(tournamentId)
+          : getFantasyLeagueStandings(tournamentId, league.slug);
+
+      load
+        .then((rows) => {
+          const mine = rows.find((r) => r.fantasy_team_id === readyTeamId);
+          const result: LeagueStanding = mine
+            ? {
+                status: "ok",
+                // ties share a rank: 1 + number of teams with strictly more points
+                rank: 1 + rows.filter((r) => r.points > mine.points).length,
+                total: rows.length,
+                points: mine.points,
+              }
+            : { status: "error" };
+          setStandings((prev) => ({ ...prev, [league.slug]: result }));
+        })
+        .catch(() => {
+          // allow a retry next time, and show "unavailable" meanwhile
+          requested.current.delete(league.slug);
+          setStandings((prev) => ({ ...prev, [league.slug]: { status: "error" } }));
+        });
+    }
+  }, [readyTeamId, readyLeagues, tournamentId]);
+
   if (state.kind === "loading") return <Skeleton className="h-64" />;
   if (state.kind === "error") return <ErrorState message={state.message} />;
 
@@ -147,6 +196,13 @@ export default function FantasyLeagues({
         </p>
       </div>
 
+      <LeagueOverview
+        leagues={leagues}
+        active={current?.slug ?? ""}
+        standings={standings}
+        onSelect={setActive}
+      />
+
       <PrivateLeagueTools
         tournamentId={tournamentId}
         initialCode={inviteCode}
@@ -162,24 +218,6 @@ export default function FantasyLeagues({
           {actionError}
         </p>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        {leagues.map((l) => (
-          <button
-            key={l.slug}
-            onClick={() => setActive(l.slug)}
-            className={`chamfer-sm px-5 py-2 font-display text-lg font-bold uppercase tracking-wider ${
-              current?.slug === l.slug
-                ? "bg-ember text-char"
-                : "border border-bone/20 text-bone/70 hover:text-ember"
-            }`}
-          >
-            {l.type === "private" && <span aria-label="Private league" className="mr-2 text-base">🔒</span>}
-            {l.name}
-            <span className="ml-2 font-stat text-xs font-normal opacity-70">{l.teams}</span>
-          </button>
-        ))}
-      </div>
 
       {current?.type === "private" && current.code && (
         <LeagueCodeCard
