@@ -34,6 +34,7 @@ type updatePlayerRequest struct {
 	PhotoURL string `json:"photo_url"`
 	Region   string `json:"region"`
 	Country  string `json:"country"`
+	IsCaptain *bool `json:"is_captain"` // nil = leave unchanged
 }
 
 type updateRoomRequest struct {
@@ -146,6 +147,9 @@ func (h *PlayerHandler) Update(c *gin.Context) {
 	}
 	if req.Country != "" {
 		player.Country = req.Country
+	}
+	if req.IsCaptain != nil {
+		player.IsCaptain = *req.IsCaptain
 	}
 
 	if err := h.repo.Update(player); err != nil {

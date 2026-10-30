@@ -34,6 +34,7 @@ type createPlayerRequest struct {
 	PhotoURL string `json:"photo_url"`
 	Region   string `json:"region"`
 	Country  string `json:"country"`
+	IsCaptain bool  `json:"is_captain"`
 }
 
 func (h *PlayerHandler) Create(c *gin.Context) {
@@ -51,6 +52,7 @@ func (h *PlayerHandler) Create(c *gin.Context) {
 		PhotoURL: req.PhotoURL,
 		Region:   req.Region,
 		Country:  req.Country,
+		IsCaptain: req.IsCaptain,
 	}
 
 	if err := h.repo.Create(&player); err != nil {
