@@ -7,7 +7,8 @@ type Player struct {
 	TeamID    uint      `gorm:"not null;index" json:"team_id"`
 	IGN       string    `gorm:"not null" json:"ign"`
 	RealName  string    `json:"real_name"`
-	Role      string    `json:"role"` // captain, player, sub
+	Role      string    `json:"role"` // in-game role: rusher, bomber, support, sniper
+	IsCaptain bool      `gorm:"not null;default:false" json:"is_captain"` // team captain (max one per team)
 	PhotoURL  string    `json:"photo_url"`
 	Region    string    `json:"region"`
 	Country   string    `json:"country"`
