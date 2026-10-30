@@ -8,6 +8,7 @@ const FANTASY_TABS = [
   { href: "/fantasy/points", label: "Points" },
   { href: "/fantasy/leagues", label: "Leagues" },
   { href: "/fantasy/leaderboard", label: "Leaderboard" },
+  { href: "/fantasy/form", label: "Player Form" },
   { href: "/fantasy/prices", label: "Price Changes" },
   { href: "/fantasy/schedule", label: "Schedule" },
   { href: "/fantasy/regulation", label: "Regulation" },
