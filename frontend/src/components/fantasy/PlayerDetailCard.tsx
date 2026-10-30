@@ -5,6 +5,7 @@ import Monogram from "@/components/ui/Monogram";
 import Skeleton from "@/components/ui/Skeleton";
 import { getPlayerProfile } from "@/lib/api";
 import Flag from "@/components/ui/Flag";
+import FormArrow from "@/components/ui/FormArrow";
 import { fantasyRoomPoints } from "@/lib/scoring";
 import type { PlayerProfile, PoolPlayer } from "@/types";
 
@@ -72,7 +73,14 @@ export default function PlayerDetailCard({ option, onClose, action }: Props) {
           <p className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">
             {option.role} · {option.team_name} · <Flag country={option.country} height={12} /> {option.country}
           </p>
-          <p className="mt-1 font-stat text-lg font-bold tabular-nums text-ember">${option.fantasy_price}</p>
+          <p className="mt-1 flex items-center gap-3 font-stat text-lg font-bold tabular-nums text-ember">
+            ${option.fantasy_price}
+            {option.form ? (
+              <span className="flex items-center gap-1.5 text-[10px] font-normal uppercase tracking-widest text-ash">
+                Form <FormArrow form={option.form} size={22} />
+              </span>
+            ) : null}
+          </p>
         </div>
         <button
           type="button"

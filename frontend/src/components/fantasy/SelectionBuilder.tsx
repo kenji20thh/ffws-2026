@@ -569,6 +569,7 @@ export default function SelectionBuilder({
                         price={player.fantasy_price}
                         selected={true}
                         captain={isCaptain}
+                        form={player.form}
                         stats={{
                           kills: score?.kills,
                           fantasyPoints: score?.final_points,

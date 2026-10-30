@@ -1,5 +1,6 @@
 import Monogram from "@/components/ui/Monogram";
 import Flag from "@/components/ui/Flag";
+import FormArrow from "@/components/ui/FormArrow";
 import type { PoolPlayer } from "@/types";
 
 interface Props {
@@ -42,6 +43,7 @@ export default function PlayerListRow({ option, selected, active, blockedReason,
           <Flag country={option.country} height={12} /> {option.country}
         </p>
       </div>
+      <FormArrow form={option.form} size={20} className="ml-2" />
       <span className="ml-3 font-stat text-sm font-bold tabular-nums text-ember">${option.fantasy_price}</span>
       <button
         type="button"

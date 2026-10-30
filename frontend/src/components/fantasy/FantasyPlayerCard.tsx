@@ -5,6 +5,7 @@ import { Barlow_Condensed, Bebas_Neue } from "next/font/google";
 import { useState, type CSSProperties } from "react";
 import { cardArtwork, isCardTier, tierFromPrice } from "@/lib/cardTier";
 import Flag from "@/components/ui/Flag";
+import FormArrow from "@/components/ui/FormArrow";
 import type { Player, Team } from "@/types";
 
 const condensed = Barlow_Condensed({
@@ -42,6 +43,8 @@ export interface FantasyPlayerCardProps {
   tier?: string;
   selected?: boolean;
   captain?: boolean;
+  /** 1 (cold) to 5 (hot); shown as a coloured arrow. 0/undefined shows nothing. */
+  form?: number;
   onClick?: () => void;
   disabled?: boolean;
   size?: FantasyCardSize;
@@ -139,6 +142,7 @@ export default function FantasyPlayerCard({
   tier,
   selected = false,
   captain = false,
+  form,
   onClick,
   disabled = false,
   size = "fluid",
@@ -448,6 +452,22 @@ export default function FantasyPlayerCard({
           <StatBlock value={statValue(stats?.fantasyPoints)} label="Points" />
         </div>
       )}
+
+      {/* Form arrow (under the captain marker, right edge) */}
+      {form ? (
+        <div
+          className="pointer-events-none absolute z-[4] flex items-center justify-center rounded-full"
+          style={{
+            right: "7%",
+            top: "14%",
+            width: "11%",
+            aspectRatio: "1",
+            background: "rgba(11,9,8,.72)",
+          }}
+        >
+          <FormArrow form={form} size="72%" />
+        </div>
+      ) : null}
 
       {/* Captain marker */}
       {captain && (
