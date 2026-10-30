@@ -240,6 +240,23 @@ func (h *FantasyHandler) GetPlayerPool(c *gin.Context) {
 
 }
 
+// GetPlayerForm lists every player ranked by total fantasy points, with their form.
+func (h *FantasyHandler) GetPlayerForm(c *gin.Context) {
+	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tournament_id query param is required"})
+		return
+	}
+
+	entries, err := h.repo.GetPlayerFormTable(uint(tournamentID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player form"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": entries})
+}
+
 func (h *FantasyHandler) GetStandings(c *gin.Context) {
 	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
 	if err != nil {

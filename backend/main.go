@@ -150,6 +150,7 @@ func main() {
 		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
 
 		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
+		api.GET("/fantasy/player-form", fantasyHandler.GetPlayerForm)
 		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
 		api.GET("/fantasy/teams/:id", middleware.OptionalAuth(cfg), fantasyHandler.GetTeamProfile)
 

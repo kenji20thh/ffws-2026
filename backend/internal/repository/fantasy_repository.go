@@ -545,26 +545,21 @@ func (r *FantasyRepository) GetPlayerPool(tournamentID, dayID uint) ([]FantasyPl
 	return options, nil
 }
 
-// playerForms rates every player's recent form (1-5) from the fantasy points
-// they scored on the last service.FormMatchdays matchdays that were played
-// before dayID. A matchday counts once it has any results. Players who have
-// not scored in those matchdays are left out (no form).
-func (r *FantasyRepository) playerForms(tournamentID, dayID uint) (map[uint]int, error) {
-	var currentOrder int
-	if err := r.db.Raw(`SELECT day_order FROM tournament_days WHERE id = ? AND tournament_id = ?`,
-		dayID, tournamentID).Scan(&currentOrder).Error; err != nil {
-		return nil, err
-	}
+// fantasyStatRow is one player's result in one room, with the matchday it belongs to.
+type fantasyStatRow struct {
+	PlayerID   uint
+	DayID      uint
+	DayOrder   int
+	Kills      int
+	FirstBlood bool
+	Placement  int
+}
 
-	var stats []struct {
-		PlayerID   uint
-		DayID      uint
-		DayOrder   int
-		Kills      int
-		FirstBlood bool
-		Placement  int
-	}
-	if err := r.db.Raw(`
+// fantasyStatRows loads every player result from matchdays ordered before
+// beforeOrder (pass a huge number for "all matchdays").
+func (r *FantasyRepository) fantasyStatRows(tournamentID uint, beforeOrder int) ([]fantasyStatRow, error) {
+	var rows []fantasyStatRow
+	err := r.db.Raw(`
 		SELECT prs.player_id, r.tournament_day_id AS day_id, td.day_order,
 		       prs.kills, prs.first_blood, rtr.placement
 		FROM player_room_stats prs
@@ -572,16 +567,25 @@ func (r *FantasyRepository) playerForms(tournamentID, dayID uint) (map[uint]int,
 		JOIN room_team_results rtr ON rtr.room_id = prs.room_id AND rtr.team_id = prs.team_id
 		JOIN tournament_days td ON td.id = r.tournament_day_id
 		WHERE td.tournament_id = ? AND td.day_order < ?
-	`, tournamentID, currentOrder).Scan(&stats).Error; err != nil {
-		return nil, err
-	}
-	if len(stats) == 0 {
-		return map[uint]int{}, nil
-	}
+	`, tournamentID, beforeOrder).Scan(&rows).Error
+	return rows, err
+}
 
-	// the most recent matchdays that have results
+// fantasyRowPoints is the fantasy points one room result is worth (no captain multiplier).
+func fantasyRowPoints(s fantasyStatRow) int {
+	pts := s.Kills*service.FantasyKillPoints + service.FantasyPlacementPoints(s.Placement)
+	if s.FirstBlood {
+		pts += service.FantasyFirstBloodPoints
+	}
+	return pts
+}
+
+// recentAverages is each player's average fantasy points per matchday over the
+// last service.FormMatchdays matchdays that have results. Players who did not
+// play in those matchdays are left out.
+func recentAverages(rows []fantasyStatRow) map[uint]float64 {
 	dayOrders := map[uint]int{}
-	for _, s := range stats {
+	for _, s := range rows {
 		dayOrders[s.DayID] = s.DayOrder
 	}
 	recent := make([]uint, 0, len(dayOrders))
@@ -597,18 +601,12 @@ func (r *FantasyRepository) playerForms(tournamentID, dayID uint) (map[uint]int,
 		counted[id] = true
 	}
 
-	// fantasy points per (player, matchday), then the average over matchdays played
 	type playerDay struct{ playerID, dayID uint }
 	perDay := map[playerDay]int{}
-	for _, s := range stats {
-		if !counted[s.DayID] {
-			continue
+	for _, s := range rows {
+		if counted[s.DayID] {
+			perDay[playerDay{s.PlayerID, s.DayID}] += fantasyRowPoints(s)
 		}
-		pts := s.Kills*service.FantasyKillPoints + service.FantasyPlacementPoints(s.Placement)
-		if s.FirstBlood {
-			pts += service.FantasyFirstBloodPoints
-		}
-		perDay[playerDay{s.PlayerID, s.DayID}] += pts
 	}
 	sum := map[uint]int{}
 	days := map[uint]int{}
@@ -620,8 +618,86 @@ func (r *FantasyRepository) playerForms(tournamentID, dayID uint) (map[uint]int,
 	for id, total := range sum {
 		avg[id] = float64(total) / float64(days[id])
 	}
+	return avg
+}
 
-	return service.FormRatings(avg), nil
+// playerForms rates every player's recent form (1-5) as it stands before
+// dayID. Players with no points in the recent matchdays are left out (no form).
+func (r *FantasyRepository) playerForms(tournamentID, dayID uint) (map[uint]int, error) {
+	var currentOrder int
+	if err := r.db.Raw(`SELECT day_order FROM tournament_days WHERE id = ? AND tournament_id = ?`,
+		dayID, tournamentID).Scan(&currentOrder).Error; err != nil {
+		return nil, err
+	}
+	rows, err := r.fantasyStatRows(tournamentID, currentOrder)
+	if err != nil {
+		return nil, err
+	}
+	return service.FormRatings(recentAverages(rows)), nil
+}
+
+// PlayerFormEntry is one row of the player form table.
+type PlayerFormEntry struct {
+	PlayerID        uint    `json:"player_id"`
+	IGN             string  `json:"ign"`
+	Role            string  `json:"role"`
+	Country         string  `json:"country"`
+	TeamID          uint    `json:"team_id"`
+	TeamName        string  `json:"team_name"`
+	TeamTag         string  `json:"team_tag"`
+	FantasyPrice    int     `json:"fantasy_price"`
+	TotalPoints     int     `json:"total_points"`
+	MatchdaysPlayed int     `json:"matchdays_played"`
+	RecentAvg       float64 `json:"recent_avg"` // avg points per matchday over the form window
+	Form            int     `json:"form"`       // 1 (cold) to 5 (hot); 0 = no form yet
+}
+
+// GetPlayerFormTable lists every player in the tournament, ranked by total
+// fantasy points (highest first), with their current form.
+func (r *FantasyRepository) GetPlayerFormTable(tournamentID uint) ([]PlayerFormEntry, error) {
+	var entries []PlayerFormEntry
+	if err := r.db.Raw(`
+		SELECT p.id AS player_id, p.ign, p.role, p.country,
+		       t.id AS team_id, t.name AS team_name, t.tag AS team_tag, p.fantasy_price
+		FROM players p
+		JOIN teams t ON t.id = p.team_id
+		WHERE t.tournament_id = ?
+	`, tournamentID).Scan(&entries).Error; err != nil {
+		return nil, err
+	}
+
+	rows, err := r.fantasyStatRows(tournamentID, 1<<30)
+	if err != nil {
+		return nil, err
+	}
+
+	total := map[uint]int{}
+	playedDays := map[uint]map[uint]bool{}
+	for _, s := range rows {
+		total[s.PlayerID] += fantasyRowPoints(s)
+		if playedDays[s.PlayerID] == nil {
+			playedDays[s.PlayerID] = map[uint]bool{}
+		}
+		playedDays[s.PlayerID][s.DayID] = true
+	}
+	avg := recentAverages(rows)
+	forms := service.FormRatings(avg)
+
+	for i := range entries {
+		id := entries[i].PlayerID
+		entries[i].TotalPoints = total[id]
+		entries[i].MatchdaysPlayed = len(playedDays[id])
+		entries[i].RecentAvg = avg[id]
+		entries[i].Form = forms[id]
+	}
+
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].TotalPoints != entries[j].TotalPoints {
+			return entries[i].TotalPoints > entries[j].TotalPoints
+		}
+		return entries[i].IGN < entries[j].IGN
+	})
+	return entries, nil
 }
 
 // CountTeams returns how many fantasy teams are in a league for a tournament
