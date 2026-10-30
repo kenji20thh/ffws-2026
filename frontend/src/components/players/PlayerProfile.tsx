@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { PlayerProfile as PlayerProfileData } from "@/types";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Flag from "@/components/ui/Flag";
+import CaptainBadge from "@/components/ui/CaptainBadge";
 
 type PlayerProfileProps = {
 player: PlayerProfileData["player"];
@@ -87,6 +88,10 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
         )}
 
         <span>{roleLabel(player.role)}</span>
+
+        {player.is_captain && (
+          <CaptainBadge size="md" className="ml-3 !text-black" />
+        )}
       </div>
 
       {/* IGN */}
