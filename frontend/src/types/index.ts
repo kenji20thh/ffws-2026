@@ -181,11 +181,21 @@ export interface PlayerDayStats {
   rooms: PlayerRoomStats[];
 }
 
+export interface PlayerWeaponStat {
+  weapon_id: number;
+  name: string;
+  category: string;
+  image_url: string;
+  kills: number;
+  percentage: number; // share of the kills recorded with weapons, 0-100
+}
+
 export interface PlayerProfile {
   player: PlayerProfilePlayer;
   team: PlayerProfileTeam;
   overall: PlayerOverallStats;
   days: PlayerDayStats[];
+  top_weapons?: PlayerWeaponStat[];
 }
 
 export interface TeamStaff {
