@@ -250,6 +250,7 @@ export interface FantasyPlayerOption {
   team_name: string;
   team_tag: string;
   fantasy_price: number;
+  form?: number; // 1 (cold) to 5 (hot); 0/missing = no form yet
 }
 
 // A pool entry plus the artwork needed by the pick screen (merged client-side from teams/players).
