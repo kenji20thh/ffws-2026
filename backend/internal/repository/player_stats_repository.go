@@ -26,18 +26,18 @@ type PlayerLeaderboardEntry struct {
 
 func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error) {
 	var player struct {
-		ID       uint
-		TeamID   uint
-		IGN      string
-		RealName string
-		Role     string
+		ID        uint
+		TeamID    uint
+		IGN       string
+		RealName  string
+		Role      string
 		IsCaptain bool
-		PhotoURL string
-		Region   string
-		Country  string
-		TeamName string
-		TeamTag  string
-		LogoURL  string
+		PhotoURL  string
+		Region    string
+		Country   string
+		TeamName  string
+		TeamTag   string
+		LogoURL   string
 	}
 
 	err := r.db.Raw(`
@@ -69,14 +69,14 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 
 	profile := &PlayerProfile{
 		Player: PlayerProfilePlayer{
-			ID:       player.ID,
-			IGN:      player.IGN,
-			RealName: player.RealName,
-			Role:     player.Role,
+			ID:        player.ID,
+			IGN:       player.IGN,
+			RealName:  player.RealName,
+			Role:      player.Role,
 			IsCaptain: player.IsCaptain,
-			PhotoURL: player.PhotoURL,
-			Region:   player.Region,
-			Country:  player.Country,
+			PhotoURL:  player.PhotoURL,
+			Region:    player.Region,
+			Country:   player.Country,
 		},
 		Team: PlayerProfileTeam{
 			ID:      player.TeamID,
@@ -86,7 +86,8 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			Region:  player.Region,
 			Country: player.Country,
 		},
-		Days: []PlayerDayStats{},
+		Days:       []PlayerDayStats{},
+		TopWeapons: []PlayerWeaponStat{},
 	}
 
 	// Find the tournament this player's team belongs to.
@@ -332,6 +333,11 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 				100
 	}
 
+	// Weapons are an extra: if they cannot be loaded the profile still works.
+	if weapons, werr := r.topWeapons(playerID, 3); werr == nil && weapons != nil {
+		profile.TopWeapons = weapons
+	}
+
 	return profile, nil
 }
 
@@ -371,17 +377,57 @@ type PlayerProfile struct {
 	Team    PlayerProfileTeam   `json:"team"`
 	Overall PlayerOverallStats  `json:"overall"`
 	Days    []PlayerDayStats    `json:"days"`
+	// The player's three most-used weapons (empty until weapon kills are entered).
+	TopWeapons []PlayerWeaponStat `json:"top_weapons"`
+}
+
+// PlayerWeaponStat is one weapon in a player's top weapons.
+type PlayerWeaponStat struct {
+	WeaponID   uint    `json:"weapon_id"`
+	Name       string  `json:"name"`
+	Category   string  `json:"category"`
+	ImageURL   string  `json:"image_url"`
+	Kills      int     `json:"kills"`
+	Percentage float64 `json:"percentage"` // share of the kills recorded with weapons
+}
+
+// topWeapons returns the player's most-used weapons by kills, with each one's
+// share of all the weapon kills recorded for that player.
+func (r *PlayerStatsRepository) topWeapons(playerID uint, limit int) ([]PlayerWeaponStat, error) {
+	var rows []PlayerWeaponStat
+	err := r.db.Raw(`
+		SELECT w.id AS weapon_id, w.name, w.category, w.image_url, pwk.kills
+		FROM player_weapon_kills pwk
+		JOIN weapons w ON w.id = pwk.weapon_id
+		WHERE pwk.player_id = ? AND pwk.kills > 0
+		ORDER BY pwk.kills DESC, w.name ASC
+	`, playerID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	total := 0
+	for _, w := range rows {
+		total += w.Kills
+	}
+	for i := range rows {
+		rows[i].Percentage = float64(rows[i].Kills) / float64(total) * 100
+	}
+	if len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 type PlayerProfilePlayer struct {
-	ID       uint   `json:"id"`
-	IGN      string `json:"ign"`
-	RealName string `json:"real_name"`
-	Role     string `json:"role"`
-	IsCaptain bool  `json:"is_captain"`
-	PhotoURL string `json:"photo_url"`
-	Region   string `json:"region"`
-	Country  string `json:"country"`
+	ID        uint   `json:"id"`
+	IGN       string `json:"ign"`
+	RealName  string `json:"real_name"`
+	Role      string `json:"role"`
+	IsCaptain bool   `json:"is_captain"`
+	PhotoURL  string `json:"photo_url"`
+	Region    string `json:"region"`
+	Country   string `json:"country"`
 }
 
 type PlayerProfileTeam struct {
