@@ -2,7 +2,17 @@ import Image from "next/image";
 import Flag from "@/components/ui/Flag";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Monogram from "@/components/ui/Monogram";
+import CaptainBadge from "@/components/ui/CaptainBadge";
 import type { TeamPlayerStats } from "@/types";
+
+// Puts the captain in the middle of the lineup; everyone else keeps their order.
+function captainInMiddle(players: TeamPlayerStats[]): TeamPlayerStats[] {
+  const captain = players.find((p) => p.is_captain);
+  if (!captain) return players;
+  const others = players.filter((p) => p !== captain);
+  others.splice(Math.floor(players.length / 2), 0, captain);
+  return others;
+}
 
 export default function PlayerRosterRow({
   players,
@@ -17,16 +27,21 @@ export default function PlayerRosterRow({
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-      {players.map((p) => {
+    <div className="flex flex-wrap justify-center gap-4">
+      {captainInMiddle(players).map((p) => {
         const icon = roleIcon(p.role);
         return (
           <a
             key={p.player_id}
             href={`/players/${p.player_id}`}
-            className="group chamfer block border border-bone/10 bg-char-2 transition-colors hover:border-ember"
+            className={`group chamfer block w-[calc(50%-0.5rem)] border bg-char-2 transition-colors hover:border-ember sm:w-[calc(33.333%-0.667rem)] lg:w-[calc(20%-0.8rem)] ${
+              p.is_captain ? "border-ember" : "border-bone/10"
+            }`}
           >
             <div className="relative aspect-[3/4] w-full overflow-hidden bg-char-3">
+              {p.is_captain && (
+                <CaptainBadge className="absolute left-0 top-0 z-10" />
+              )}
               {p.photo_url ? (
                 <Image
                   src={p.photo_url}

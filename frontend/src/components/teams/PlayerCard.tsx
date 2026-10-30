@@ -1,5 +1,6 @@
 import Monogram from "@/components/ui/Monogram";
 import Flag from "@/components/ui/Flag";
+import CaptainBadge from "@/components/ui/CaptainBadge";
 import type { Player } from "@/types";
 
 export default function PlayerCard({ player }: { player: Player }) {
@@ -10,7 +11,10 @@ return ( <div className="chamfer border border-bone/10 bg-char-2 p-5"> <div clas
 
 
   <div className="mt-4 flex items-center justify-between font-stat text-[11px] uppercase tracking-widest text-ash">
-    <span className="text-ember">{player.role || "player"}</span>
+    <span className="flex items-center gap-2 text-ember">
+      {player.role || "player"}
+      {player.is_captain && <CaptainBadge />}
+    </span>
 
     <span>
       <Flag country={player.country} height={14} /> {player.country}
