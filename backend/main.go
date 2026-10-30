@@ -102,6 +102,9 @@ func main() {
 	teamStaffRepo := repository.NewTeamStaffRepository(database)
 	teamStaffHandler := handlers.NewTeamStaffHandler(teamStaffRepo)
 
+	weaponRepo := repository.NewWeaponRepository(database)
+	weaponHandler := handlers.NewWeaponHandler(weaponRepo)
+
 	teamStatsRepo := repository.NewTeamStatsRepository(database)
 	teamStatsHandler := handlers.NewTeamStatsHandler(teamStatsRepo)
 
@@ -141,6 +144,7 @@ func main() {
 		api.GET("/teams/:id", teamHandler.GetByID)
 		api.GET("/players", playerHandler.List)
 		api.GET("/players/:id", playerHandler.GetByID)
+		api.GET("/weapons", weaponHandler.List)
 		api.GET("/tournament-days", tournamentDayHandler.List)
 		api.GET("/tournament-days/:id", tournamentDayHandler.GetByID)
 		api.GET("/tournament-days/:id/teams", tournamentDayHandler.GetTeams)
@@ -196,6 +200,8 @@ func main() {
 				adminOnly.PUT("/teams/:id", teamHandler.Update)
 				adminOnly.DELETE("/teams/:id", teamHandler.Delete)
 				adminOnly.PUT("/players/:id", playerHandler.Update)
+				adminOnly.GET("/players/:id/weapons", weaponHandler.GetPlayerKills)
+				adminOnly.PUT("/players/:id/weapons", weaponHandler.SetPlayerKills)
 				adminOnly.DELETE("/players/:id", playerHandler.Delete)
 				adminOnly.PUT("/rooms/:id", roomHandler.Update)
 				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)
