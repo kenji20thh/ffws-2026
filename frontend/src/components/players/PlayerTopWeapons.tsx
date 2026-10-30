@@ -1,4 +1,33 @@
+"use client";
+
+import { useState } from "react";
 import type { PlayerWeaponStat } from "@/types";
+
+/**
+ * Weapon pictures live in public/weapons. In the database, image_url can be just the
+ * file name ("file.png"), the path ("/weapons/file.png") or a full https:// link.
+ */
+function weaponImageSrc(url: string): string | undefined {
+  const u = url.trim();
+  if (!u) return undefined;
+  if (/^https?:\/\//i.test(u) || u.startsWith("/")) return u;
+  return `/weapons/${u}`;
+}
+
+function WeaponImage({ url, name }: { url: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = weaponImageSrc(url);
+  if (!src || failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      onError={() => setFailed(true)}
+      className="h-14 w-24 shrink-0 object-contain"
+    />
+  );
+}
 
 /** The player's top 3 weapons by kills. Renders nothing until weapon kills are entered. */
 export default function PlayerTopWeapons({ weapons }: { weapons: PlayerWeaponStat[] }) {
@@ -44,14 +73,7 @@ export default function PlayerTopWeapons({ weapons }: { weapons: PlayerWeaponSta
                   )}
                 </div>
 
-                {w.image_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={w.image_url}
-                    alt={w.name}
-                    className="h-14 w-24 shrink-0 object-contain"
-                  />
-                )}
+                <WeaponImage url={w.image_url} name={w.name} />
               </div>
 
               <div className="mt-6 flex items-baseline gap-2">
