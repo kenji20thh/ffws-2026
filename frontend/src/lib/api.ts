@@ -19,6 +19,7 @@ import type {
   FantasyChip,
   FantasyLeague,
   FantasyPlayerOption,
+  PlayerFormEntry,
   FantasySelectionResponse,
   FantasyStanding,
   FantasyTeam,
@@ -192,6 +193,9 @@ export const getFantasyPlayerPool = (tournamentId: number, dayId: number) =>
   list<FantasyPlayerOption>(
     `/fantasy/players?tournament_id=${tournamentId}&day_id=${dayId}`,
   );
+
+export const getPlayerFormTable = (tournamentId: number) =>
+  list<PlayerFormEntry>(`/fantasy/player-form?tournament_id=${tournamentId}`);
 
 export const getFantasyStandings = (tournamentId: number, dayId?: number) =>
   list<FantasyStanding>(

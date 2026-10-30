@@ -253,6 +253,22 @@ export interface FantasyPlayerOption {
   form?: number; // 1 (cold) to 5 (hot); 0/missing = no form yet
 }
 
+// One row of the player form table (/fantasy/player-form), already ranked by total points.
+export interface PlayerFormEntry {
+  player_id: number;
+  ign: string;
+  role: string;
+  country: string;
+  team_id: number;
+  team_name: string;
+  team_tag: string;
+  fantasy_price: number;
+  total_points: number;
+  matchdays_played: number;
+  recent_avg: number; // avg points per matchday over the recent matchdays
+  form: number; // 1 (cold) to 5 (hot); 0 = no form yet
+}
+
 // A pool entry plus the artwork needed by the pick screen (merged client-side from teams/players).
 export interface PoolPlayer extends FantasyPlayerOption {
   photo_url?: string;
