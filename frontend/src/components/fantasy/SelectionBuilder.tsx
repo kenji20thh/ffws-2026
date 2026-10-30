@@ -506,8 +506,8 @@ export default function SelectionBuilder({
                             )
                             ?.focus();
                         }}
-                        className="group relative w-full overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{ aspectRatio: "932 / 1480" }}
+                        className="group relative mx-auto w-full max-w-[240px] overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ aspectRatio: "1024 / 1536" }}
                       >
                         <div className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char-2 font-stat text-[10px] font-bold text-ash">
                           0{index + 1}
