@@ -31,6 +31,7 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 		IGN      string
 		RealName string
 		Role     string
+		IsCaptain bool
 		PhotoURL string
 		Region   string
 		Country  string
@@ -46,6 +47,7 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			p.ign,
 			p.real_name,
 			p.role,
+			p.is_captain,
 			p.photo_url,
 			p.region,
 			p.country,
@@ -71,6 +73,7 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			IGN:      player.IGN,
 			RealName: player.RealName,
 			Role:     player.Role,
+			IsCaptain: player.IsCaptain,
 			PhotoURL: player.PhotoURL,
 			Region:   player.Region,
 			Country:  player.Country,
@@ -375,6 +378,7 @@ type PlayerProfilePlayer struct {
 	IGN      string `json:"ign"`
 	RealName string `json:"real_name"`
 	Role     string `json:"role"`
+	IsCaptain bool  `json:"is_captain"`
 	PhotoURL string `json:"photo_url"`
 	Region   string `json:"region"`
 	Country  string `json:"country"`

@@ -45,10 +45,11 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 		ID       uint
 		IGN      string
 		Role     string
+		IsCaptain bool
 		PhotoURL string
 		Country  string
 	}
-	if err := r.db.Raw(`SELECT id, ign, role, photo_url, country FROM players WHERE team_id = ? ORDER BY id ASC`, teamID).
+	if err := r.db.Raw(`SELECT id, ign, role, is_captain, photo_url, country FROM players WHERE team_id = ? ORDER BY id ASC`, teamID).
 		Scan(&players).Error; err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 			participation = float64(playerKills[p.ID]) / float64(teamTotalKills) * 100
 		}
 		profile.Players = append(profile.Players, TeamPlayerStats{
-			PlayerID: p.ID, IGN: p.IGN, Role: p.Role, PhotoURL: p.PhotoURL, Country: p.Country,
+			PlayerID: p.ID, IGN: p.IGN, Role: p.Role, IsCaptain: p.IsCaptain, PhotoURL: p.PhotoURL, Country: p.Country,
 			TotalKills: playerKills[p.ID], RoomsPlayed: playerRooms[p.ID], KillParticipation: participation,
 		})
 	}
@@ -187,6 +188,7 @@ type TeamPlayerStats struct {
 	PlayerID          uint    `json:"player_id"`
 	IGN               string  `json:"ign"`
 	Role              string  `json:"role"`
+	IsCaptain         bool    `json:"is_captain"`
 	PhotoURL          string  `json:"photo_url"`
 	Country           string  `json:"country"`
 	TotalKills        int     `json:"total_kills"`

@@ -15,7 +15,23 @@ func NewPlayerRepository(db *gorm.DB) *PlayerRepository {
 }
 
 func (r *PlayerRepository) Create(p *models.Player) error {
-	return r.db.Create(p).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(p).Error; err != nil {
+			return err
+		}
+		return clearOtherCaptains(tx, p)
+	})
+}
+
+// clearOtherCaptains keeps a team to a single captain: when p is the captain,
+// every other player on the same team loses the flag.
+func clearOtherCaptains(tx *gorm.DB, p *models.Player) error {
+	if !p.IsCaptain {
+		return nil
+	}
+	return tx.Model(&models.Player{}).
+		Where("team_id = ? AND id <> ? AND is_captain = ?", p.TeamID, p.ID, true).
+		Update("is_captain", false).Error
 }
 
 func (r *PlayerRepository) FindByTeam(teamID uint) ([]models.Player, error) {
@@ -34,7 +50,12 @@ func (r *PlayerRepository) FindByID(id uint) (*models.Player, error) {
 }
 
 func (r *PlayerRepository) Update(p *models.Player) error {
-	return r.db.Save(p).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(p).Error; err != nil {
+			return err
+		}
+		return clearOtherCaptains(tx, p)
+	})
 }
 
 func (r *PlayerRepository) Delete(id uint) error {
