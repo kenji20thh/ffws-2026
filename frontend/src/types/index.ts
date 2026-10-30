@@ -14,6 +14,7 @@ export interface Player {
   ign: string;
   real_name: string;
   role: string;
+  is_captain?: boolean;
   photo_url: string;
   region: string;
   country: string;
@@ -129,6 +130,7 @@ export interface PlayerProfilePlayer {
   ign: string;
   real_name: string;
   role: string;
+  is_captain?: boolean;
   photo_url: string;
   region: string;
   country: string;
@@ -206,7 +208,7 @@ export interface TeamOverallStats {
 }
 
 export interface TeamPlayerStats {
-  player_id: number; ign: string; role: string; photo_url: string; country: string;
+  player_id: number; ign: string; role: string; is_captain?: boolean; photo_url: string; country: string;
   total_kills: number; rooms_played: number; kill_participation: number;
 }
 
