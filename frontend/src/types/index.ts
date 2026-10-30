@@ -181,6 +181,19 @@ export interface PlayerDayStats {
   rooms: PlayerRoomStats[];
 }
 
+export interface Weapon {
+  id: number;
+  name: string;
+  category: string;
+  image_url: string;
+}
+
+// Admin: kills a player got with one weapon.
+export interface PlayerWeaponKill {
+  weapon_id: number;
+  kills: number;
+}
+
 export interface PlayerWeaponStat {
   weapon_id: number;
   name: string;
