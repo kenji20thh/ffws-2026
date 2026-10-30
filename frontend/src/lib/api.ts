@@ -20,6 +20,8 @@ import type {
   FantasyLeague,
   FantasyPlayerOption,
   PlayerFormEntry,
+  PlayerWeaponKill,
+  Weapon,
   FantasySelectionResponse,
   FantasyStanding,
   FantasyTeam,
@@ -181,6 +183,22 @@ export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
   request<{ message: string }>(
     `/rooms/${roomId}/results`,
     { method: "POST", body: JSON.stringify({ teams }) },
+    true,
+  );
+export const getWeapons = () => list<Weapon>("/weapons");
+export const getPlayerWeaponKills = async (playerId: number) => {
+  const res = await request<{ data: PlayerWeaponKill[] | null }>(
+    `/players/${playerId}/weapons`,
+    {},
+    true,
+  );
+  return res.data ?? [];
+};
+/** Replaces the player's whole weapon list: send every weapon that has kills. */
+export const savePlayerWeaponKills = (playerId: number, weapons: PlayerWeaponKill[]) =>
+  request<{ message: string }>(
+    `/players/${playerId}/weapons`,
+    { method: "PUT", body: JSON.stringify({ weapons }) },
     true,
   );
 export const getTeamProfile = (teamId: number) =>
