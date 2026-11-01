@@ -130,7 +130,7 @@ export default function SelectionBuilder({
   const usedTeamIds = new Set(pickedOptions.map((o) => o.team_id));
 
   const unlimited = chip === "limitless";
-  const sameTeamAllowed = chip === "Duo_stack";
+  const sameTeamAllowed = chip === "duo_stack";
   const multiplier = captainMultiplier(chip);
 
   const teamCounts = new Map<number, number>();
@@ -178,7 +178,7 @@ export default function SelectionBuilder({
     setChip(next);
     setError("");
 
-    if (next === "Duo_stack") return;
+    if (next === "duo_stack") return;
 
     if (pickedOptions.some((o) => (teamCounts.get(o.team_id) ?? 0) > 1)) {
       setSlots((prev) => {
@@ -535,6 +535,7 @@ export default function SelectionBuilder({
 
                   return (
                     <div
+                      key={`player-${player.player_id}`}
                       className={`relative mx-auto w-full max-w-[240px] min-w-0 ${
                         isCaptain
                           ? "drop-shadow-[0_0_12px_var(--card-glow-color)]"
