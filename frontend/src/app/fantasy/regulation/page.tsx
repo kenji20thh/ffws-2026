@@ -267,14 +267,14 @@ export default function FantasyRegulationPage() {
             <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-3">
               <ExampleCard
                 number="01"
-                price={24}
+                price={30}
                 role="Rusher"
                 card="legendary"
                 captain
               />
-              <ExampleCard number="02" price={22} role="Support" card="diamond" />
-              <ExampleCard number="03" price={19} role="Sniper" card="gold" />
-              <ExampleCard number="04" price={17} role="Flex" card="silver" />
+              <ExampleCard number="02" price={25} role="Support" card="diamond" />
+              <ExampleCard number="03" price={20} role="Sniper" card="gold" />
+              <ExampleCard number="04" price={14} role="Flex" card="silver" />
             </div>
             <div className="mt-5 border-t border-bone/10 pt-4">
               <div className="flex items-center justify-between gap-3">
