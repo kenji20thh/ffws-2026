@@ -1,8 +1,16 @@
+import FantasySubNav from "@/components/fantasy/FantasySubNav";
+import GameModeSwitch from "@/components/fantasy/GameModeSwitch";
 
 export default function FantasyLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <GameModeSwitch />
+      <FantasySubNav />
+      {children}
+    </>
+  );
 }
