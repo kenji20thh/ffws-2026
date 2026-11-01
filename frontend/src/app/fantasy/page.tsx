@@ -247,34 +247,7 @@ export default async function FantasyIndexPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative mt-14 overflow-hidden border border-ember/30 bg-[#1a120e] p-6 sm:p-10">
-        <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-ember/15 blur-3xl" />
-        <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div>
-            <Eyebrow>Your move</Eyebrow>
-            <h2 className="mt-2 font-display text-3xl font-black uppercase sm:text-4xl">Ready to play?</h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-bone/60">
-              Create a free account, set up your team profile and jump into
-              both games.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-3 bg-ember px-5 py-3 font-stat text-xs font-bold uppercase tracking-[0.16em] text-char transition hover:bg-bone"
-            >
-              Register <span aria-hidden="true">↗</span>
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center border border-bone/25 px-5 py-3 font-stat text-xs font-bold uppercase tracking-[0.16em] text-bone transition hover:border-ember hover:text-ember"
-            >
-              Login
-            </Link>
-          </div>
-        </div>
-      </section>
+      
     </main>
   );
 }
