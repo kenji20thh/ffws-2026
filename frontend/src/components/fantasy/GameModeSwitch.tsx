@@ -8,7 +8,7 @@ export default function GameModeSwitch() {
   const isPrediction = pathname.startsWith("/fantasy/predict");
 
   const tabClass = (active: boolean) =>
-    `flex-1 border-b-4 px-6 py-4 text-center font-display text-2xl font-black uppercase tracking-wider transition-colors ${
+    `flex-1 border-b-4 px-3 py-3 text-center font-display text-lg font-black sm:px-6 sm:py-4 sm:text-2xl uppercase tracking-wider transition-colors ${
       active ? "border-ember bg-char-2 text-ember" : "border-transparent text-bone/50 hover:text-bone"
     }`;
 
