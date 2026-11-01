@@ -323,7 +323,7 @@ export interface FantasyPlayerDayScore {
   final_points: number;
 }
 
-export type FantasyChip = "triple_captain" | "limitless" | "Duo_stack";
+export type FantasyChip = "triple_captain" | "limitless" | "duo_stack";
 
 export interface FantasyChipUse {
   chip: FantasyChip;
