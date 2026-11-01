@@ -31,6 +31,11 @@ const stat = Martian_Mono({
 export const metadata: Metadata = {
   title: "Free Fire World Series 2026",
   description: "Teams, players, schedule and live standings for FFWS 2026.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
   openGraph: {
     title: "Free Fire World Series 2026",
     description: "Teams, players, schedule and live standings for FFWS 2026.",
