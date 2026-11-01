@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import Monogram from "@/components/ui/Monogram";
 import { getTeams, getTournament } from "@/lib/api";
@@ -375,7 +376,7 @@ function RoomScoring() {
         How room points work
       </h3>
       <p className="mt-2 text-xs leading-relaxed text-ash">
-        A team's day ranking uses its total points across the rooms it plays.
+        A team&apos;s day ranking uses its total points across the rooms it plays.
         Each room contributes placement points plus one point per kill.
       </p>
 
@@ -428,7 +429,7 @@ function Deadlines() {
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-ash">
           Create your ranking or change your submitted prediction as many times
-          as you like before that day's lock time.
+          as you like before that day&apos;s lock time.
         </p>
       </div>
       <div className="bg-char-2 p-5 sm:p-6">
@@ -440,7 +441,7 @@ function Deadlines() {
           Your picks are locked
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-ash">
-          You cannot create or change a prediction for that day. Other players'
+          You cannot create or change a prediction for that day. Other players&apos;
           predictions remain hidden until the day locks.
         </p>
       </div>
@@ -682,12 +683,12 @@ export default async function PredictionRegulationPage() {
         <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
           FFWS 2026 · Prediction regulations
         </p>
-        <a
+        <Link
           href="/fantasy/predict/make"
           className="inline-flex items-center justify-center gap-3 self-start bg-ember px-5 py-3 font-stat text-[10px] font-bold uppercase tracking-widest text-char transition hover:bg-bone sm:self-auto"
         >
           Make a prediction <span aria-hidden="true">↗</span>
-        </a>
+        </Link>
       </footer>
     </main>
   );
