@@ -26,7 +26,7 @@ export const CHIPS: ChipInfo[] = [
     image: "/chips/limitless.png",
   },
   {
-    id: "Duo_stack",
+    id: "duo_stack",
     name: "Duo Stack",
     short: "2 from one team",
     description: "You may pick two players from the same team (one pair only).",
