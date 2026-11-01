@@ -24,7 +24,9 @@ const dayLabel = (d: any): string =>
   d.name ?? d.label ?? d.title ?? `Day ${d.id}`;
 
 const dayStarted = (d: any): boolean =>
-  d.deadline ? new Date(d.deadline).getTime() <= Date.now() : false;
+  d.deadline && !String(d.deadline).startsWith("0001")
+    ? new Date(d.deadline).getTime() <= Date.now()
+    : false;
 
 type CardData = {
   key: string | number;
