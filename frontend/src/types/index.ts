@@ -154,6 +154,7 @@ export interface PlayerOverallStats {
   booyahs: number;
   first_bloods: number;
   kill_participation: number;
+  headshot_kills: number; // entered by an admin, 0 until entered
 }
 
 export interface PlayerRoomStats {
