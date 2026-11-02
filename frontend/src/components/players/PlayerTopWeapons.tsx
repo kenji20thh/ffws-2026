@@ -29,24 +29,54 @@ function WeaponImage({ url, name }: { url: string; name: string }) {
   );
 }
 
-/** The player's top 3 weapons by kills. Renders nothing until weapon kills are entered. */
-export default function PlayerTopWeapons({ weapons }: { weapons: PlayerWeaponStat[] }) {
-  if (weapons.length === 0) return null;
+/**
+ * The player's headshot kills and top 3 weapons by kills.
+ * Renders nothing until an admin enters headshot kills or weapon kills.
+ */
+export default function PlayerTopWeapons({
+  weapons,
+  headshotKills = 0,
+}: {
+  weapons: PlayerWeaponStat[];
+  headshotKills?: number;
+}) {
+  if (weapons.length === 0 && headshotKills <= 0) return null;
 
   return (
     <section className="relative overflow-hidden bg-[#111111] text-white">
       <div className="relative mx-auto max-w-[1440px] px-5 pb-14 md:px-10 md:pb-16 lg:px-16 lg:pb-20">
-        <div className="mb-8 border-b border-white/[0.08] pb-5">
-          <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
-            <span className="h-[2px] w-5 bg-[#f5c542]/60" />
-            Arsenal
-          </p>
-          <h2 className="text-3xl font-black uppercase tracking-[-0.04em] md:text-4xl">
-            Top Weapons
-          </h2>
+        <div className="mb-8 flex items-end justify-between gap-4 border-b border-white/[0.08] pb-5">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
+              <span className="h-[2px] w-5 bg-[#f5c542]/60" />
+              Arsenal
+            </p>
+            <h2 className="text-3xl font-black uppercase tracking-[-0.04em] md:text-4xl">
+              Top Weapons
+            </h2>
+          </div>
+
+          {headshotKills > 0 && (
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
+                Headshot Kills
+              </p>
+              <p className="mt-1 text-4xl font-black leading-none tracking-[-0.05em] text-[#f5c542] md:text-5xl">
+                {headshotKills}
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 border-l border-t border-white/[0.08] md:grid-cols-3">
+        {weapons.length === 0 && (
+          <p className="text-sm text-white/40">No weapon stats yet.</p>
+        )}
+
+        <div
+          className={`grid grid-cols-1 border-l border-t border-white/[0.08] md:grid-cols-3 ${
+            weapons.length === 0 ? "hidden" : ""
+          }`}
+        >
           {weapons.map((w, i) => (
             <div
               key={w.weapon_id}
