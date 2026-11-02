@@ -19,3 +19,13 @@ type PlayerWeaponKill struct {
 	Player Player `gorm:"foreignKey:PlayerID;constraint:OnDelete:CASCADE" json:"-"`
 	Weapon Weapon `gorm:"foreignKey:WeaponID;constraint:OnDelete:CASCADE" json:"-"`
 }
+
+// PlayerHeadshot is the headshot kills total an admin entered for a player.
+// There is at most one row per player. It is separate from the room results.
+type PlayerHeadshot struct {
+	ID            uint `gorm:"primaryKey" json:"id"`
+	PlayerID      uint `gorm:"not null;uniqueIndex" json:"player_id"`
+	HeadshotKills int  `gorm:"not null;default:0" json:"headshot_kills"`
+
+	Player Player `gorm:"foreignKey:PlayerID;constraint:OnDelete:CASCADE" json:"-"`
+}
