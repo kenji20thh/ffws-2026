@@ -38,6 +38,7 @@ func main() {
 		&models.Player{},
 		&models.Weapon{},
 		&models.PlayerWeaponKill{},
+		&models.PlayerHeadshot{},
 		&models.TeamStaff{},
 		&models.TournamentDay{},
 		&models.TournamentDayTeam{},
