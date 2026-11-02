@@ -241,8 +241,8 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
       ) : (
         <p className="font-stat text-xs uppercase tracking-widest text-ash">
           {multi
-            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder (on phones, hold the ⋮⋮ grip on the left), or use the arrow buttons.`
-            : "Drag a team to reorder (on phones, hold the ⋮⋮ grip on the left), or use the arrow buttons. 1st at the top."}
+            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder (on phones, press and drag the DRAG button on the left), or use the arrow buttons.`
+            : "Drag a team to reorder (on phones, press and drag the DRAG button on the left), or use the arrow buttons. 1st at the top."}
         </p>
       )}
 
