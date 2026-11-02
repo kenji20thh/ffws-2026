@@ -100,12 +100,8 @@ export default function PlayerTopWeapons({
     .sort((a, b) => b.kills - a.kills)
     .slice(0, 3);
 
-  const topWeapon = topWeapons[0];
-  const totalWeaponKills = weapons.reduce((sum, weapon) => sum + weapon.kills, 0);
-
   return (
     <section className="relative overflow-hidden bg-[#0b0c0e] text-white">
-      {/* Ambient background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-30"
@@ -115,6 +111,7 @@ export default function PlayerTopWeapons({
           backgroundSize: "36px 36px",
         }}
       />
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-32 top-0 h-80 w-80 rounded-full bg-[#f5c542]/[0.045] blur-[100px]"
@@ -130,12 +127,14 @@ export default function PlayerTopWeapons({
                 Combat analytics
               </p>
             </div>
+
             <h2 className="text-3xl font-black uppercase leading-none tracking-[-0.055em] sm:text-4xl md:text-5xl">
               Arsenal <span className="text-white/35">&</span> Precision
             </h2>
+
             <p className="mt-3 max-w-lg text-xs leading-5 text-white/40 sm:text-sm">
-              A breakdown of headshot eliminations and the weapons defining
-              this player&apos;s performance.
+              Headshot eliminations and the weapons defining this player&apos;s
+              performance.
             </p>
           </div>
 
@@ -147,18 +146,104 @@ export default function PlayerTopWeapons({
           </div>
         </div>
 
-        
+        {/* Headshot statistics — preserved */}
+        {headshotKills > 0 && (
+          <div className="mb-10">
+            <div className="group relative overflow-hidden border border-[#f5c542]/20 bg-gradient-to-br from-[#211d10] via-[#15140f] to-[#101113] p-5 sm:p-7">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-10 -top-16 h-52 w-52 rounded-full border border-[#f5c542]/[0.07] transition-transform duration-500 group-hover:scale-110"
+              />
 
-        {/* Weapons heading */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-2 -top-8 h-40 w-40 rounded-full border border-[#f5c542]/[0.08]"
+              />
+
+              <div className="relative flex items-center gap-5 sm:gap-7">
+                <div className="relative flex h-[92px] w-[92px] shrink-0 items-center justify-center border border-[#f5c542]/30 bg-[#f5c542]/[0.08] text-[#f5c542] sm:h-28 sm:w-28">
+                  <div className="absolute inset-2 border border-[#f5c542]/10" />
+                  <HeadshotIcon />
+
+                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center border border-[#0b0c0e] bg-[#f5c542] text-[#0b0c0e]">
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    >
+                      <path
+                        d="m4 10 4 4 8-8"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#f5c542]/70">
+                    Precision kills
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-5xl font-black leading-none tracking-[-0.07em] text-white sm:text-6xl">
+                      {headshotKills.toLocaleString()}
+                    </span>
+
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+                      Headshot kills
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-xs text-white/45">
+                    Confirmed headshot eliminations
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative mt-7 border-t border-white/[0.08] pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">
+                    Headshot kill count
+                  </span>
+
+                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#f5c542]">
+                    Recorded stats
+                  </span>
+                </div>
+
+                <div className="mt-3 flex h-1.5 gap-1 overflow-hidden">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`flex-1 ${
+                        i < Math.min(20, Math.ceil(headshotKills / 5))
+                          ? "bg-[#f5c542]"
+                          : "bg-white/[0.08]"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Top weapons — directly follows headshot stats */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f5c542]/75">
               Weapon leaderboard
             </p>
+
             <h3 className="mt-2 text-2xl font-black uppercase tracking-[-0.045em] sm:text-3xl">
               Top Weapons
             </h3>
           </div>
+
           <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/30">
             Ranked by kills
           </p>
@@ -169,6 +254,7 @@ export default function PlayerTopWeapons({
             <p className="text-sm font-bold text-white/60">
               No weapon stats yet
             </p>
+
             <p className="mt-2 text-xs text-white/30">
               Weapon analytics will appear when match statistics are recorded.
             </p>
@@ -177,7 +263,7 @@ export default function PlayerTopWeapons({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {topWeapons.map((weapon, index) => {
               const rank = index + 1;
-              const isFirst = index === 0;
+              const isFirst = rank === 1;
               const percentage = Math.min(
                 100,
                 Math.max(0, Number(weapon.percentage) || 0)
@@ -199,6 +285,7 @@ export default function PlayerTopWeapons({
                   <div className="flex items-start justify-between px-5 pt-5">
                     <div className="flex items-center gap-3">
                       <WeaponRank rank={rank} />
+
                       <div>
                         <p
                           className={`text-[9px] font-extrabold uppercase tracking-[0.2em] ${
@@ -207,6 +294,7 @@ export default function PlayerTopWeapons({
                         >
                           {isFirst ? "Most lethal" : `Rank ${rank}`}
                         </p>
+
                         {weapon.category && (
                           <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
                             {weapon.category}
@@ -219,7 +307,7 @@ export default function PlayerTopWeapons({
                       <div className="flex items-center gap-1.5 border border-[#f5c542]/20 bg-[#f5c542]/[0.08] px-2 py-1 text-[#f5c542]">
                         <TrophyIcon />
                         <span className="text-[8px] font-black uppercase tracking-[0.12em]">
-                          MVP
+                          #1
                         </span>
                       </div>
                     )}
@@ -234,16 +322,19 @@ export default function PlayerTopWeapons({
                           : "border-white/[0.04]"
                       }`}
                     />
+
                     <div
                       aria-hidden="true"
                       className="absolute h-16 w-16 rounded-full border border-white/[0.04]"
                     />
+
                     <div
                       aria-hidden="true"
                       className={`absolute inset-x-8 bottom-5 h-px ${
                         isFirst ? "bg-[#f5c542]/15" : "bg-white/[0.06]"
                       }`}
                     />
+
                     <WeaponImage url={weapon.image_url} name={weapon.name} />
                   </div>
 
@@ -257,6 +348,7 @@ export default function PlayerTopWeapons({
                         <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-white/35">
                           Total kills
                         </p>
+
                         <p
                           className={`mt-1 text-4xl font-black leading-none tracking-[-0.06em] ${
                             isFirst ? "text-[#f5c542]" : "text-white"
@@ -265,18 +357,21 @@ export default function PlayerTopWeapons({
                           {weapon.kills.toLocaleString()}
                         </p>
                       </div>
+
                       <div className="text-right">
                         <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
                           Kill share
                         </p>
+
                         <p className="mt-1 text-xl font-black tracking-[-0.04em]">
                           {weapon.percentage.toFixed(1)}
-                          <span className="ml-0.5 text-sm text-white/45">%</span>
+                          <span className="ml-0.5 text-sm text-white/45">
+                            %
+                          </span>
                         </p>
                       </div>
                     </div>
 
-                    {/* Percentage graph */}
                     <div
                       className="mt-4 h-2 overflow-hidden bg-white/[0.07]"
                       role="progressbar"
@@ -299,6 +394,7 @@ export default function PlayerTopWeapons({
                       <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
                         Weapon contribution
                       </span>
+
                       <span className="text-[9px] font-bold tabular-nums text-white/45">
                         {weapon.kills.toLocaleString()} K
                       </span>
@@ -307,28 +403,6 @@ export default function PlayerTopWeapons({
                 </article>
               );
             })}
-          </div>
-        )}
-
-        {topWeapon && (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border border-white/[0.07] bg-white/[0.02] px-4 py-3 sm:px-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#f5c542]/10 text-[#f5c542]">
-                <TrophyIcon />
-              </div>
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/35">
-                  Leading weapon
-                </p>
-                <p className="mt-1 text-xs font-black uppercase tracking-wide">
-                  {topWeapon.name}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs font-bold text-white/60">
-              {topWeapon.kills.toLocaleString()}{" "}
-              <span className="font-medium text-white/30">kills recorded</span>
-            </p>
           </div>
         )}
       </div>
