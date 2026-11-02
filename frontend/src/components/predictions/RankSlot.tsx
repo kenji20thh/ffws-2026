@@ -29,6 +29,7 @@ const {
 attributes,
 listeners,
 setNodeRef,
+setActivatorNodeRef,
 transform,
 transition,
 isDragging,
@@ -46,17 +47,31 @@ return (
 <div
 ref={setNodeRef}
 style={style}
-{...(disabled ? {} : { ...attributes, ...listeners })}
-className={`chamfer-sm flex items-center gap-4 border p-3 ${
+className={`chamfer-sm flex touch-pan-y items-center gap-3 border p-3 ${
         isDragging
           ? "border-ember bg-char-3 opacity-70"
           : "border-bone/10 bg-char-2"
       } ${
-        disabled
-          ? "cursor-default"
-          : "cursor-grab touch-none active:cursor-grabbing"
+        disabled ? "cursor-default" : ""
       }`}
-> <span className="w-10 shrink-0 text-center font-display text-3xl font-black tabular-nums text-ember">
+>
+  {!disabled && (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-label={`Drag ${team.name} to reorder`}
+      className="-ml-1 flex h-10 w-8 shrink-0 cursor-grab touch-none items-center justify-center text-bone/50 hover:text-ember active:cursor-grabbing"
+    >
+      <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor" aria-hidden="true">
+        <circle cx="4" cy="4" r="1.6" /><circle cx="10" cy="4" r="1.6" />
+        <circle cx="4" cy="10" r="1.6" /><circle cx="10" cy="10" r="1.6" />
+        <circle cx="4" cy="16" r="1.6" /><circle cx="10" cy="16" r="1.6" />
+      </svg>
+    </button>
+  )}
+  <span className="w-10 shrink-0 text-center font-display text-3xl font-black tabular-nums text-ember">
 {rank} </span>
 
   <Monogram
