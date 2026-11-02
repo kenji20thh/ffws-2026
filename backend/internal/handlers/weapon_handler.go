@@ -25,6 +25,8 @@ type weaponKillRequest struct {
 
 type setPlayerWeaponsRequest struct {
 	Weapons []weaponKillRequest `json:"weapons"`
+	// Optional: when sent, the player's headshot kills total is saved too.
+	HeadshotKills *int `json:"headshot_kills"`
 }
 
 const maxWeaponKills = 100000
@@ -52,7 +54,12 @@ func (h *WeaponHandler) GetPlayerKills(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player weapons"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": rows})
+	headshots, err := h.repo.PlayerHeadshotKills(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player headshots"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": rows, "headshot_kills": headshots})
 }
 
 // SetPlayerKills replaces a player's whole weapon list (admin).
@@ -66,6 +73,11 @@ func (h *WeaponHandler) SetPlayerKills(c *gin.Context) {
 	var req setPlayerWeaponsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.HeadshotKills != nil && (*req.HeadshotKills < 0 || *req.HeadshotKills > maxWeaponKills) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "headshot_kills must be a whole number from 0 up"})
 		return
 	}
 
@@ -90,7 +102,7 @@ func (h *WeaponHandler) SetPlayerKills(c *gin.Context) {
 		}
 	}
 
-	if err := h.repo.ReplacePlayerKills(uint(id), entries); err != nil {
+	if err := h.repo.ReplacePlayerKills(uint(id), entries, req.HeadshotKills); err != nil {
 		switch {
 		case errors.Is(err, repository.ErrWeaponPlayerNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
