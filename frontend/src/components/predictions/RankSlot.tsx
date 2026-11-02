@@ -78,13 +78,12 @@ className={`chamfer-sm flex w-full min-w-0 max-w-full touch-pan-y items-center g
       {...attributes}
       {...listeners}
       aria-label={`Drag ${team.name} to reorder`}
-      className="-ml-1 flex h-10 w-8 shrink-0 cursor-grab touch-none items-center justify-center text-bone/50 hover:text-ember active:cursor-grabbing"
+      className="chamfer-sm -ml-1 flex h-12 w-11 shrink-0 cursor-grab touch-none flex-col items-center justify-center gap-0.5 border border-ember/60 bg-ember/10 text-ember active:cursor-grabbing active:bg-ember/25"
     >
-      <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor" aria-hidden="true">
-        <circle cx="4" cy="4" r="1.6" /><circle cx="10" cy="4" r="1.6" />
-        <circle cx="4" cy="10" r="1.6" /><circle cx="10" cy="10" r="1.6" />
-        <circle cx="4" cy="16" r="1.6" /><circle cx="10" cy="16" r="1.6" />
+      <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M8 1v16M4 5l4-4 4 4M4 13l4 4 4-4" />
       </svg>
+      <span className="font-stat text-[8px] font-bold uppercase leading-none tracking-widest">Drag</span>
     </button>
   )}
   <span className="w-8 shrink-0 text-center font-display text-2xl sm:w-10 sm:text-3xl font-black tabular-nums text-ember">
