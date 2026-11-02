@@ -190,13 +190,13 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   const multi = sessions.length > 1;
   // Days with two sessions show both boards side by side, so give them more room.
   const widthClass = multi ? "max-w-6xl" : "max-w-3xl";
-  const gridClass = multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-2";
+  const gridClass = multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : "space-y-2";
 
   if (existing?.scored) {
     const bySession = groupEntriesBySession(existing.teams);
     const resultSessions = sessionKeys(bySession);
     return (
-      <div className={`mx-auto ${widthClass} space-y-6 px-5 py-10`}>
+      <div className={`mx-auto ${widthClass} min-w-0 space-y-6 overflow-x-clip px-4 py-10 sm:px-5`}>
         <div className="chamfer border border-bone/10 bg-char-2 p-6">
           <p className="font-stat text-[10px] uppercase tracking-widest text-ash">{day.name} — results</p>
           <p className="font-display text-4xl font-black tabular-nums text-ember">
@@ -205,7 +205,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </div>
         <div className={gridClass}>
           {resultSessions.map((sn) => (
-            <div key={sn} className="space-y-2">
+            <div key={sn} className="min-w-0 space-y-2">
               {resultSessions.length > 1 && (
                 <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
               )}
@@ -227,7 +227,7 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   }
 
   return (
-    <div className={`mx-auto ${widthClass} space-y-6 px-5 py-10`}>
+    <div className={`mx-auto ${widthClass} min-w-0 space-y-6 overflow-x-clip px-4 py-10 sm:px-5`}>
       <div className="chamfer-sm border border-bone/15 bg-char-2 px-5 py-3">
         <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Predicting as</p>
         <p className="font-display text-2xl font-black uppercase text-ember">{team.team_name}</p>
@@ -241,14 +241,14 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
       ) : (
         <p className="font-stat text-xs uppercase tracking-widest text-ash">
           {multi
-            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder, or use the arrow buttons.`
-            : "Drag to reorder, or use the arrow buttons. 1st at the top."}
+            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder (on phones, hold the ⋮⋮ grip on the left), or use the arrow buttons.`
+            : "Drag a team to reorder (on phones, hold the ⋮⋮ grip on the left), or use the arrow buttons. 1st at the top."}
         </p>
       )}
 
       {confirming ? (
         <>
-          <div className={multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : "space-y-6"}>
+          <div className={multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : "space-y-6"}>
             {sessions.map((sn) => (
               <PredictionSummary
                 key={sn}
@@ -269,9 +269,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </>
       ) : (
         <>
-          <div className={multi ? "grid gap-6 lg:grid-cols-2 lg:items-start" : ""}>
+          <div className={multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : ""}>
             {sessions.map((sn) => (
-              <section key={sn} className="space-y-3">
+              <section key={sn} className="min-w-0 space-y-3">
                 {multi && (
                   <div className="flex items-center justify-between border-b border-bone/10 pb-2">
                     <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
