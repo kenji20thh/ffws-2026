@@ -34,7 +34,10 @@ export default async function PlayerPage({
 
         <PlayerOverallStats overall={profile.overall} />
 
-        <PlayerTopWeapons weapons={profile.top_weapons ?? []} />
+        <PlayerTopWeapons
+          weapons={profile.top_weapons ?? []}
+          headshotKills={profile.overall.headshot_kills ?? 0}
+        />
 
         <PlayerDayStats days={profile.days} />
       </main>
