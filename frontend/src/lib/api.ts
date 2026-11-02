@@ -187,18 +187,30 @@ export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
   );
 export const getWeapons = () => list<Weapon>("/weapons");
 export const getPlayerWeaponKills = async (playerId: number) => {
-  const res = await request<{ data: PlayerWeaponKill[] | null }>(
+  const res = await request<{ data: PlayerWeaponKill[] | null; headshot_kills?: number }>(
     `/players/${playerId}/weapons`,
     {},
     true,
   );
-  return res.data ?? [];
+  return { weapons: res.data ?? [], headshotKills: res.headshot_kills ?? 0 };
 };
-/** Replaces the player's whole weapon list: send every weapon that has kills. */
-export const savePlayerWeaponKills = (playerId: number, weapons: PlayerWeaponKill[]) =>
+/**
+ * Replaces the player's whole weapon list: send every weapon that has kills.
+ * headshotKills is optional: when given, the player's headshot kills total is saved too.
+ */
+export const savePlayerWeaponKills = (
+  playerId: number,
+  weapons: PlayerWeaponKill[],
+  headshotKills?: number,
+) =>
   request<{ message: string }>(
     `/players/${playerId}/weapons`,
-    { method: "PUT", body: JSON.stringify({ weapons }) },
+    {
+      method: "PUT",
+      body: JSON.stringify(
+        headshotKills === undefined ? { weapons } : { weapons, headshot_kills: headshotKills },
+      ),
+    },
     true,
   );
 export const getTeamProfile = (teamId: number) =>
