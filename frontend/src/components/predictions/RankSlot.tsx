@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Monogram from "@/components/ui/Monogram";
@@ -38,6 +39,20 @@ id: team.id,
 disabled,
 });
 
+// Phones/tablets (touch as the main input): drag only from the grip handle so the rest of
+// the row can scroll the page. Desktop (mouse): drag from anywhere on the row.
+const [touchDevice, setTouchDevice] = useState(false);
+useEffect(() => {
+const mq = window.matchMedia("(pointer: coarse)");
+const update = () => setTouchDevice(mq.matches);
+update();
+mq.addEventListener("change", update);
+return () => mq.removeEventListener("change", update);
+}, []);
+
+const rowDrag = !disabled && !touchDevice;
+const handleDrag = !disabled && touchDevice;
+
 const style = {
 transform: CSS.Transform.toString(transform),
 transition,
@@ -47,15 +62,16 @@ return (
 <div
 ref={setNodeRef}
 style={style}
-className={`chamfer-sm flex touch-pan-y items-center gap-3 border p-3 ${
+{...(rowDrag ? { ...attributes, ...listeners } : {})}
+className={`chamfer-sm flex w-full min-w-0 max-w-full touch-pan-y items-center gap-2 border p-2 sm:gap-3 sm:p-3 ${
         isDragging
           ? "border-ember bg-char-3 opacity-70"
           : "border-bone/10 bg-char-2"
       } ${
-        disabled ? "cursor-default" : ""
+        disabled ? "cursor-default" : rowDrag ? "cursor-grab active:cursor-grabbing" : ""
       }`}
 >
-  {!disabled && (
+  {handleDrag && (
     <button
       type="button"
       ref={setActivatorNodeRef}
@@ -71,7 +87,7 @@ className={`chamfer-sm flex touch-pan-y items-center gap-3 border p-3 ${
       </svg>
     </button>
   )}
-  <span className="w-10 shrink-0 text-center font-display text-3xl font-black tabular-nums text-ember">
+  <span className="w-8 shrink-0 text-center font-display text-2xl sm:w-10 sm:text-3xl font-black tabular-nums text-ember">
 {rank} </span>
 
   <Monogram
@@ -81,11 +97,11 @@ className={`chamfer-sm flex touch-pan-y items-center gap-3 border p-3 ${
   />
 
   <div className="min-w-0 flex-1">
-    <p className="truncate font-display text-xl font-extrabold uppercase leading-none">
+    <p className="truncate font-display text-lg font-extrabold sm:text-xl uppercase leading-none">
       {team.name}
     </p>
 
-    <p className="mt-1 flex items-center gap-1 font-stat text-[10px] uppercase tracking-widest text-ash">
+    <p className="mt-1 flex min-w-0 items-center gap-1 truncate font-stat text-[10px] uppercase tracking-widest text-ash">
       <Flag country={team.country} height={12} />
       {team.country}
       {team.region && ` · ${team.region}`}
