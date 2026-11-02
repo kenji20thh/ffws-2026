@@ -39,6 +39,9 @@ export default function PlayerWeaponsPanel() {
   const [kills, setKills] = useState<Record<number, string>>({});
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   const [resultKills, setResultKills] = useState<number | null>(null);
+  // headshot kills typed by the admin ("" = none); loaded = the saved value was fetched
+  const [headshots, setHeadshots] = useState("");
+  const [headshotsLoaded, setHeadshotsLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
 
@@ -88,6 +91,8 @@ export default function PlayerWeaponsPanel() {
     setKills({});
     setNotice(null);
     setResultKills(null);
+    setHeadshots("");
+    setHeadshotsLoaded(false);
     if (!playerId) return;
     let cancelled = false;
     setLoadingPlayer(true);
@@ -95,10 +100,12 @@ export default function PlayerWeaponsPanel() {
       .then(([saved, profile]) => {
         if (cancelled) return;
         const next: Record<number, string> = {};
-        saved.forEach((s) => {
+        saved.weapons.forEach((s) => {
           if (s.kills > 0) next[s.weapon_id] = String(s.kills);
         });
         setKills(next);
+        setHeadshots(saved.headshotKills > 0 ? String(saved.headshotKills) : "");
+        setHeadshotsLoaded(true);
         setResultKills(profile ? profile.overall.total_kills : null);
       })
       .catch(fail)
@@ -111,7 +118,7 @@ export default function PlayerWeaponsPanel() {
   }, [playerId, fail]);
 
   const invalid = (v: string) => v !== "" && !/^\d+$/.test(v);
-  const hasInvalid = Object.values(kills).some(invalid);
+  const hasInvalid = Object.values(kills).some(invalid) || invalid(headshots);
 
   const total = useMemo(
     () =>
@@ -127,9 +134,13 @@ export default function PlayerWeaponsPanel() {
     setBusy(true);
     setNotice(null);
     try {
-      await savePlayerWeaponKills(playerId, payload);
+      await savePlayerWeaponKills(
+        playerId,
+        payload,
+        headshotsLoaded ? Number(headshots || 0) : undefined,
+      );
       const name = players.find((p) => p.id === playerId)?.ign ?? "player";
-      setNotice({ tone: "ok", text: `Saved weapons for ${name}` });
+      setNotice({ tone: "ok", text: `Saved weapons and headshots for ${name}` });
     } catch (e) {
       fail(e);
     } finally {
@@ -150,8 +161,9 @@ export default function PlayerWeaponsPanel() {
   return (
     <div className="space-y-6">
       <p className="border-l-2 border-amber pl-3 text-sm text-bone/70">
-        Pick a player and enter how many kills he got with each weapon he used. Leave a weapon
-        empty if he didn&apos;t use it. Saving <b>replaces</b> the player&apos;s whole weapon list.
+        Pick a player, enter his headshot kills, and enter how many kills he got with each weapon
+        he used. Leave a weapon empty if he didn&apos;t use it. Saving <b>replaces</b> the
+        player&apos;s whole weapon list and headshot kills.
         This is separate from the room results: nothing here changes kills or placement.
       </p>
 
@@ -225,6 +237,28 @@ export default function PlayerWeaponsPanel() {
             )}
           </div>
 
+          <div className="mb-5 flex items-center justify-between gap-3 border border-ember/40 bg-char-3/40 px-3 py-3 sm:max-w-sm">
+            <label htmlFor="player-headshots" className="min-w-0">
+              <span className="block font-display text-lg font-extrabold uppercase leading-none">
+                Headshot kills
+              </span>
+              <span className="mt-0.5 block font-stat text-[9px] uppercase tracking-widest text-ash">
+                Total for this player
+              </span>
+            </label>
+            <input
+              id="player-headshots"
+              type="text"
+              inputMode="numeric"
+              value={headshots}
+              placeholder="0"
+              onChange={(e) => setHeadshots(e.target.value.trim())}
+              className={`w-24 border bg-char px-2 py-1.5 text-right font-stat text-lg tabular-nums text-bone focus:border-ember focus:outline-none ${
+                invalid(headshots) ? "border-danger" : "border-bone/20"
+              }`}
+            />
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {weapons.map((w) => {
               const v = kills[w.id] ?? "";
@@ -266,8 +300,11 @@ export default function PlayerWeaponsPanel() {
             <Button
               type="button"
               variant="ghost"
-              disabled={busy || total === 0}
-              onClick={() => setKills({})}
+              disabled={busy || (total === 0 && headshots === "")}
+              onClick={() => {
+                setKills({});
+                setHeadshots("");
+              }}
             >
               Clear all
             </Button>
