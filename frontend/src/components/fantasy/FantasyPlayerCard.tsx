@@ -81,7 +81,11 @@ function roleIcon(role: string): string | undefined {
 
 /** Price -> power rating. 33 => 95. Change the offset to rescale. */
 function powerFromPrice(price: number): number {
-  return Math.min(99, Math.max(1, Math.round(price + 62)));
+  const normalizedPrice = Math.max(0, Math.min(30, price));
+
+  const power = 20 + 79 * Math.pow(normalizedPrice / 30, 0.72);
+
+  return Math.round(power);
 }
 
 function statValue(value: number | undefined) {
