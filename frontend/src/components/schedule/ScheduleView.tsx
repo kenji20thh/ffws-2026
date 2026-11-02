@@ -49,7 +49,7 @@ function Chevron({ open }: { open: boolean }) {
 function StageHeading({ number, title, subtitle, open }: { number: string; title: string; subtitle: string; open: boolean }) {
   return (
     <div className="flex items-center gap-3 sm:gap-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center border font-display text-xl font-black ${open ? "border-ember bg-ember text-char" : "border-char-3 bg-char-2 text-ash"}`}>{number}</div>
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center font-display text-xl font-black transition-colors ${open ? "bg-ember text-char shadow-[0_0_24px_rgba(255,90,31,0.18)]" : "border border-char-3 bg-char-2 text-ash"}`}>{number}</div>
       <div className="min-w-0 flex-1">
         <h2 className="font-display text-xl font-extrabold uppercase tracking-wide text-bone sm:text-2xl">{title}</h2>
         <p className="mt-1 font-stat text-[10px] uppercase tracking-[0.14em] text-ash sm:text-xs">{subtitle}</p>
@@ -125,19 +125,19 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
   if (days.length === 0) return <EmptyState title="Schedule not announced" hint="Tournament stages, groups, and match days will appear here." />;
 
   const renderDays = (stageDays: TournamentDay[], label: string) => (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {stageDays.length === 0 ? <EmptyState title={`${label} schedule not announced`} /> : stageDays.map((day) => {
         const open = expandedDayId === day.id;
-        return <div key={day.id} className={`border ${open ? "border-ember/60" : "border-char-3"} bg-char`}>
-          <button type="button" onClick={() => chooseDay(day)} aria-expanded={open} className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-char-2 sm:p-4">
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center font-display text-sm font-black ${open ? "bg-ember text-char" : "bg-char-2 text-ash"}`}>{String(day.day_order).padStart(2, "0")}</span>
-            <span className="min-w-0 flex-1"><span className="block font-display text-sm font-bold uppercase text-bone">{day.name}</span><span className="mt-1 block font-stat text-[10px] uppercase tracking-widest text-ash">{day.date ? `${formatDate(day.date)} 2026` : "Date to be confirmed"}</span></span>
+        return <div key={day.id} className={`overflow-hidden border transition-all duration-200 ${open ? "border-ember/60 bg-[#100e0d] shadow-[0_8px_24px_rgba(255,90,31,0.06)]" : "border-char-3 bg-char hover:border-char-2"}`}>
+          <button type="button" onClick={() => chooseDay(day)} aria-expanded={open} className="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-char-2 sm:gap-4 sm:p-4">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center font-display text-sm font-black ring-1 ring-inset ${open ? "bg-ember text-char ring-ember" : "bg-char-2 text-ash ring-char-3"}`}>{String(day.day_order).padStart(2, "0")}</span>
+            <span className="min-w-0 flex-1"><span className="block font-display text-sm font-bold uppercase leading-snug text-bone sm:text-base">{day.name}</span><span className="mt-1 block font-stat text-[10px] uppercase tracking-widest text-ash">{day.date ? `${formatDate(day.date)} 2026` : "Date to be confirmed"}</span></span>
             <DayGroupsSummary day={day} />
             <span className="text-ember"><Chevron open={open} /></span>
           </button>
-          {open && <div className="space-y-3 border-t border-char-3 p-3 sm:p-4">
+          {open && <div className="space-y-4 border-t border-char-3 p-3 sm:p-5">
             <p className="text-sm leading-6 text-ash">Open this match day to see participating teams, assigned rooms, and available standings.</p>
-            <button type="button" onClick={() => { setDayId(day.id); setShowDayDetails((current) => dayId === day.id ? !current : true); }} className="inline-flex items-center gap-2 bg-ember px-4 py-2.5 font-display text-xs font-black uppercase tracking-wide text-char transition hover:bg-ember/90">{showDayDetails && dayId === day.id ? "Hide teams & results" : "View teams & match details"}<Chevron open={showDayDetails && dayId === day.id} /></button>
+            <button type="button" onClick={() => { setDayId(day.id); setShowDayDetails((current) => dayId === day.id ? !current : true); }} className="inline-flex min-h-10 items-center gap-2 bg-ember px-4 py-2.5 font-display text-xs font-black uppercase tracking-wide text-char transition hover:bg-[#ff7547] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember">{showDayDetails && dayId === day.id ? "Hide teams & results" : "View teams & match details"}<Chevron open={showDayDetails && dayId === day.id} /></button>
             {showDayDetails && dayId === day.id && <div className="space-y-7 pt-3">
               {error ? <ErrorState message={error} /> : loading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[0,1,2,3].map((i) => <Skeleton key={i} className="h-32" />)}</div> : <>
                 {phaseOneSlot(day.day_order) ? <PhaseOneDay day={day} dayTeams={dayTeams} rooms={rooms} roomId={roomId} onSelectRoom={setRoomId} /> : <>
@@ -154,22 +154,22 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
     </div>
   );
 
-  return <div className="space-y-8 sm:space-y-10">
-    <section className="relative overflow-hidden border border-char-3 bg-char p-5 sm:p-8">
-      <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 85% 10%, rgba(255,176,0,.22), transparent 32%), linear-gradient(135deg, transparent 40%, rgba(116,65,180,.16) 40%, rgba(116,65,180,.16) 60%, transparent 60%)" }} />
+  return <div className="mx-auto w-full max-w-6xl space-y-8 sm:space-y-10">
+    <section className="group relative overflow-hidden border border-char-3 bg-[#100e0d] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-8 lg:p-10">
+      <div className="pointer-events-none absolute inset-0 opacity-70" style={{ backgroundImage: "radial-gradient(ellipse at 88% 12%, rgba(255,90,31,.22), transparent 35%), radial-gradient(ellipse at 72% 100%, rgba(116,65,180,.13), transparent 38%), linear-gradient(115deg, transparent 58%, rgba(255,255,255,.025) 58%, transparent 76%)" }} /><div className="pointer-events-none absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-ember via-ember/30 to-transparent" />
       <div className="relative max-w-3xl">
-        <p className="font-stat text-[10px] uppercase tracking-[0.3em] text-ember">Free Fire World Series · 2026</p>
-        <h1 className="mt-2 font-display text-3xl font-black uppercase leading-none text-bone sm:text-5xl">Tournament <span className="text-ember">Format</span></h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-ash sm:text-base">Follow the road to the championship. Expand a stage to understand how it works, open a match day when you need it, and reveal teams or results only when you want to see them.</p>
-        <div className="mt-6 grid gap-2 sm:grid-cols-3"><div className="border border-char-3 bg-char-2/80 p-3"><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Knockout Phase 1</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 6–15</p><p className="text-xs text-ash">24 teams · 4 groups · 36 games each</p></div><div className="border border-char-3 bg-char-2/80 p-3"><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Knockout Phase 2</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 19–22</p><p className="text-xs text-ash">Top 18 in 4 pools · 8 Grand Finals spots</p></div><div className="border border-char-3 bg-char-2/80 p-3"><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Final stretch</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 27–28</p><p className="text-xs text-ash">Last Chance (4 spots) · Grand Finals</p></div></div>
+        <div className="flex flex-wrap items-center gap-2"><span className="inline-flex items-center gap-2 border border-ember/30 bg-ember/10 px-2.5 py-1 font-stat text-[10px] uppercase tracking-[0.22em] text-ember"><span className="h-1.5 w-1.5 rounded-full bg-ember" />Free Fire World Series</span><span className="font-stat text-[10px] uppercase tracking-[0.22em] text-ash">Season 2026</span></div>
+        <h1 className="mt-2 font-display text-3xl font-black uppercase leading-none text-bone sm:text-5xl">Tournament <span className="text-ember">Schedule</span></h1>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-ash sm:text-base">Every matchday on the road to the championship. Explore the stages, check group rotations, and open any day for teams, rooms, and results.</p>
+        <div className="mt-7 grid gap-3 sm:grid-cols-3"><div className="relative overflow-hidden border border-char-3 bg-char-2/80 p-4 transition-colors hover:border-ember/40"><div className="absolute left-0 top-0 h-full w-0.5 bg-ember" /><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Knockout Phase 1</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 6–15</p><p className="text-xs text-ash">24 teams · 4 groups · 36 games each</p></div><div className="relative overflow-hidden border border-char-3 bg-char-2/80 p-4 transition-colors hover:border-ember/40"><div className="absolute left-0 top-0 h-full w-0.5 bg-violet-500" /><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Knockout Phase 2</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 19–22</p><p className="text-xs text-ash">Top 18 in 4 pools · 8 Grand Finals spots</p></div><div className="relative overflow-hidden border border-char-3 bg-char-2/80 p-4 transition-colors hover:border-ember/40"><div className="absolute left-0 top-0 h-full w-0.5 bg-amber-300" /><p className="font-stat text-[10px] uppercase tracking-widest text-ash">Final stretch</p><p className="mt-1 font-display text-lg font-black uppercase text-ember">Nov 27–28</p><p className="text-xs text-ash">Last Chance (4 spots) · Grand Finals</p></div></div>
       </div>
     </section>
 
-    <section className="space-y-3">
-      <div><p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Tournament roadmap</p><h2 className="mt-1 font-display text-2xl font-black uppercase text-bone sm:text-3xl">Explore the stages</h2><p className="mt-2 text-sm text-ash">Choose a stage to see its format. Match-day details remain collapsed until you open them.</p></div>
+    <section className="space-y-4 sm:space-y-5">
+      <div className="flex flex-col gap-3 border-b border-char-3 pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Tournament roadmap</p><h2 className="mt-1 font-display text-2xl font-black uppercase text-bone sm:text-3xl">Explore the stages</h2></div><p className="max-w-md text-sm leading-5 text-ash sm:text-right">Select a stage, then open a matchday for teams, rooms, and results.</p></div>
 
-      <section className={`border ${expandedStage === "knockout" ? "border-ember/60" : "border-char-3"} bg-char`}>
-        <button type="button" onClick={() => setExpandedStage((current) => current === "knockout" ? null : "knockout")} aria-expanded={expandedStage === "knockout"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="01" title="Knockout Stage" subtitle="Phase 1 · November 6–15  /  Phase 2 · November 19–22" open={expandedStage === "knockout"} /></button>
+      <section className={`overflow-hidden border transition-colors ${expandedStage === "knockout" ? "border-ember/60 shadow-[0_8px_30px_rgba(255,90,31,0.05)]" : "border-char-3"} bg-char`}>
+        <button type="button" onClick={() => setExpandedStage((current) => current === "knockout" ? null : "knockout")} aria-expanded={expandedStage === "knockout"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-6"><StageHeading number="01" title="Knockout Stage" subtitle="Phase 1 · November 6–15  /  Phase 2 · November 19–22" open={expandedStage === "knockout"} /></button>
         {expandedStage === "knockout" && <div className="space-y-5 border-t border-char-3 p-4 sm:p-5">
           <div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 1 · November 6–15</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Group stage</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-ash">24 teams are split into four groups of six and battle for ranking points over two weeks (Friday to Sunday, 6 match days, each team plays 36 games). Every match day all 24 teams play, in two separate sessions of 12 teams. After Phase 1, the top 12 enter Pool 1 of Phase 2, places 13–18 fill Pools 2–4, places 19–20 go to Last Chance and the rest are eliminated.</p></div>
           <div className="border border-char-3 bg-char-2">
@@ -182,13 +182,13 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
         </div>}
       </section>
 
-      <section className={`border ${expandedStage === "last-chance" ? "border-ember/60" : "border-char-3"} bg-char`}>
-        <button type="button" onClick={() => setExpandedStage((current) => current === "last-chance" ? null : "last-chance")} aria-expanded={expandedStage === "last-chance"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="02" title="Last Chance" subtitle="November 27 · Final opportunity to qualify" open={expandedStage === "last-chance"} /></button>
+      <section className={`overflow-hidden border transition-colors ${expandedStage === "last-chance" ? "border-ember/60 shadow-[0_8px_30px_rgba(255,90,31,0.05)]" : "border-char-3"} bg-char`}>
+        <button type="button" onClick={() => setExpandedStage((current) => current === "last-chance" ? null : "last-chance")} aria-expanded={expandedStage === "last-chance"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-6"><StageHeading number="02" title="Last Chance" subtitle="November 27 · Final opportunity to qualify" open={expandedStage === "last-chance"} /></button>
         {expandedStage === "last-chance" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams (2 from Phase 1 and 10 from Phase 2) play 10 matches. The top 4 teams advance to the Grand Finals and the rest are eliminated.</p><StageRules def={LAST_CHANCE} />{lastChanceDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={LAST_CHANCE} /></div>}{renderDays(lastChanceDays, "Last Chance")}</div>}
       </section>
 
-      <section className={`border ${expandedStage === "grand-final" ? "border-ember/60" : "border-char-3"} bg-char`}>
-        <button type="button" onClick={() => setExpandedStage((current) => current === "grand-final" ? null : "grand-final")} aria-expanded={expandedStage === "grand-final"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="03" title="Grand Finals" subtitle="November 28 · Championship day" open={expandedStage === "grand-final"} /></button>
+      <section className={`overflow-hidden border transition-colors ${expandedStage === "grand-final" ? "border-ember/60 shadow-[0_8px_30px_rgba(255,90,31,0.05)]" : "border-char-3"} bg-char`}>
+        <button type="button" onClick={() => setExpandedStage((current) => current === "grand-final" ? null : "grand-final")} aria-expanded={expandedStage === "grand-final"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-6"><StageHeading number="03" title="Grand Finals" subtitle="November 28 · Championship day" open={expandedStage === "grand-final"} /></button>
         {expandedStage === "grand-final" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams play in Champion Rush format at BITEC LIVE, Bangkok: 2 teams from each Phase 2 day plus 4 from Last Chance. Expand the day to check team assignments and match information.</p><StageRules def={GRAND_FINAL} />{grandFinalDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={GRAND_FINAL} /></div>}{renderDays(grandFinalDays, "Grand Final")}</div>}
       </section>
     </section>
@@ -197,7 +197,7 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
 
 function GroupPanel({ group, index }: { group: GroupDef; index: number }) {
   const [open, setOpen] = useState(false);
-  return <div className="overflow-hidden border border-char-3 bg-char">
+  return <div className="overflow-hidden border border-char-3 bg-char transition-colors hover:border-char-2">
     <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-char-2">
       <span className="h-9 w-1 shrink-0" style={{ backgroundColor: group.color }} />
       <span className="min-w-0 flex-1"><span className="block font-display text-base font-extrabold uppercase text-bone">{group.name}</span><span className="mt-1 block text-xs text-ash">6 participating teams</span></span>
@@ -218,7 +218,7 @@ function Pair({ pair }: { pair: [GroupKey, GroupKey] }) {
 /** Official Phase 1 rotation grid: 2 weeks × 3 days × 2 sessions. */
 function MatchRotation() {
   const sessions: { key: SessionKey; label: string }[] = [{ key: "session-1", label: "Session 1" }, { key: "session-2", label: "Session 2" }];
-  return <div className="border border-char-3 bg-char-2 p-4">
+  return <div className="border border-char-3 bg-char-2 p-4 sm:p-5">
     <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Match format</p>
     <h4 className="mt-1 font-display text-lg font-extrabold uppercase text-bone">Two sessions per match day · all 24 teams play every day</h4>
     <p className="mt-2 text-sm leading-6 text-ash">Each session is played separately by 12 teams (two groups) in its own 6 rooms, so a match day has 12 rooms. Matchdays run Friday to Sunday, so every group faces every other group once per week.</p>
