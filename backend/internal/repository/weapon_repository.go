@@ -6,6 +6,7 @@ import (
 	"ffws/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var (
@@ -39,10 +40,18 @@ func (r *WeaponRepository) PlayerKills(playerID uint) ([]models.PlayerWeaponKill
 	return rows, err
 }
 
+// PlayerHeadshotKills returns the headshot kills saved for a player (0 if none).
+func (r *WeaponRepository) PlayerHeadshotKills(playerID uint) (int, error) {
+	var row models.PlayerHeadshot
+	err := r.db.Where("player_id = ?", playerID).Limit(1).Find(&row).Error
+	return row.HeadshotKills, err
+}
+
 // ReplacePlayerKills makes entries the player's complete weapon list: weapons
 // that are not in entries are removed. Callers pass only entries with kills > 0
-// and no weapon twice.
-func (r *WeaponRepository) ReplacePlayerKills(playerID uint, entries []WeaponKillInput) error {
+// and no weapon twice. When headshots is not nil, the player's headshot kills
+// total is saved in the same transaction; nil leaves it untouched.
+func (r *WeaponRepository) ReplacePlayerKills(playerID uint, entries []WeaponKillInput, headshots *int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var n int64
 		if err := tx.Model(&models.Player{}).Where("id = ?", playerID).Count(&n).Error; err != nil {
@@ -62,6 +71,16 @@ func (r *WeaponRepository) ReplacePlayerKills(playerID uint, entries []WeaponKil
 			}
 			if int(n) != len(ids) {
 				return ErrWeaponUnknown
+			}
+		}
+
+		if headshots != nil {
+			row := models.PlayerHeadshot{PlayerID: playerID, HeadshotKills: *headshots}
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "player_id"}},
+				DoUpdates: clause.AssignmentColumns([]string{"headshot_kills"}),
+			}).Create(&row).Error; err != nil {
+				return err
 			}
 		}
 

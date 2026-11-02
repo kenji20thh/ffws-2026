@@ -333,7 +333,12 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 				100
 	}
 
-	// Weapons are an extra: if they cannot be loaded the profile still works.
+	// Headshots and weapons are extras: if they cannot be loaded the profile still works.
+	var headshots int
+	if herr := r.db.Raw(`SELECT COALESCE(MAX(headshot_kills), 0) FROM player_headshots WHERE player_id = ?`, playerID).Scan(&headshots).Error; herr == nil {
+		profile.Overall.HeadshotKills = headshots
+	}
+
 	if weapons, werr := r.topWeapons(playerID, 3); werr == nil && weapons != nil {
 		profile.TopWeapons = weapons
 	}
@@ -448,6 +453,8 @@ type PlayerOverallStats struct {
 	Booyahs                int     `json:"booyahs"`
 	FirstBloods            int     `json:"first_bloods"`
 	KillParticipation      float64 `json:"kill_participation"`
+	// Headshot kills entered by an admin (0 until entered).
+	HeadshotKills int `json:"headshot_kills"`
 }
 
 type PlayerDayStats struct {
