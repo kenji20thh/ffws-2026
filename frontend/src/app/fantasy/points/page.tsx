@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Flag from "@/components/ui/Flag";
@@ -16,7 +17,7 @@ import {
   getTournament,
 } from "@/lib/api";
 import { getName, getToken } from "@/lib/auth";
-import { chipName } from "@/lib/chips";
+import { CHIPS, captainMultiplier, chipName } from "@/lib/chips";
 import { shortDayName } from "@/lib/dayMenu";
 import type { FantasyLeague, FantasyTeam, TournamentDay } from "@/types";
 
@@ -225,6 +226,9 @@ export default function FantasyPointsPage() {
   const profile = day ? profiles[day.id] : undefined;
   const cards = useMemo(() => toCards(profile), [profile]);
   const total = dayPoints(profile);
+  const activeChip = profile?.chip ? CHIPS.find((c) => c.id === profile.chip) : undefined;
+  const captainCard = cards.find((c) => c.captain);
+  const tripleCaptain = profile?.chip === "triple_captain";
   const scored = ((profile?.breakdown ?? []) as any[]).some(
     (b) => b.final_points !== 0,
   );
@@ -548,6 +552,11 @@ export default function FantasyPointsPage() {
               <p className="mt-1 break-words font-display text-lg font-black uppercase sm:text-2xl">
                 {day ? dayLabel(day) : ""}
               </p>
+              {activeChip && (
+                <span className="mt-2 inline-flex items-center gap-1.5 bg-amber px-2 py-0.5 font-stat text-[10px] font-black uppercase tracking-widest text-char">
+                  <span aria-hidden="true">★</span> {activeChip.name} active
+                </span>
+              )}
             </div>
 
             <button
@@ -575,6 +584,34 @@ export default function FantasyPointsPage() {
             </p>
           </div>
 
+          {activeChip && (
+            <div
+              className="mt-5 flex items-center gap-4 border border-amber/50 bg-amber/10 p-4"
+              role="status"
+            >
+              <Image
+                src={activeChip.image}
+                alt=""
+                width={64}
+                height={64}
+                className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="font-stat text-[10px] uppercase tracking-[0.2em] text-amber">
+                  Chip activated · this matchday only
+                </p>
+                <p className="mt-1 font-display text-xl font-black uppercase leading-tight sm:text-2xl">
+                  {activeChip.name}
+                </p>
+                <p className="mt-1 text-sm leading-5 text-ash">
+                  {tripleCaptain && captainCard?.player?.ign
+                    ? `${captainCard.player.ign}'s points counted ×${captainMultiplier(profile?.chip)} instead of ×2.`
+                    : activeChip.description}
+                </p>
+              </div>
+            </div>
+          )}
+
           {dayLoading && !profile ? (
             <Skeleton className="mt-5 h-96" />
           ) : cards.length === 0 ? (
@@ -592,17 +629,26 @@ export default function FantasyPointsPage() {
           ) : (
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {cards.map((c) => (
-                <FantasyPlayerCard
-                  key={c.key}
-                  player={c.player}
-                  team={c.team}
-                  price={c.price}
-                  captain={c.captain}
-                  stats={{
-                    kills: c.kills,
-                    fantasyPoints: c.points,
-                  }}
-                />
+                <div key={c.key} className="relative">
+                  <FantasyPlayerCard
+                    player={c.player}
+                    team={c.team}
+                    price={c.price}
+                    captain={c.captain}
+                    stats={{
+                      kills: c.kills,
+                      fantasyPoints: c.points,
+                    }}
+                  />
+                  {tripleCaptain && c.captain && (
+                    <span
+                      className="pointer-events-none absolute bottom-2 left-2 z-20 bg-amber px-2 py-0.5 font-stat text-[10px] font-black uppercase tracking-widest text-char shadow"
+                      title="Triple Captain: captain points ×3"
+                    >
+                      ×3
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           )}
