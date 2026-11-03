@@ -11,6 +11,7 @@ import RoomCard from "./RoomCard";
 import RoomResultsTable from "./RoomResultsTable";
 import TeamsOfDay from "./TeamsOfDay";
 import { StageRules, TbaSlots } from "./StageRules";
+import { FactChips, FaqSection, GlossarySection, JourneySection, OverviewSection, PhaseOneMath, PhaseTwoTable, QuickStart, ScoringSection } from "./FormatVisuals";
 import {
   GROUPS,
   GROUP_BY_KEY,
@@ -165,33 +166,43 @@ export default function ScheduleView({ days }: { days: TournamentDay[] }) {
       </div>
     </section>
 
+    <QuickStart />
+    <OverviewSection />
+    <JourneySection />
+
     <section className="space-y-3">
       <div><p className="font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Tournament roadmap</p><h2 className="mt-1 font-display text-2xl font-black uppercase text-bone sm:text-3xl">Explore the stages</h2><p className="mt-2 text-sm text-ash">Choose a stage to see its format. Match-day details remain collapsed until you open them.</p></div>
 
       <section className={`border ${expandedStage === "knockout" ? "border-ember/60" : "border-char-3"} bg-char`}>
         <button type="button" onClick={() => setExpandedStage((current) => current === "knockout" ? null : "knockout")} aria-expanded={expandedStage === "knockout"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="01" title="Knockout Stage" subtitle="Phase 1 · November 6–15  /  Phase 2 · November 19–22" open={expandedStage === "knockout"} /></button>
         {expandedStage === "knockout" && <div className="space-y-5 border-t border-char-3 p-4 sm:p-5">
+          <FactChips facts={[{ k: "Teams", v: "24 → 18 + 2" }, { k: "Dates", v: "Nov 6–15 · Nov 19–22" }, { k: "Phase 1", v: "36 games per team" }, { k: "Phase 2", v: "Top 2 per day qualify" }]} />
           <div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 1 · November 6–15</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Group stage</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-ash">24 teams are split into four groups of six and battle for ranking points over two weeks (Friday to Sunday, 6 match days, each team plays 36 games). Every match day all 24 teams play, in two separate sessions of 12 teams. After Phase 1, the top 12 enter Pool 1 of Phase 2, places 13–18 fill Pools 2–4, places 19–20 go to Last Chance and the rest are eliminated.</p></div>
           <div className="border border-char-3 bg-char-2">
             <ExpandButton open={expandedGroups} onClick={() => setExpandedGroups((open) => !open)}>Group distribution · 24 teams across 4 groups</ExpandButton>
             {expandedGroups && <div className="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">{GROUPS.map((group, index) => <GroupPanel key={group.name} group={group} index={index} />)}</div>}
           </div>
+          <PhaseOneMath />
           <MatchRotation />
           <div className="space-y-3"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 1 · Match days</p><h3 className="mt-1 font-display text-lg font-extrabold uppercase text-bone">Choose a day to explore</h3></div>{renderDays(knockoutDays.filter((day) => day.day_order <= 6), "Phase 1")}</div>
-          <div className="border-t border-char-3 pt-5"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 2 · November 19–22</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Knockout progression</h3><p className="mt-2 text-sm leading-6 text-ash">Teams are placed in pools by their Phase 1 ranking. Each day 12 teams play and the top 2 qualify for the Grand Finals. Day 1: all of Pool 1 · Day 2: remaining 10 + 2 from Pool 2 · Day 3: remaining 10 + 2 from Pool 3 · Day 4: remaining 10 + 2 from Pool 4. The bottom 10 teams on Day 4 move to Last Chance.</p></div><div className="mt-4 grid gap-3 lg:grid-cols-2">{PHASE_TWO_DAYS.map((def) => <div key={def.key} className="border border-char-3 bg-char-2 p-3"><div className="mb-3 flex items-baseline justify-between gap-2"><h4 className="font-display text-base font-extrabold uppercase text-bone">{def.title}</h4><span className="font-stat text-[10px] uppercase tracking-widest text-ember">{def.date}</span></div><StageRules def={def} compact /></div>)}</div><div className="mt-4">{renderDays(knockoutDays.filter((day) => day.day_order >= 7), "Phase 2")}</div></div>
+          <div className="border-t border-char-3 pt-5"><div className="border-l-2 border-ember pl-4"><p className="font-stat text-[10px] uppercase tracking-[0.2em] text-ember">Phase 2 · November 19–22</p><h3 className="mt-1 font-display text-xl font-extrabold uppercase text-bone">Knockout progression</h3><p className="mt-2 text-sm leading-6 text-ash">Teams are placed in pools by their Phase 1 ranking. Each day 12 teams play and the top 2 qualify for the Grand Finals. Day 1: all of Pool 1 · Day 2: remaining 10 + 2 from Pool 2 · Day 3: remaining 10 + 2 from Pool 3 · Day 4: remaining 10 + 2 from Pool 4. The bottom 10 teams on Day 4 move to Last Chance.</p></div><PhaseTwoTable /><p className="mt-5 font-stat text-[10px] uppercase tracking-[0.2em] text-ash">Rules for each day</p><div className="mt-2 grid gap-3 lg:grid-cols-2">{PHASE_TWO_DAYS.map((def) => <div key={def.key} className="border border-char-3 bg-char-2 p-3"><div className="mb-3 flex items-baseline justify-between gap-2"><h4 className="font-display text-base font-extrabold uppercase text-bone">{def.title}</h4><span className="font-stat text-[10px] uppercase tracking-widest text-ember">{def.date}</span></div><StageRules def={def} compact /></div>)}</div><div className="mt-4">{renderDays(knockoutDays.filter((day) => day.day_order >= 7), "Phase 2")}</div></div>
         </div>}
       </section>
 
       <section className={`border ${expandedStage === "last-chance" ? "border-ember/60" : "border-char-3"} bg-char`}>
         <button type="button" onClick={() => setExpandedStage((current) => current === "last-chance" ? null : "last-chance")} aria-expanded={expandedStage === "last-chance"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="02" title="Last Chance" subtitle="November 27 · Final opportunity to qualify" open={expandedStage === "last-chance"} /></button>
-        {expandedStage === "last-chance" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams (2 from Phase 1 and 10 from Phase 2) play 10 matches. The top 4 teams advance to the Grand Finals and the rest are eliminated.</p><StageRules def={LAST_CHANCE} />{lastChanceDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={LAST_CHANCE} /></div>}{renderDays(lastChanceDays, "Last Chance")}</div>}
+        {expandedStage === "last-chance" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><FactChips facts={[{ k: "Date", v: "November 27" }, { k: "Teams", v: "12 (2 + 10)" }, { k: "Matches", v: "10" }, { k: "Advance", v: "Top 4 → Grand Finals" }]} /><p className="max-w-3xl text-sm leading-6 text-ash">12 teams (2 from Phase 1 and 10 from Phase 2) play 10 matches. The top 4 teams advance to the Grand Finals and the rest are eliminated.</p><StageRules def={LAST_CHANCE} />{lastChanceDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={LAST_CHANCE} /></div>}{renderDays(lastChanceDays, "Last Chance")}</div>}
       </section>
 
       <section className={`border ${expandedStage === "grand-final" ? "border-ember/60" : "border-char-3"} bg-char`}>
         <button type="button" onClick={() => setExpandedStage((current) => current === "grand-final" ? null : "grand-final")} aria-expanded={expandedStage === "grand-final"} className="w-full p-4 text-left transition-colors hover:bg-char-2 sm:p-5"><StageHeading number="03" title="Grand Finals" subtitle="November 28 · Championship day" open={expandedStage === "grand-final"} /></button>
-        {expandedStage === "grand-final" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><p className="max-w-3xl text-sm leading-6 text-ash">12 teams play in Champion Rush format at BITEC LIVE, Bangkok: 2 teams from each Phase 2 day plus 4 from Last Chance. Expand the day to check team assignments and match information.</p><StageRules def={GRAND_FINAL} />{grandFinalDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={GRAND_FINAL} /></div>}{renderDays(grandFinalDays, "Grand Final")}</div>}
+        {expandedStage === "grand-final" && <div className="space-y-4 border-t border-char-3 p-4 sm:p-5"><FactChips facts={[{ k: "Date", v: "November 28" }, { k: "Teams", v: "12 (8 + 4)" }, { k: "Format", v: "Champion Rush" }, { k: "Venue", v: "BITEC LIVE, Bangkok" }]} /><p className="max-w-3xl text-sm leading-6 text-ash">12 teams play in Champion Rush format at BITEC LIVE, Bangkok: 2 teams from each Phase 2 day plus 4 from Last Chance. Expand the day to check team assignments and match information.</p><StageRules def={GRAND_FINAL} />{grandFinalDays.length === 0 && <div className="border border-char-3 bg-char-2 p-3"><p className="mb-3 font-stat text-[10px] uppercase tracking-[0.25em] text-ember">Qualified teams</p><TbaSlots def={GRAND_FINAL} /></div>}{renderDays(grandFinalDays, "Grand Final")}</div>}
       </section>
     </section>
+
+    <ScoringSection />
+    <GlossarySection />
+    <FaqSection />
   </div>;
 }
 
