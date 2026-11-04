@@ -126,27 +126,99 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 		return nil, err
 	}
 
-	for _, day := range days {
-		var rooms []struct {
-			ID         uint
-			RoomNumber int
-			MapName    string
-		}
+	// Load everything the loop below needs in 4 queries total (it used to run ~5 queries
+	// per room, which meant hundreds of queries for one profile page).
+	type roomRow struct {
+		ID              uint
+		RoomNumber      int
+		MapName         string
+		TournamentDayID uint
+	}
+	roomsByDay := map[uint][]roomRow{}
+	dayIDs := make([]uint, 0, len(days))
+	for _, d := range days {
+		dayIDs = append(dayIDs, d.ID)
+	}
 
+	type playerStat struct {
+		Kills      int
+		FirstBlood bool
+	}
+	playerStats := map[uint]playerStat{} // room id -> this player's stat row (present = played)
+	placements := map[uint]int{}         // room id -> this team's placement
+	teamKillsByRoom := map[uint]int{}    // room id -> this team's total kills
+
+	if len(dayIDs) > 0 {
+		var roomRows []roomRow
 		err = r.db.Raw(`
-			SELECT
-				r.id,
-				r.room_number,
-				r.map_name
-			FROM rooms r
-			WHERE r.tournament_day_id = ?
-			ORDER BY r.room_number ASC
-		`, day.ID).Scan(&rooms).Error
-
+			SELECT id, room_number, map_name, tournament_day_id
+			FROM rooms
+			WHERE tournament_day_id IN (?)
+			ORDER BY room_number ASC
+		`, dayIDs).Scan(&roomRows).Error
 		if err != nil {
 			return nil, err
 		}
+		for _, rr := range roomRows {
+			roomsByDay[rr.TournamentDayID] = append(roomsByDay[rr.TournamentDayID], rr)
+		}
 
+		var statRows []struct {
+			RoomID     uint
+			Kills      int
+			FirstBlood bool
+		}
+		err = r.db.Raw(`
+			SELECT room_id, kills, first_blood
+			FROM player_room_stats
+			WHERE player_id = ?
+		`, playerID).Scan(&statRows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, sr := range statRows {
+			if _, seen := playerStats[sr.RoomID]; !seen {
+				playerStats[sr.RoomID] = playerStat{Kills: sr.Kills, FirstBlood: sr.FirstBlood}
+			}
+		}
+
+		var placementRows []struct {
+			RoomID    uint
+			Placement int
+		}
+		err = r.db.Raw(`
+			SELECT room_id, placement
+			FROM room_team_results
+			WHERE team_id = ?
+		`, player.TeamID).Scan(&placementRows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, pr := range placementRows {
+			if _, seen := placements[pr.RoomID]; !seen {
+				placements[pr.RoomID] = pr.Placement
+			}
+		}
+
+		var killRows []struct {
+			RoomID uint
+			Kills  int
+		}
+		err = r.db.Raw(`
+			SELECT room_id, COALESCE(SUM(kills), 0) AS kills
+			FROM player_room_stats
+			WHERE team_id = ?
+			GROUP BY room_id
+		`, player.TeamID).Scan(&killRows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, kr := range killRows {
+			teamKillsByRoom[kr.RoomID] = kr.Kills
+		}
+	}
+
+	for _, day := range days {
 		dayStats := PlayerDayStats{
 			DayID:    day.ID,
 			DayName:  day.Name,
@@ -155,97 +227,34 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			Rooms:    []PlayerRoomStats{},
 		}
 
-		for _, room := range rooms {
-			var stat struct {
-				Kills      int
-				FirstBlood bool
-			}
-
-			err = r.db.Raw(`
-				SELECT
-					kills,
-					first_blood
-				FROM player_room_stats
-				WHERE room_id = ?
-				  AND player_id = ?
-				LIMIT 1
-			`, room.ID, playerID).Scan(&stat).Error
-
-			if err != nil {
-				return nil, err
-			}
-
-			var teamResult struct {
-				Placement int
-			}
-
-			err = r.db.Raw(`
-				SELECT placement
-				FROM room_team_results
-				WHERE room_id = ?
-				  AND team_id = ?
-				LIMIT 1
-			`, room.ID, player.TeamID).Scan(&teamResult).Error
-
-			if err != nil {
-				return nil, err
-			}
-
-			var teamKills int
-
-			err = r.db.Raw(`
-				SELECT COALESCE(SUM(kills), 0)
-				FROM player_room_stats
-				WHERE room_id = ?
-				  AND team_id = ?
-			`, room.ID, player.TeamID).Scan(&teamKills).Error
-
-			if err != nil {
-				return nil, err
-			}
+		for _, room := range roomsByDay[day.ID] {
+			stat, played := playerStats[room.ID]
+			placement := placements[room.ID]
+			teamKills := teamKillsByRoom[room.ID]
 
 			placementPoints := 0
-
-			if teamResult.Placement > 0 {
-				placementPoints = service.PlacementPoints(teamResult.Placement)
+			if placement > 0 {
+				placementPoints = service.PlacementPoints(placement)
 			}
 
 			killParticipation := 0.0
-
 			if teamKills > 0 {
 				killParticipation = float64(stat.Kills) / float64(teamKills) * 100
 			}
 
-			roomStats := PlayerRoomStats{
+			dayStats.Rooms = append(dayStats.Rooms, PlayerRoomStats{
 				RoomID:            room.ID,
 				RoomNumber:        room.RoomNumber,
 				MapName:           room.MapName,
-				Placement:         teamResult.Placement,
+				Placement:         placement,
 				PlacementPoints:   placementPoints,
 				Kills:             stat.Kills,
 				FirstBlood:        stat.FirstBlood,
 				TeamKills:         teamKills,
 				KillParticipation: killParticipation,
-			}
-
-			dayStats.Rooms = append(dayStats.Rooms, roomStats)
+			})
 
 			// Only count a room as played when the player has a stat row.
-			var played bool
-
-			err = r.db.Raw(`
-				SELECT EXISTS(
-					SELECT 1
-					FROM player_room_stats
-					WHERE room_id = ?
-					  AND player_id = ?
-				)
-			`, room.ID, playerID).Scan(&played).Error
-
-			if err != nil {
-				return nil, err
-			}
-
 			if played {
 				dayStats.RoomsPlayed++
 				dayStats.TotalKills += stat.Kills
@@ -255,7 +264,7 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 					dayStats.FirstBloods++
 				}
 
-				if teamResult.Placement == 1 {
+				if placement == 1 {
 					dayStats.Booyahs++
 				}
 			}

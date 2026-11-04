@@ -2,9 +2,11 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"time"
 
+	"ffws/internal/cache"
 	"ffws/internal/models"
 	"ffws/internal/service"
 
@@ -304,22 +306,37 @@ func (r *FantasyRepository) ComputeDayScore(fantasyTeamID, dayID uint) ([]Player
 	var breakdown []PlayerDayScore
 	total := 0
 
-	for _, s := range sels {
-		var rows []struct {
-			Kills      int
-			FirstBlood bool
-			Placement  int
+	// One query for all of the team's players (it used to be one query per player).
+	type scoreRow struct {
+		PlayerID   uint
+		Kills      int
+		FirstBlood bool
+		Placement  int
+	}
+	rowsByPlayer := map[uint][]scoreRow{}
+	if len(sels) > 0 {
+		playerIDs := make([]uint, 0, len(sels))
+		for _, s := range sels {
+			playerIDs = append(playerIDs, s.PlayerID)
 		}
+		var all []scoreRow
 		err := r.db.Raw(`
-			SELECT prs.kills, prs.first_blood, rtr.placement
+			SELECT prs.player_id, prs.kills, prs.first_blood, rtr.placement
 			FROM player_room_stats prs
 			JOIN rooms r ON r.id = prs.room_id
 			JOIN room_team_results rtr ON rtr.room_id = prs.room_id AND rtr.team_id = prs.team_id
-			WHERE prs.player_id = ? AND r.tournament_day_id = ?
-		`, s.PlayerID, dayID).Scan(&rows).Error
+			WHERE prs.player_id IN (?) AND r.tournament_day_id = ?
+		`, playerIDs, dayID).Scan(&all).Error
 		if err != nil {
 			return nil, 0, err
 		}
+		for _, row := range all {
+			rowsByPlayer[row.PlayerID] = append(rowsByPlayer[row.PlayerID], row)
+		}
+	}
+
+	for _, s := range sels {
+		rows := rowsByPlayer[s.PlayerID]
 
 		kills, firstBloods, placementPts := 0, 0, 0
 		for _, row := range rows {
@@ -360,7 +377,36 @@ type FantasyStanding struct {
 // It runs three queries no matter how many teams or picks exist (no per-team queries),
 // and scores through service.Fantasy* so the rules live in one place.
 func (r *FantasyRepository) GetStandings(tournamentID uint, dayID *uint, region string) ([]FantasyStanding, error) {
-	return r.getStandings(tournamentID, dayID, region, nil)
+	// Standings are the heaviest read in the app (every selection of every team). Compute
+	// them at most once per 10 seconds per league/day, however many people are looking.
+	// If a refresh fails, the last good table is served for up to 5 more minutes.
+	key := fmt.Sprintf("%d|%s|%s", tournamentID, dayKey(dayID), region)
+	standings, _, err := standingsCache.Do(nil, key, 10*time.Second, 5*time.Minute, func() ([]FantasyStanding, bool, error) {
+		res, err := r.getStandings(tournamentID, dayID, region, nil)
+		return res, err == nil, err
+	})
+	return standings, err
+}
+
+var standingsCache = cache.New[[]FantasyStanding](256)
+
+// statsRowsCache holds the per-tournament player results used by every standings
+// calculation (global, region and private leagues all share it).
+var statsRowsCache = cache.New[[]standingsStatRow](64)
+
+type standingsStatRow struct {
+	PlayerID   uint
+	DayID      uint
+	Kills      int
+	FirstBlood bool
+	Placement  int
+}
+
+func dayKey(dayID *uint) string {
+	if dayID == nil {
+		return "all"
+	}
+	return fmt.Sprint(*dayID)
 }
 
 // getStandings is the shared implementation. When teamIDs is non-nil only those fantasy
@@ -423,14 +469,13 @@ func (r *FantasyRepository) getStandings(tournamentID uint, dayID *uint, region 
 		return nil, err
 	}
 
-	var stats []struct {
-		PlayerID   uint
-		DayID      uint
-		Kills      int
-		FirstBlood bool
-		Placement  int
-	}
-	if err := r.db.Raw(statQuery, statArgs...).Scan(&stats).Error; err != nil {
+	stats, _, err := statsRowsCache.Do(nil, fmt.Sprintf("%d|%s", tournamentID, dayKey(dayID)), 10*time.Second, 5*time.Minute,
+		func() ([]standingsStatRow, bool, error) {
+			var rows []standingsStatRow
+			err := r.db.Raw(statQuery, statArgs...).Scan(&rows).Error
+			return rows, err == nil, err
+		})
+	if err != nil {
 		return nil, err
 	}
 

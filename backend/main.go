@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"ffws/internal/config"
@@ -25,8 +31,9 @@ func main() {
 		log.Fatalf("failed to get database connection: %v", err)
 	}
 
-	sqlDB.SetMaxOpenConns(1)
-
+	// The connection pool size is configured in db.Connect (DB_MAX_OPEN_CONNS).
+	// Note: this SET only applies to the one connection that runs it. That is fine as long as
+	// your database user's default search_path already includes "public".
 	if _, err := sqlDB.Exec("SET search_path TO public"); err != nil {
 		log.Fatalf("failed to set database schema: %v", err)
 	}
@@ -57,12 +64,29 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
-	router := gin.Default()
+	if cfg.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// gin.New instead of gin.Default so we control the logger (no log spam from health checks)
+	// and answer a panic with a clean JSON 500. A panic in one request never takes the server down.
+	router := gin.New()
+	router.Use(
+		gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/health", "/ready"}}),
+		gin.CustomRecovery(func(c *gin.Context, recovered any) {
+			log.Printf("panic recovered: %v", recovered)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}),
+	)
 
 	// Only believe X-Forwarded-For from proxies you list in TRUSTED_PROXIES; otherwise anyone
 	// could fake their IP and dodge the rate limiter.
 	if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		log.Fatalf("invalid TRUSTED_PROXIES: %v", err)
+	}
+	if len(cfg.TrustedProxies) == 0 && cfg.Environment == "production" {
+		log.Println("WARNING: TRUSTED_PROXIES is empty. If this API runs behind a reverse proxy / platform load balancer, " +
+			"every visitor looks like the same IP and the rate limiters will block real users together. Set TRUSTED_PROXIES.")
 	}
 
 	router.Use(cors.New(cors.Config{
@@ -70,9 +94,30 @@ func main() {
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour, // browsers remember the preflight, so far fewer OPTIONS requests
 	}))
 
+	// Health probes are registered BEFORE the protection middleware below, so they are never
+	// rate limited or shed while the server is busy.
 	router.GET("/health", handlers.HealthCheck)
+	router.GET("/ready", handlers.ReadyCheck(sqlDB))
+
+	router.Use(
+		middleware.SecurityHeaders(),
+		middleware.BodyLimit(1<<20), // 1 MB is far more than any JSON body this API accepts
+		middleware.MaxInFlight(cfg.MaxInFlight),
+		middleware.GlobalRateLimit(cfg.RateLimitRPS, cfg.RateLimitBurst, cfg.RateLimitExemptIPs),
+	)
+
+	// Response caching for PUBLIC read routes (see middleware.CacheGET).
+	// slow: rarely changes. live: changes while matches are being scored.
+	// The strings are the query parameters each route reads (they form the cache key).
+	slow := func(params ...string) gin.HandlerFunc {
+		return middleware.CacheGET(30*time.Second, 10*time.Minute, params...)
+	}
+	live := func(params ...string) gin.HandlerFunc {
+		return middleware.CacheGET(10*time.Second, 5*time.Minute, params...)
+	}
 
 	subscriberRepo := repository.NewSubscriberRepository(database)
 	subscriberHandler := handlers.NewSubscriberHandler(subscriberRepo)
@@ -133,32 +178,32 @@ func main() {
 
 		api.POST("/subscribe", middleware.RateLimit(rate.Every(10*time.Second), 5), subscriberHandler.Subscribe)
 
-		api.GET("/teams/:id/stats", teamStatsHandler.GetProfile)
-		api.GET("/teams/:id/staff", teamStaffHandler.List)
+		api.GET("/teams/:id/stats", live(), teamStatsHandler.GetProfile)
+		api.GET("/teams/:id/staff", slow(), teamStaffHandler.List)
 
-		api.GET("/predictions/standings", predictionHandler.GetStandings)
+		api.GET("/predictions/standings", live("tournament_id", "day_id"), predictionHandler.GetStandings)
 		api.GET("/predictions/:id", middleware.OptionalAuth(cfg), predictionHandler.GetByID)
 
-		api.GET("/tournaments", tournamentHandler.List)
-		api.GET("/tournaments/:slug", tournamentHandler.GetBySlug)
-		api.GET("/teams", teamHandler.List)
-		api.GET("/teams/:id", teamHandler.GetByID)
-		api.GET("/players", playerHandler.List)
-		api.GET("/players/:id", playerHandler.GetByID)
-		api.GET("/weapons", weaponHandler.List)
-		api.GET("/tournament-days", tournamentDayHandler.List)
-		api.GET("/tournament-days/:id", tournamentDayHandler.GetByID)
-		api.GET("/tournament-days/:id/teams", tournamentDayHandler.GetTeams)
-		api.GET("/rooms", roomHandler.List)
-		api.GET("/rooms/:id", roomHandler.GetByID)
-		api.GET("/rooms/:id/results", roomResultHandler.GetSummary)
-		api.GET("/standings", roomResultHandler.GetStandings)
+		api.GET("/tournaments", slow(), tournamentHandler.List)
+		api.GET("/tournaments/:slug", slow(), tournamentHandler.GetBySlug)
+		api.GET("/teams", slow("tournament_id"), teamHandler.List)
+		api.GET("/teams/:id", slow(), teamHandler.GetByID)
+		api.GET("/players", slow("team_id"), playerHandler.List)
+		api.GET("/players/:id", live(), playerHandler.GetByID)
+		api.GET("/weapons", slow(), weaponHandler.List)
+		api.GET("/tournament-days", slow("tournament_id"), tournamentDayHandler.List)
+		api.GET("/tournament-days/:id", slow(), tournamentDayHandler.GetByID)
+		api.GET("/tournament-days/:id/teams", slow(), tournamentDayHandler.GetTeams)
+		api.GET("/rooms", live("tournament_day_id"), roomHandler.List)
+		api.GET("/rooms/:id", live(), roomHandler.GetByID)
+		api.GET("/rooms/:id/results", live(), roomResultHandler.GetSummary)
+		api.GET("/standings", live("tournament_id"), roomResultHandler.GetStandings)
 
-		api.GET("/player-leaderboard", playerStatsHandler.GetLeaderboard)
+		api.GET("/player-leaderboard", live("tournament_id", "day_id"), playerStatsHandler.GetLeaderboard)
 
-		api.GET("/fantasy/players", fantasyHandler.GetPlayerPool)
-		api.GET("/fantasy/player-form", fantasyHandler.GetPlayerForm)
-		api.GET("/fantasy/standings", fantasyHandler.GetStandings)
+		api.GET("/fantasy/players", live("tournament_id", "day_id"), fantasyHandler.GetPlayerPool)
+		api.GET("/fantasy/player-form", live("tournament_id"), fantasyHandler.GetPlayerForm)
+		api.GET("/fantasy/standings", live("tournament_id", "day_id"), fantasyHandler.GetStandings)
 		api.GET("/fantasy/teams/:id", middleware.OptionalAuth(cfg), fantasyHandler.GetTeamProfile)
 
 		protected := api.Group("/")
@@ -181,7 +226,7 @@ func main() {
 			protected.POST("/predictions/:dayId", predictionHandler.Submit)
 
 			adminOnly := protected.Group("/")
-			adminOnly.Use(middleware.RequireAdmin())
+			adminOnly.Use(middleware.RequireAdmin(), middleware.PurgeCacheAfterWrite())
 			{
 				adminOnly.POST("/auth/accounts", authHandler.CreateAccount)
 				adminOnly.GET("/auth/accounts", authHandler.ListAccounts)
@@ -211,9 +256,42 @@ func main() {
 		}
 	}
 
-	log.Printf("starting server on port %s", cfg.Port)
-	if err := router.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("server failed to start: %v", err)
+	// Explicit server timeouts. gin's router.Run has none, so slow or stalled clients
+	// ("slowloris") could hold connections open forever and exhaust the server.
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       90 * time.Second,
+		MaxHeaderBytes:    1 << 16,
 	}
 
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("starting server on port %s", cfg.Port)
+		serverErr <- srv.ListenAndServe()
+	}()
+
+	// Graceful shutdown: on deploy/restart, finish in-flight requests instead of cutting them off.
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server failed: %v", err)
+		}
+	case sig := <-stop:
+		log.Printf("received %v, shutting down gracefully", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("graceful shutdown did not finish: %v", err)
+		}
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("closing database: %v", err)
+		}
+	}
 }

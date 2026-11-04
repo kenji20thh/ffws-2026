@@ -210,22 +210,36 @@ func (r *RoomResultRepository) GetRoomSummary(roomID uint) ([]TeamRoomSummary, e
 		return nil, err
 	}
 
+	// One grouped query for every team's kills (it used to be one query per team).
+	var killRows []struct {
+		TeamID uint
+		Kills  int
+	}
+	if err := r.db.Raw(`
+		SELECT team_id, COALESCE(SUM(kills), 0) AS kills
+		FROM player_room_stats
+		WHERE room_id = ?
+		GROUP BY team_id
+	`, roomID).Scan(&killRows).Error; err != nil {
+		return nil, err
+	}
+	killsByTeam := make(map[uint]int, len(killRows))
+	for _, k := range killRows {
+		killsByTeam[k.TeamID] = k.Kills
+	}
+
 	var summaries []TeamRoomSummary
 	for _, res := range results {
-		var totalKills int64
-		r.db.Model(&models.PlayerRoomStat{}).
-			Where("room_id = ? AND team_id = ?", roomID, res.TeamID).
-			Select("COALESCE(SUM(kills), 0)").
-			Scan(&totalKills)
+		totalKills := killsByTeam[res.TeamID]
 
 		summaries = append(summaries, TeamRoomSummary{
 			TeamID:          res.TeamID,
 			TeamName:        res.Team.Name,
 			Placement:       res.Placement,
-			TotalKills:      int(totalKills),
+			TotalKills:      totalKills,
 			PlacementPoints: service.PlacementPoints(res.Placement),
-			KillPoints:      service.KillPoints(int(totalKills)),
-			TotalPoints:     service.PlacementPoints(res.Placement) + service.KillPoints(int(totalKills)),
+			KillPoints:      service.KillPoints(totalKills),
+			TotalPoints:     service.PlacementPoints(res.Placement) + service.KillPoints(totalKills),
 		})
 	}
 	return summaries, nil
