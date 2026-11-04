@@ -26,7 +26,7 @@ export default function PlayerListRow({ option, selected, active, blockedReason,
           onOpen();
         }
       }}
-      className={`chamfer-sm flex cursor-pointer items-center gap-3 border px-3 py-2 transition-colors ${
+      className={`chamfer-sm flex cursor-pointer items-center gap-2.5 border px-2.5 py-1.5 transition-colors ${
         active
           ? "border-ember bg-char-3"
           : selected
@@ -34,17 +34,17 @@ export default function PlayerListRow({ option, selected, active, blockedReason,
             : "border-bone/10 bg-char-2 hover:border-bone/30"
       } ${!selected && blockedReason ? "opacity-50" : ""}`}
     >
-      <Monogram label={option.team_tag || option.team_name} imageUrl={option.team_logo_url} size={34} />
+      <Monogram label={option.team_tag || option.team_name} imageUrl={option.team_logo_url} size={30} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-lg font-extrabold uppercase leading-none">{option.ign}</p>
-        <p className="mt-0.5 truncate font-stat text-[10px] uppercase tracking-widest text-ash">
+        <p className="truncate font-display text-base font-extrabold uppercase leading-none">{option.ign}</p>
+        <p className="mt-0.5 truncate font-stat text-[9px] uppercase tracking-widest text-ash">
           {option.role}
           <span className="mx-1.5 text-bone/20">·</span>
           <Flag country={option.country} height={12} /> {option.country}
         </p>
       </div>
-      <FormArrow form={option.form} size={20} className="ml-2" />
-      <span className="ml-3 font-stat text-sm font-bold tabular-nums text-ember">${option.fantasy_price}</span>
+      <FormArrow form={option.form} size={18} className="ml-1" />
+      <span className="ml-1 font-stat text-xs font-bold tabular-nums text-ember">${option.fantasy_price}</span>
       <button
         type="button"
         disabled={!canClick}
@@ -54,7 +54,7 @@ export default function PlayerListRow({ option, selected, active, blockedReason,
         }}
         title={selected ? "Remove from team" : (blockedReason ?? "Add to team")}
         aria-label={`${selected ? "Remove" : "Add"} ${option.ign}`}
-        className={`flex h-8 w-8 shrink-0 items-center justify-center border font-stat text-lg font-black leading-none transition-colors ${
+        className={`flex h-9 w-9 shrink-0 items-center justify-center border font-stat text-lg lg:h-7 lg:w-7 lg:text-base font-black leading-none transition-colors ${
           selected
             ? "border-ember bg-ember text-char hover:bg-transparent hover:text-ember"
             : "border-bone/30 text-bone hover:border-ember hover:text-ember disabled:cursor-not-allowed disabled:hover:border-bone/30 disabled:hover:text-bone"

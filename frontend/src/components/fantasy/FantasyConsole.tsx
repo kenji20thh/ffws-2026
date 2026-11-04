@@ -371,264 +371,151 @@ even if the backend has not refreshed its locked state yet.
 */
 const locked = backendLocked || countdown.expired;
 
-return ( <div className="relative min-h-screen overflow-hidden">
-{/* Background atmosphere */} <div className="pointer-events-none absolute inset-0 overflow-hidden"> <div className="absolute -right-40 top-20 h-[500px] w-[500px] rounded-full bg-ember/[0.07] blur-[120px]" /> <div className="absolute -left-40 top-[45%] h-[450px] w-[450px] rounded-full bg-bone/[0.025] blur-[120px]" />
+const cells: [string, number][] = [
+  ["Days", countdown.days],
+  ["Hrs", countdown.hours],
+  ["Min", countdown.minutes],
+  ["Sec", countdown.seconds],
+];
 
-    <div
-      className="absolute inset-0 opacity-[0.025]"
-      style={{
-        backgroundImage:
-          "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
-        backgroundSize: "48px 48px",
-      }}
-    />
-  </div>
+return (
+  <div className="relative overflow-hidden">
+    {/* Background atmosphere */}
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute -right-40 top-20 h-[500px] w-[500px] rounded-full bg-ember/[0.07] blur-[120px]" />
+      <div className="absolute -left-40 top-[45%] h-[450px] w-[450px] rounded-full bg-bone/[0.025] blur-[120px]" />
 
-  <div className="relative mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-    {/* Fantasy header */}
-    <section className="relative overflow-hidden chamfer border border-bone/10 bg-char-2">
-      <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-ember/[0.08] to-transparent" />
+      <div
+        className="absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+    </div>
 
-      <div className="relative flex flex-col gap-7 p-6 md:p-8 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="h-2 w-2 bg-ember shadow-[0_0_14px_rgba(255,100,40,.7)]" />
+    <div className="relative mx-auto max-w-[87.5rem] px-3 py-3 sm:px-5 lg:px-6 lg:py-4">
+      {/* One compact status bar: team · matchday · deadline */}
+      <section className="relative overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+        <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-ember/[0.07] to-transparent" />
 
-            <p className="font-stat text-[10px] font-bold uppercase tracking-[0.3em] text-ash">
-              FFWS 2026 Fantasy
-            </p>
-          </div>
+        <div className="relative flex flex-wrap items-center gap-x-6 gap-y-3 px-3 py-2.5 sm:px-4">
+          {/* Team identity */}
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center chamfer-sm border border-ember/25 bg-ember/10">
+              <span className="font-display text-base font-black text-ember">
+                {team.team_name.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
 
-          <h1 className="mt-3 font-display text-4xl font-black uppercase leading-[0.9] tracking-tight md:text-6xl">
-            Build your
-            <span className="ml-2 text-ember">squad.</span>
-          </h1>
-
-          <p className="mt-4 max-w-xl text-sm leading-6 text-ash">
-            Select four players, choose your captain and create the lineup
-            that will dominate the fantasy leaderboard.
-          </p>
-        </div>
-
-        {/* Team identity */}
-        <div className="flex items-center gap-4 border-l border-bone/10 pl-0 lg:pl-8">
-          <div className="flex h-14 w-14 items-center justify-center chamfer-sm border border-ember/25 bg-ember/10">
-            <span className="font-display text-xl font-black text-ember">
-              {team.team_name.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
-
-          <div>
-            <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
-              Your team
-            </p>
-
-            <p className="mt-1 font-display text-xl font-black uppercase">
-              {team.team_name}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Header bottom status strip */}
-      <div className="grid grid-cols-2 border-t border-bone/10 md:grid-cols-3">
-        <div className="border-r border-bone/10 px-5 py-4">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
-            Competition
-          </p>
-
-          <p className="mt-1 font-display text-sm font-bold uppercase">
-            Fantasy League
-          </p>
-        </div>
-
-        <div className="border-r border-bone/10 px-5 py-4">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
-            Squad size
-          </p>
-
-          <p className="mt-1 font-display text-sm font-bold uppercase">
-            4 Players
-          </p>
-        </div>
-
-        <div className="hidden px-5 py-4 md:block">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
-            Status
-          </p>
-
-          <p
-            className={`mt-1 font-display text-sm font-bold uppercase ${
-              locked ? "text-red-400" : "text-ember"
-            }`}
-          >
-            {locked ? "Locked" : "Selection Open"}
-          </p>
-        </div>
-      </div>
-    </section>
-
-    {/* Day selector / current round */}
-    {!day ? (
-      <div className="mt-8 chamfer border border-bone/10 bg-char-2 p-8">
-        <p className="font-stat text-sm uppercase tracking-widest text-ash">
-          No tournament days scheduled yet.
-        </p>
-      </div>
-    ) : loading || !poolLoaded ? (
-      <div className="mt-8 space-y-5">
-        <Skeleton className="h-28" />
-        <Skeleton className="h-[600px]" />
-      </div>
-    ) : (
-      <>
-        <section className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-stretch">
-          {/* Current day */}
-          <div className="relative flex-1 overflow-hidden chamfer border border-ember/20 bg-char-2">
-            <div className="absolute right-0 top-0 h-full w-32 bg-gradient-to-l from-ember/10 to-transparent" />
-
-            <div className="relative flex h-full items-center gap-5 px-6 py-5">
-              <div className="flex h-14 min-w-14 items-center justify-center chamfer-sm border border-ember/30 bg-ember/10">
-                <span className="font-stat text-xs font-black uppercase text-ember">
-                  D{day.day_order}
-                </span>
-              </div>
-
-              <div>
-                <p className="font-stat text-[9px] uppercase tracking-[0.25em] text-ash">
-                  Building for
-                </p>
-
-                <p className="mt-1 font-display text-2xl font-black uppercase">
-                  {day.name}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
+                FFWS 2026 Fantasy · Your team
+              </p>
+              <p className="truncate font-display text-lg font-black uppercase leading-tight">
+                {team.team_name}
+              </p>
             </div>
           </div>
 
-          {/* Lock state + ACTUAL countdown */}
-          <div
-            className={`relative overflow-hidden chamfer border px-6 py-5 lg:min-w-[520px] ${
-              locked
-                ? "border-red-400/20 bg-red-400/[0.04]"
-                : "border-ember/20 bg-ember/[0.04]"
-            }`}
-          >
-            {!locked && (
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-64 bg-gradient-to-l from-ember/[0.09] to-transparent" />
-            )}
-
-            <div className="relative">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center chamfer-sm ${
-                      locked ? "bg-red-400/10" : "bg-ember/10"
-                    }`}
-                  >
-                    <span
-                      className={`text-lg ${
-                        locked ? "text-red-400" : "text-ember"
-                      }`}
-                    >
-                      {locked ? "🔒" : "◷"}
-                    </span>
-                  </div>
-
-                  <div>
-                    <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
-                      Selection deadline
-                    </p>
-
-                    <p
-                      className={`mt-1 font-display text-base font-black uppercase ${
-                        locked ? "text-red-400" : "text-ember"
-                      }`}
-                    >
-                      {locked ? "Selection Locked" : "Time Remaining"}
-                    </p>
-                  </div>
+          {day ? (
+            <>
+              {/* Matchday */}
+              <div className="flex items-center gap-3 sm:border-l sm:border-bone/10 sm:pl-6">
+                <div className="flex h-10 min-w-10 items-center justify-center chamfer-sm border border-ember/30 bg-ember/10 px-1">
+                  <span className="font-stat text-[11px] font-black uppercase text-ember">
+                    D{day.day_order}
+                  </span>
                 </div>
 
-                {!locked && (
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-                    <span className="font-stat text-[8px] font-bold uppercase tracking-[0.18em] text-ember">
-                      Live
-                    </span>
+                <div className="min-w-0">
+                  <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
+                    Building for
+                  </p>
+                  <p className="truncate font-display text-lg font-black uppercase leading-tight">
+                    {day.name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Deadline / countdown */}
+              <div className="flex w-full items-center gap-3 sm:ml-auto sm:w-auto">
+                {locked ? (
+                  <div className="flex w-full items-center gap-2 border border-danger/25 bg-danger/[0.06] px-3 py-2 sm:w-auto">
+                    <span aria-hidden="true">🔒</span>
+                    <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-danger">
+                      Selections locked
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <div className="hidden items-center gap-2 md:flex">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
+                      <p className="font-stat text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-ember">
+                        Closes
+                        <br />
+                        in
+                      </p>
+                    </div>
+
+                    <div
+                      className="grid flex-1 grid-cols-4 gap-1.5 sm:flex-none"
+                      role="timer"
+                      aria-label="Time until the selection deadline"
+                    >
+                      {cells.map(([label, value], i) => {
+                        const last = i === cells.length - 1;
+
+                        return (
+                          <div
+                            key={label}
+                            className={`border px-2 py-1 text-center sm:min-w-[3rem] ${
+                              last
+                                ? "border-ember/25 bg-ember/[0.08]"
+                                : "border-bone/10 bg-char/60"
+                            }`}
+                          >
+                            <div
+                              className={`font-stat text-base font-black leading-none tabular-nums sm:text-lg ${
+                                last ? "text-ember" : "text-bone"
+                              }`}
+                            >
+                              {pad(value)}
+                            </div>
+                            <div
+                              className={`mt-1 font-stat text-[7px] font-bold uppercase tracking-[0.18em] ${
+                                last ? "text-ember/70" : "text-ash"
+                              }`}
+                            >
+                              {label}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
+            </>
+          ) : null}
+        </div>
+      </section>
 
-              {!locked ? (
-                <div className="mt-5">
-                  <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                    {/* Days */}
-                    <div className="border border-bone/10 bg-char/60 px-2 py-3 text-center sm:px-3 sm:py-4">
-                      <div className="font-stat text-3xl font-black leading-none tracking-tight text-bone sm:text-4xl">
-                        {pad(countdown.days)}
-                      </div>
-
-                      <div className="mt-2 font-stat text-[7px] font-bold uppercase tracking-[0.2em] text-ash sm:text-[8px]">
-                        Days
-                      </div>
-                    </div>
-
-                    {/* Hours */}
-                    <div className="border border-bone/10 bg-char/60 px-2 py-3 text-center sm:px-3 sm:py-4">
-                      <div className="font-stat text-3xl font-black leading-none tracking-tight text-bone sm:text-4xl">
-                        {pad(countdown.hours)}
-                      </div>
-
-                      <div className="mt-2 font-stat text-[7px] font-bold uppercase tracking-[0.2em] text-ash sm:text-[8px]">
-                        Hours
-                      </div>
-                    </div>
-
-                    {/* Minutes */}
-                    <div className="border border-bone/10 bg-char/60 px-2 py-3 text-center sm:px-3 sm:py-4">
-                      <div className="font-stat text-3xl font-black leading-none tracking-tight text-bone sm:text-4xl">
-                        {pad(countdown.minutes)}
-                      </div>
-
-                      <div className="mt-2 font-stat text-[7px] font-bold uppercase tracking-[0.2em] text-ash sm:text-[8px]">
-                        Minutes
-                      </div>
-                    </div>
-
-                    {/* Seconds */}
-                    <div className="border border-ember/25 bg-ember/[0.08] px-2 py-3 text-center sm:px-3 sm:py-4">
-                      <div className="font-stat text-3xl font-black leading-none tracking-tight text-ember sm:text-4xl">
-                        {pad(countdown.seconds)}
-                      </div>
-
-                      <div className="mt-2 font-stat text-[7px] font-bold uppercase tracking-[0.2em] text-ember/70 sm:text-[8px]">
-                        Seconds
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="mt-3 text-center font-stat text-[8px] uppercase tracking-[0.18em] text-ash">
-                    Make your final selections before the deadline
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-5 border border-red-400/10 bg-red-400/[0.04] px-5 py-4">
-                  <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-red-400/70">
-                    Countdown complete
-                  </p>
-
-                  <p className="mt-1 font-display text-xl font-black uppercase text-red-400">
-                    Fantasy selections are locked
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Builder */}
-        <section className="mt-6">
+      {/* Builder */}
+      {!day ? (
+        <div className="mt-4 chamfer-sm border border-bone/10 bg-char-2 p-6">
+          <p className="font-stat text-sm uppercase tracking-widest text-ash">
+            No tournament days scheduled yet.
+          </p>
+        </div>
+      ) : loading || !poolLoaded ? (
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(18.75rem,23.75rem)_minmax(0,1fr)]">
+          <Skeleton className="h-[420px] lg:h-[520px]" />
+          <Skeleton className="h-[420px] lg:h-[520px]" />
+        </div>
+      ) : (
+        <section className="mt-4">
           <SelectionBuilder
             key={day.id}
             lockTime={lockTime}
@@ -643,10 +530,8 @@ return ( <div className="relative min-h-screen overflow-hidden">
             onSaved={() => router.push(`/fantasy/${team.id}`)}
           />
         </section>
-      </>
-    )}
+      )}
+    </div>
   </div>
-</div>
-
 );
 }

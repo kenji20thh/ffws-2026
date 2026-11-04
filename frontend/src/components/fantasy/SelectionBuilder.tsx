@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import { ApiError, submitFantasySelection } from "@/lib/api";
@@ -72,6 +72,16 @@ export default function SelectionBuilder({
   const [chip, setChip] = useState<FantasyChip | null>(() => savedChip || null);
 
   const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const marketRef = useRef<HTMLElement>(null);
+
+  function goToMarket() {
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      searchRef.current?.focus();
+    } else {
+      marketRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
   const [detailId, setDetailId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -303,230 +313,233 @@ export default function SelectionBuilder({
 
   const detailOption = detailId !== null ? (byId.get(detailId) ?? null) : null;
 
-  return (
+  const confirmInner = (
     <>
-      <div className="grid gap-8 lg:grid-cols-[minmax(260px,0.85fr)_minmax(560px,1.5fr)] lg:items-start">
-        <section className="order-2 min-w-0 lg:order-1">
-          <div className="overflow-hidden chamfer border border-bone/10 bg-char-2">
-            <div className="border-b border-bone/10 px-5 py-5">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-                    <p className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ash">
-                      Player market
+              <p
+                aria-live="polite"
+                className={`text-center font-stat text-[11px] text-danger ${
+                  error ? "mb-2" : ""
+                }`}
+              >
+                {error}
+              </p>
+
+              <div className="flex flex-wrap items-stretch gap-2 sm:gap-3">
+                <div className="flex shrink-0 items-center divide-x divide-bone/10 border border-bone/10 bg-char">
+                  <div className="px-3 py-1.5">
+                    <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
+                      Teams
+                    </p>
+                    <p className="font-display text-base font-black leading-tight">
+                      {usedTeamIds.size}
                     </p>
                   </div>
-                  <p className="mt-2 font-display text-2xl font-black uppercase">
-                    Choose your squad
+                  <div className="px-3 py-1.5">
+                    <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
+                      Left
+                    </p>
+                    <p
+                      className={`font-display text-base font-black leading-tight ${
+                        unlimited
+                          ? "text-ember"
+                          : remaining < 0
+                            ? "text-danger"
+                            : "text-bone"
+                      }`}
+                    >
+                      {unlimited ? "∞" : `$${remaining.toFixed(1)}M`}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={save}
+                  disabled={locked || busy}
+                  className="min-w-[9rem] flex-1 !px-4 !py-2 !text-base"
+                >
+                  {busy
+                    ? "Saving squad…"
+                    : locked
+                      ? "Selection locked"
+                      : picked.length < SQUAD_SIZE
+                        ? `Select ${SQUAD_SIZE - picked.length} more`
+                        : "Confirm squad →"}
+                </Button>
+              </div>
+                </>
+  );
+
+  return (
+    <>
+      <div className="grid gap-4 pb-24 lg:pb-0 lg:grid-cols-[minmax(17rem,19rem)_minmax(0,1fr)] xl:grid-cols-[minmax(18.75rem,23.75rem)_minmax(0,1fr)] lg:items-start">
+        {/* ───────── Player market ───────── */}
+        <section ref={marketRef} className="order-2 min-w-0 scroll-mt-28 lg:sticky lg:top-[7.25rem] lg:order-1 lg:h-[calc(100vh_-_8.5rem)] lg:min-h-[26rem]">
+          <div className="flex h-full flex-col overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+            <div className="shrink-0 border-b border-bone/10 px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
+                  <p className="font-display text-lg font-black uppercase leading-none">
+                    Player market
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
-                    Available
-                  </p>
-                  <p className="mt-1 font-display text-xl font-black text-ember">
-                    {list.length}
-                  </p>
-                </div>
+                <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+                  <span className="text-ember">{list.length}</span> available
+                </p>
               </div>
 
-              <div className="relative mt-5">
+              <div className="relative mt-2.5">
                 <input
+                  ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="SEARCH PLAYER OR TEAM..."
-                  className="w-full chamfer-sm border border-bone/15 bg-char px-4 py-3.5 pr-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition placeholder:text-ash/50 focus:border-ember"
+                  className="w-full chamfer-sm border border-bone/15 bg-char px-3 py-2 pr-9 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition placeholder:text-ash/50 focus:border-ember"
                 />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg text-ash">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-ash">
                   ⌕
                 </span>
               </div>
-            </div>
 
-            <div className="p-3">
-              <div className="mb-2 flex items-center justify-between px-1">
+              <div className="mt-2 flex items-center justify-between">
                 <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
                   Highest value first
                 </p>
                 <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash/50">
-                  Click player for details
+                  Click a player for details
                 </p>
               </div>
+            </div>
 
-              <div className="max-h-[68vh] space-y-2 overflow-y-auto pr-1">
-                {list.length === 0 ? (
-                  <div className="px-4 py-12 text-center">
-                    <p className="font-display text-lg font-black uppercase text-bone/60">
-                      No players found
-                    </p>
-                    <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
-                      Try another player or team
-                    </p>
-                  </div>
-                ) : (
-                  list.map((o) => (
-                    <PlayerListRow
-                      key={o.player_id}
-                      option={o}
-                      selected={picked.includes(o.player_id)}
-                      active={false}
-                      blockedReason={blockedReason(o)}
-                      onOpen={() => setDetailId(o.player_id)}
-                      onToggle={() => toggle(o)}
-                    />
-                  ))
-                )}
-              </div>
+            <div className="max-h-[55vh] min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2 lg:max-h-none">
+              {list.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <p className="font-display text-lg font-black uppercase text-bone/60">
+                    No players found
+                  </p>
+                  <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
+                    Try another player or team
+                  </p>
+                </div>
+              ) : (
+                list.map((o) => (
+                  <PlayerListRow
+                    key={o.player_id}
+                    option={o}
+                    selected={picked.includes(o.player_id)}
+                    active={false}
+                    blockedReason={blockedReason(o)}
+                    onOpen={() => setDetailId(o.player_id)}
+                    onToggle={() => toggle(o)}
+                  />
+                ))
+              )}
             </div>
           </div>
         </section>
 
-        <section className="order-1 min-w-0 space-y-5 lg:order-2 lg:sticky lg:top-20">
-          <div className="space-y-3">
-            <BudgetBar spent={spent} unlimited={unlimited} />
-            <ChipPicker
-              chip={chip}
-              used={chipsUsed}
-              dayId={dayId}
-              locked={locked}
-              onChange={changeChip}
-            />
-          </div>
-
-          <div className="overflow-hidden chamfer border border-bone/10 bg-char-2">
-            <div className="flex items-center justify-between px-5 py-5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-                  <p className="font-stat text-[9px] uppercase tracking-[0.25em] text-ash">
-                    Your lineup
-                  </p>
-                </div>
-                <p className="mt-2 font-display text-2xl font-black uppercase">
-                  Ultimate Squad
+        {/* ───────── Lineup ───────── */}
+        <section className="order-1 min-w-0 lg:sticky lg:top-[7.25rem] lg:order-2">
+          <div className="overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+            {/* header */}
+            <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
+                <p className="font-display text-lg font-black uppercase leading-none">
+                  Your lineup
                 </p>
-              </div>
-              <div className="text-right">
-                <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
-                  Players
-                </p>
-                <p className="mt-1 font-display text-3xl font-black leading-none">
+                <span className="font-display text-lg font-black leading-none">
                   <span className="text-ember">{picked.length}</span>
-                  <span className="text-ash/40"> / {SQUAD_SIZE}</span>
-                </p>
+                  <span className="text-ash/40">/{SQUAD_SIZE}</span>
+                </span>
               </div>
+
+              {!locked && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  disabled={picked.length === 0}
+                  className="chamfer-sm border border-bone/25 px-2.5 py-1 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition hover:border-danger/60 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-bone/25 disabled:hover:text-bone"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
-            <div className="h-1 bg-char">
+            <div className="h-0.5 bg-char">
               <div
                 className="h-full bg-ember transition-all duration-500"
                 style={{
-                  width: `${Math.min(
-                    100,
-                    (picked.length / SQUAD_SIZE) * 100,
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          {locked ? (
-            <div className="flex items-center gap-3 border border-danger/20 bg-danger/[0.04] px-4 py-3">
-              <span className="text-danger">🔒</span>
-              <p className="font-stat text-[9px] uppercase tracking-widest text-danger">
-                Selections are locked for this day
-                {lockTime
-                  ? ` · deadline was ${new Date(lockTime).toUTCString()}`
-                  : " · play has already started"}
-              </p>
-            </div>
-          ) : lockTime ? (
-            <div className="flex items-center justify-between border border-bone/10 bg-char-2 px-4 py-3">
-              <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
-                Selection deadline
-              </p>
-              <p className="font-stat text-[9px] uppercase tracking-widest text-ember">
-                {new Date(lockTime).toUTCString()}
-              </p>
-            </div>
-          ) : null}
-
-          <div className="relative overflow-hidden chamfer border border-bone/10 bg-char-2 p-4 sm:p-6">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.035] blur-3xl" />
-              <div
-                className="absolute inset-0 opacity-[0.025]"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(135deg, rgba(255,255,255,.8) 1px, transparent 1px)",
-                  backgroundSize: "22px 22px",
+                  width: `${Math.min(100, (picked.length / SQUAD_SIZE) * 100)}%`,
                 }}
               />
             </div>
 
-            <div className="relative">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-                  <span className="font-stat text-[9px] uppercase tracking-[0.25em] text-ash">
-                    Starting lineup
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-stat text-[9px] uppercase tracking-widest text-ash">
-                    2 × 2
-                  </span>
-                  {!locked && (
-                    <button
-                      type="button"
-                      onClick={clearAll}
-                      disabled={picked.length === 0}
-                      className="chamfer-sm border border-bone/25 px-3 py-1.5 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition hover:border-danger/60 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-bone/25 disabled:hover:text-bone"
-                    >
-                      Clear all
-                    </button>
-                  )}
-                </div>
+            {/* budget + chips */}
+            <div className="space-y-3 border-b border-bone/10 px-3 py-3 sm:px-4">
+              <BudgetBar spent={spent} unlimited={unlimited} />
+              <ChipPicker
+                chip={chip}
+                used={chipsUsed}
+                dayId={dayId}
+                locked={locked}
+                onChange={changeChip}
+              />
+            </div>
+
+            {locked && (
+              <div className="flex items-center gap-2 border-b border-danger/20 bg-danger/[0.05] px-3 py-2 sm:px-4">
+                <span aria-hidden="true" className="text-danger">
+                  🔒
+                </span>
+                <p className="font-stat text-[9px] uppercase tracking-widest text-danger">
+                  Locked for this day
+                  {lockTime
+                    ? ` · deadline was ${new Date(lockTime).toUTCString()}`
+                    : " · play has already started"}
+                </p>
+              </div>
+            )}
+
+            {/* cards */}
+            <div className="relative px-3 py-3 sm:px-4">
+              <div className="pointer-events-none absolute inset-0">
+                <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.04] blur-3xl" />
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="relative mx-auto grid max-w-[21.25rem] grid-cols-2 gap-x-3 gap-y-3 sm:max-w-none sm:grid-cols-4 sm:gap-x-3">
                 {slots.map((id, index) => {
                   const player = id !== null ? byId.get(id) : undefined;
 
                   if (!player) {
                     return (
-                      <button
+                      <div
                         key={`empty-${index}`}
-                        type="button"
-                        disabled={locked}
-                        onClick={() => {
-                          document
-                            .querySelector<HTMLInputElement>(
-                              'input[placeholder="SEARCH PLAYER OR TEAM..."]',
-                            )
-                            ?.focus();
-                        }}
-                        className="group relative mx-auto w-full max-w-[240px] overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{ aspectRatio: "1024 / 1536" }}
+                        className="mx-auto w-full max-w-[10.625rem] min-w-0 lg:max-w-[clamp(7rem,calc((100vh_-_27rem)_*_0.667),10.625rem)]"
                       >
-                        <div className="absolute left-4 top-4 z-10 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char-2 font-stat text-[10px] font-bold text-ash">
-                          0{index + 1}
-                        </div>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-bone/20 bg-char transition group-hover:border-ember/60 group-hover:bg-ember/10">
-                            <span className="font-display text-3xl font-light text-ash transition group-hover:text-ember">
-                              +
-                            </span>
+                        <button
+                          type="button"
+                          disabled={locked}
+                          onClick={goToMarket}
+                          className="group relative block w-full overflow-hidden chamfer-sm border border-dashed border-bone/15 bg-char/60 text-left transition duration-300 hover:border-ember/50 hover:bg-ember/[0.025] disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ aspectRatio: "1024 / 1536" }}
+                        >
+                          <div className="absolute left-2 top-2 flex h-5 min-w-5 items-center justify-center border border-bone/10 bg-char-2 px-1 font-stat text-[8px] font-bold text-ash">
+                            0{index + 1}
                           </div>
-                          <p className="mt-4 font-stat text-[9px] uppercase tracking-[0.25em] text-ash transition group-hover:text-bone">
-                            Add player
-                          </p>
-                          <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash/50">
-                            Slot {index + 1}
-                          </p>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-bone/20 to-transparent" />
-                      </button>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-bone/20 bg-char transition group-hover:border-ember/60 group-hover:bg-ember/10">
+                              <span className="font-display text-2xl font-light leading-none text-ash transition group-hover:text-ember">
+                                +
+                              </span>
+                            </div>
+                            <p className="mt-2.5 font-stat text-[8px] uppercase tracking-[0.2em] text-ash transition group-hover:text-bone">
+                              Add player
+                            </p>
+                          </div>
+                        </button>
+                        {!locked && <div className="mt-1.5 h-9 lg:h-7" />}
+                      </div>
                     );
                   }
 
@@ -536,16 +549,7 @@ export default function SelectionBuilder({
                   return (
                     <div
                       key={`player-${player.player_id}`}
-                      className={`relative mx-auto w-full max-w-[240px] min-w-0 ${
-                        isCaptain
-                          ? "drop-shadow-[0_0_12px_var(--card-glow-color)]"
-                          : ""
-                      }`}
-                      style={
-                        {
-                          "--card-glow-color": "rgba(255, 90, 31, 0.35)",
-                        } as React.CSSProperties
-                      }
+                      className="mx-auto w-full max-w-[10.625rem] min-w-0 lg:max-w-[clamp(7rem,calc((100vh_-_27rem)_*_0.667),10.625rem)]"
                     >
                       <FantasyPlayerCard
                         size="fluid"
@@ -579,110 +583,65 @@ export default function SelectionBuilder({
                         disabled={locked}
                       />
 
-                      <div className="pointer-events-none absolute left-[7%] top-[6%] z-20 flex h-7 min-w-7 items-center justify-center border border-bone/15 bg-char/70 px-2 backdrop-blur-sm">
-                        <span className="font-stat text-[8px] font-bold text-ash">
-                          0{index + 1}
-                        </span>
-                      </div>
-
                       {!locked && (
-                        <button
-                          type="button"
-                          onClick={() => remove(player.player_id)}
-                          className="absolute bottom-[5%] right-[5%] z-30 flex h-8 w-8 items-center justify-center border border-bone/25 bg-char/80 text-bone backdrop-blur-sm transition hover:border-danger/60 hover:text-danger"
-                          aria-label={`Clear ${player.ign}`}
-                          title={`Clear ${player.ign}`}
-                        >
-                          ×
-                        </button>
-                      )}
+                        <div className="mt-1.5 flex h-9 gap-1 lg:h-7">
+                          <button
+                            type="button"
+                            onClick={() => makeCaptain(player.player_id)}
+                            aria-pressed={isCaptain}
+                            title={
+                              isCaptain
+                                ? "Captain"
+                                : `Make ${player.ign} captain`
+                            }
+                            className={`flex min-w-0 flex-1 items-center justify-center gap-1 chamfer-sm border font-stat text-[9px] font-black uppercase tracking-wider transition-all ${
+                              isCaptain
+                                ? "border-ember bg-ember text-char"
+                                : "border-bone/25 bg-char text-bone hover:border-ember hover:bg-ember/15 hover:text-ember"
+                            }`}
+                          >
+                            <span className="text-[11px] leading-none">
+                              {isCaptain ? "★" : "☆"}
+                            </span>
+                            <span className="truncate">Captain</span>
+                          </button>
 
-                      {!locked && (
-                        <button
-                          type="button"
-                          onClick={() => makeCaptain(player.player_id)}
-                          className={`absolute bottom-[5%] left-[5%] z-30 flex items-center gap-1.5 chamfer-sm border px-2.5 py-1.5 font-stat text-[8px] font-black uppercase tracking-wider backdrop-blur-md transition-all ${
-                            isCaptain
-                              ? "border-ember bg-ember text-char shadow-[0_0_18px_rgba(255,100,40,.35)]"
-                              : "border-bone/25 bg-char/80 text-bone hover:border-ember hover:bg-ember/15 hover:text-ember"
-                          }`}
-                        >
-                          <span className="text-xs leading-none">★</span>
-                          <span>{isCaptain ? "Captain" : "Make Captain"}</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(player.player_id)}
+                            className="flex w-9 shrink-0 items-center justify-center border border-bone/25 bg-char text-lg lg:w-7 lg:text-base leading-none text-bone transition hover:border-danger/60 hover:text-danger"
+                            aria-label={`Remove ${player.ign}`}
+                            title={`Remove ${player.ign}`}
+                          >
+                            ×
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
 
-              <div className="mt-5 flex items-center justify-center gap-2 border-t border-bone/10 pt-4">
+              <p className="relative mt-3 flex items-center justify-center gap-2 font-stat text-[9px] uppercase tracking-[0.18em] text-ash">
                 <span className="text-ember">★</span>
-                <p className="font-stat text-[9px] uppercase tracking-[0.18em] text-ash">
-                  Select a captain for{" "}
-                  <span className="text-ember">{multiplier}x points</span>
-                </p>
-              </div>
+                Captain scores <span className="text-ember">{multiplier}x points</span>
+              </p>
+            </div>
+
+            {/* footer: desktop only (mobile uses the fixed bar below) */}
+            <div className="hidden border-t border-bone/10 px-3 py-3 sm:px-4 lg:block">
+              {confirmInner}
             </div>
           </div>
-
-          <div className="grid grid-cols-3 overflow-hidden chamfer border border-bone/10 bg-char-2">
-            <div className="border-r border-bone/10 px-4 py-4">
-              <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
-                Squad
-              </p>
-              <p className="mt-1 font-display text-lg font-black">
-                {picked.length}/{SQUAD_SIZE}
-              </p>
-            </div>
-            <div className="border-r border-bone/10 px-4 py-4">
-              <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
-                Teams
-              </p>
-              <p className="mt-1 font-display text-lg font-black">
-                {usedTeamIds.size}
-              </p>
-            </div>
-            <div className="px-4 py-4">
-              <p className="font-stat text-[8px] uppercase tracking-widest text-ash">
-                Remaining
-              </p>
-              <p
-                className={`mt-1 font-display text-lg font-black ${
-                  unlimited
-                    ? "text-ember"
-                    : remaining < 0
-                      ? "text-danger"
-                      : "text-bone"
-                }`}
-              >
-                {unlimited ? "∞" : `$${remaining.toFixed(1)}M`}
-              </p>
-            </div>
-          </div>
-
-          <p
-            aria-live="polite"
-            className="min-h-5 text-center font-stat text-xs text-danger"
-          >
-            {error}
-          </p>
-
-          <Button
-            type="button"
-            onClick={save}
-            disabled={locked || busy}
-            className="w-full"
-          >
-            {busy
-              ? "Saving squad…"
-              : locked
-                ? "Selection locked"
-                : picked.length < SQUAD_SIZE
-                  ? `Select ${SQUAD_SIZE - picked.length} more`
-                  : "Confirm squad →"}
-          </Button>
         </section>
+      </div>
+
+      {/* Mobile / tablet: confirm bar stays reachable while scrolling the market */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-bone/15 bg-char/95 px-3 pt-2.5 backdrop-blur-md lg:hidden"
+        style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="mx-auto max-w-2xl">{confirmInner}</div>
       </div>
 
       {detailOption && (
