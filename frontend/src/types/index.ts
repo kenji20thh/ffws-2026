@@ -246,12 +246,20 @@ export interface TeamMapStats {
   average_placement: number; booyahs: number;
 }
 
+// Team kills from one weapon category (AR, SMG, Sniper...).
+export interface TeamWeaponCategoryStat {
+  category: string;
+  kills: number;
+  percentage: number; // share of the kills recorded with weapons, 0-100
+}
+
 export interface TeamProfile {
   team: TeamProfileTeam;
   overall: TeamOverallStats;
   players: TeamPlayerStats[];
   rooms: TeamRoomHistory[];
   maps: TeamMapStats[];
+  weapon_categories?: TeamWeaponCategoryStat[];
 }
 
 export interface FantasyTeam {

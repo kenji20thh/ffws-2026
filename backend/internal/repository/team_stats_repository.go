@@ -39,15 +39,17 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 		Players: []TeamPlayerStats{},
 		Rooms:   []TeamRoomHistory{},
 		Maps:    []TeamMapStats{},
+
+		WeaponCategories: []TeamWeaponCategoryStat{},
 	}
 
 	var players []struct {
-		ID       uint
-		IGN      string
-		Role     string
+		ID        uint
+		IGN       string
+		Role      string
 		IsCaptain bool
-		PhotoURL string
-		Country  string
+		PhotoURL  string
+		Country   string
 	}
 	if err := r.db.Raw(`SELECT id, ign, role, is_captain, photo_url, country FROM players WHERE team_id = ? ORDER BY id ASC`, teamID).
 		Scan(&players).Error; err != nil {
@@ -156,7 +158,45 @@ func (r *TeamStatsRepository) GetProfile(teamID uint) (*TeamProfile, error) {
 	}
 	profile.Overall.Booyahs = booyahs
 
+	// Weapon categories are an extra: if they cannot be loaded the profile still works.
+	if cats, cerr := r.weaponCategories(teamID); cerr == nil && cats != nil {
+		profile.WeaponCategories = cats
+	}
+
 	return profile, nil
+}
+
+// weaponCategories adds up the weapon kills of every player on the team and groups
+// them by weapon category (AR, SMG, Sniper...). Percentage is each category's share
+// of all the weapon kills recorded for the team, so the shares always add up to 100.
+// A weapon with no category is counted under "Other".
+func (r *TeamStatsRepository) weaponCategories(teamID uint) ([]TeamWeaponCategoryStat, error) {
+	var rows []TeamWeaponCategoryStat
+	err := r.db.Raw(`
+		SELECT COALESCE(NULLIF(TRIM(w.category), ''), 'Other') AS category,
+		       SUM(pwk.kills) AS kills
+		FROM player_weapon_kills pwk
+		JOIN weapons w ON w.id = pwk.weapon_id
+		JOIN players p ON p.id = pwk.player_id
+		WHERE p.team_id = ? AND pwk.kills > 0
+		GROUP BY COALESCE(NULLIF(TRIM(w.category), ''), 'Other')
+		ORDER BY kills DESC, category ASC
+	`, teamID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	total := 0
+	for _, c := range rows {
+		total += c.Kills
+	}
+	if total == 0 {
+		return []TeamWeaponCategoryStat{}, nil
+	}
+	for i := range rows {
+		rows[i].Percentage = float64(rows[i].Kills) / float64(total) * 100
+	}
+	return rows, nil
 }
 
 type TeamProfile struct {
@@ -165,6 +205,16 @@ type TeamProfile struct {
 	Players []TeamPlayerStats `json:"players"`
 	Rooms   []TeamRoomHistory `json:"rooms"`
 	Maps    []TeamMapStats    `json:"maps"`
+
+	// Kills split by weapon category (empty until weapon kills are entered).
+	WeaponCategories []TeamWeaponCategoryStat `json:"weapon_categories"`
+}
+
+// TeamWeaponCategoryStat is how many of the team's weapon kills came from one category.
+type TeamWeaponCategoryStat struct {
+	Category   string  `json:"category"`
+	Kills      int     `json:"kills"`
+	Percentage float64 `json:"percentage"` // share of the kills recorded with weapons, 0-100
 }
 
 type TeamProfileTeam struct {
