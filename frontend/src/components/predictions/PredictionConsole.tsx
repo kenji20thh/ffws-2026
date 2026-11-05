@@ -391,41 +391,61 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         </div>
       ) : (
         <div className={gridClass}>
-          {sessions.map((sn) => (
-            <section key={sn} className="min-w-0 overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
-              <div className="flex items-center justify-between gap-2 border-b border-bone/10 px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
-                  <p className="font-display text-lg font-black uppercase leading-none">
-                    {multi ? `Session ${sn}` : "Your ranking"}
-                  </p>
+          {sessions.map((sn) => {
+            const sessionColor = sn === 1
+              ? {
+                  section: "border-blue-400/40 bg-blue-500/[0.035]",
+                  header: "border-blue-400/25 bg-blue-500/[0.10]",
+                  accent: "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,.65)]",
+                  status: "text-blue-300",
+                  button: "hover:border-blue-400 hover:text-blue-300",
+                  teams: "bg-blue-500/[0.045]",
+                }
+              : {
+                  section: "border-violet-400/40 bg-violet-500/[0.035]",
+                  header: "border-violet-400/25 bg-violet-500/[0.10]",
+                  accent: "bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,.65)]",
+                  status: "text-violet-300",
+                  button: "hover:border-violet-400 hover:text-violet-300",
+                  teams: "bg-violet-500/[0.045]",
+                };
+
+            return (
+              <section key={sn} className={`min-w-0 overflow-hidden chamfer-sm border ${sessionColor.section}`}>
+                <div className={`flex items-center justify-between gap-2 border-b px-3 py-2 ${sessionColor.header}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 rounded-full ${sessionColor.accent}`} />
+                    <p className="font-display text-lg font-black uppercase leading-none">
+                      {multi ? `Session ${sn}` : "Your ranking"}
+                    </p>
+                  </div>
+
+                  {!locked &&
+                    (reviewed[sn] ? (
+                      <span className={`font-stat text-[10px] uppercase tracking-widest ${sessionColor.status}`}>
+                        ✓ Order set
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
+                        className={`chamfer-sm border border-bone/25 px-2.5 py-1 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition ${sessionColor.button}`}
+                      >
+                        Keep this order
+                      </button>
+                    ))}
                 </div>
 
-                {!locked &&
-                  (reviewed[sn] ? (
-                    <span className="font-stat text-[10px] uppercase tracking-widest text-ember">
-                      ✓ Order set
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
-                      className="chamfer-sm border border-bone/25 px-2.5 py-1 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition hover:border-ember hover:text-ember"
-                    >
-                      Keep this order
-                    </button>
-                  ))}
-              </div>
-
-              <div className="p-2 sm:p-3">
-                <TeamRankBuilder
-                  order={orders[sn] ?? []}
-                  onReorder={(next) => reorder(sn, next)}
-                  disabled={locked}
-                />
-              </div>
-            </section>
-          ))}
+                <div className={`p-2 sm:p-3 ${sessionColor.teams}`}>
+                  <TeamRankBuilder
+                    order={orders[sn] ?? []}
+                    onReorder={(next) => reorder(sn, next)}
+                    disabled={locked}
+                  />
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
