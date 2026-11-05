@@ -6,6 +6,7 @@ import MapStats from "@/components/teams/MapStats";
 import PlayerRosterRow from "@/components/teams/PlayerRosterRow";
 import TeamHeader from "@/components/teams/TeamHeader";
 import TeamStatsOverview from "@/components/teams/TeamStatsOverview";
+import TeamWeaponCategoryChart from "@/components/teams/TeamWeaponCategoryChart";
 import ErrorState from "@/components/ui/ErrorState";
 import { ApiError, getTeam, getTeamProfile, getTeamStaff } from "@/lib/api";
 import type { Team, TeamProfile, TeamStaff } from "@/types";
@@ -59,6 +60,11 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
       <section className="mt-12">
         <h2 className="mb-6 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Kill participation</h2>
         <KillParticipationChart players={profile.players} />
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-6 font-stat text-[11px] uppercase tracking-[0.3em] text-ember">Kills by weapon category</h2>
+        <TeamWeaponCategoryChart categories={profile.weapon_categories ?? []} />
       </section>
 
       <section className="mt-14">
