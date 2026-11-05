@@ -7,7 +7,14 @@ import CreateFantasyTeamForm from "@/components/fantasy/CreateFantasyTeamForm";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
-import { ApiError, getDayTeams, getDays, getMyFantasyTeam, getMyPrediction, submitPrediction } from "@/lib/api";
+import {
+  ApiError,
+  getDayTeams,
+  getDays,
+  getMyFantasyTeam,
+  getMyPrediction,
+  submitPrediction,
+} from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import {
   MAX_SESSION_POINTS,
@@ -16,7 +23,12 @@ import {
   groupTeamsBySession,
   sessionKeys,
 } from "@/lib/predictionSessions";
-import type { FantasyTeam, PredictionDetail, Team, TournamentDay } from "@/types";
+import type {
+  FantasyTeam,
+  PredictionDetail,
+  Team,
+  TournamentDay,
+} from "@/types";
 import PredictionResultRow from "./PredictionResultRow";
 import PredictionSummary from "./PredictionSummary";
 import TeamRankBuilder from "./TeamRankBuilder";
@@ -81,14 +93,20 @@ function StatusBar({
         </div>
 
         {children && (
-          <div className="hidden items-center gap-3 lg:ml-auto lg:flex">{children}</div>
+          <div className="hidden items-center gap-3 lg:ml-auto lg:flex">
+            {children}
+          </div>
         )}
       </div>
     </section>
   );
 }
 
-export default function PredictionConsole({ tournamentId }: { tournamentId: number }) {
+export default function PredictionConsole({
+  tournamentId,
+}: {
+  tournamentId: number;
+}) {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -99,7 +117,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   const [sessionTeams, setSessionTeams] = useState<Record<number, Team[]>>({});
   const [orders, setOrders] = useState<Record<number, Team[]>>({});
   const [reviewed, setReviewed] = useState<Record<number, boolean>>({});
-  const [existing, setExisting] = useState<PredictionDetail | null | undefined>(undefined);
+  const [existing, setExisting] = useState<PredictionDetail | null | undefined>(
+    undefined,
+  );
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -179,65 +199,106 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
       const saved = await submitPrediction(
         day.id,
         sessions.flatMap((sn) =>
-          (orders[sn] ?? []).map((t, i) => ({ team_id: t.id, session: sn, placement: i + 1 }))
-        )
+          (orders[sn] ?? []).map((t, i) => ({
+            team_id: t.id,
+            session: sn,
+            placement: i + 1,
+          })),
+        ),
       );
       router.push(`/fantasy/predict/${saved.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to submit prediction");
+      setError(
+        err instanceof ApiError ? err.message : "Failed to submit prediction",
+      );
       setConfirming(false);
     } finally {
       setBusy(false);
     }
   }
 
-  if (!authChecked) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
+  if (!authChecked)
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-10">
+        <Skeleton className="h-40" />
+      </div>
+    );
 
   if (!loggedIn) {
     return (
       <div className="mx-auto max-w-md px-5 py-20 text-center">
-        <p className="font-display text-3xl font-black uppercase">Log in to predict</p>
-        <Link href="/login" className="mt-4 inline-block font-stat text-sm uppercase tracking-widest text-ember hover:underline">
+        <p className="font-display text-3xl font-black uppercase">
+          Log in to predict
+        </p>
+        <Link
+          href="/login"
+          className="mt-4 inline-block font-stat text-sm uppercase tracking-widest text-ember hover:underline"
+        >
           Go to login →
         </Link>
       </div>
     );
   }
 
-  if (team === undefined) return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-40" /></div>;
+  if (team === undefined)
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-10">
+        <Skeleton className="h-40" />
+      </div>
+    );
 
   if (team === null) {
     return (
       <div className="px-5 py-16">
-        <CreateFantasyTeamForm tournamentId={tournamentId} onCreated={loadTeam} />
+        <CreateFantasyTeamForm
+          tournamentId={tournamentId}
+          onCreated={loadTeam}
+        />
       </div>
     );
   }
 
   if (!day) {
-    return <div className="mx-auto max-w-3xl px-5 py-20"><EmptyState title="No tournament days available" /></div>;
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-20">
+        <EmptyState title="No tournament days available" />
+      </div>
+    );
   }
 
   // Prefer the server's verdict; before the first prediction exists, fall back to the day's deadline.
   const hasDeadline = !!day.deadline && !day.deadline.startsWith("0001");
-  const deadlinePassed = hasDeadline && new Date(day.deadline).getTime() < Date.now();
+  const deadlinePassed =
+    hasDeadline && new Date(day.deadline).getTime() < Date.now();
   const locked = existing?.locked ?? deadlinePassed;
 
   if (loading) {
-    return <div className="mx-auto max-w-3xl px-5 py-10"><Skeleton className="h-96" /></div>;
+    return (
+      <div className="mx-auto max-w-3xl px-5 py-10">
+        <Skeleton className="h-96" />
+      </div>
+    );
   }
 
-  const incomplete = sessions.filter((sn) => sessionTeams[sn].length !== SESSION_SIZE);
+  const incomplete = sessions.filter(
+    (sn) => sessionTeams[sn].length !== SESSION_SIZE,
+  );
   if (sessions.length === 0 || incomplete.length > 0) {
     const hint =
       sessions.length === 0
         ? "Check back once the lobby is set."
         : `${incomplete
-            .map((sn) => `Session ${sn} has ${sessionTeams[sn].length}/${SESSION_SIZE} teams`)
+            .map(
+              (sn) =>
+                `Session ${sn} has ${sessionTeams[sn].length}/${SESSION_SIZE} teams`,
+            )
             .join(" · ")}. Check back once every lobby is set.`;
     return (
       <div className="mx-auto max-w-3xl px-5 py-20">
-        <EmptyState title={`${day.name} doesn't have all its teams assigned yet`} hint={hint} />
+        <EmptyState
+          title={`${day.name} doesn't have all its teams assigned yet`}
+          hint={hint}
+        />
       </div>
     );
   }
@@ -258,32 +319,55 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     const resultSessions = sessionKeys(bySession);
     const resultMulti = resultSessions.length > 1;
     return (
-      <div className={`mx-auto ${resultMulti ? "max-w-[87.5rem]" : "max-w-5xl"} min-w-0 space-y-3 overflow-x-clip px-3 py-3 sm:px-5 lg:px-6 lg:py-4`}>
+      <div
+        className={`mx-auto ${resultMulti ? "max-w-[87.5rem]" : "max-w-5xl"} min-w-0 space-y-3 overflow-x-clip px-3 py-3 sm:px-5 lg:px-6 lg:py-4`}
+      >
         <StatusBar team={team} day={day}>
           <div className="text-right">
-            <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">Your result</p>
+            <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
+              Your result
+            </p>
             <p className="font-display text-2xl font-black leading-none tabular-nums text-ember">
               {existing.total_points}
-              <span className="text-ash/50"> / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}</span>
+              <span className="text-ash/50">
+                {" "}
+                / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}
+              </span>
             </p>
           </div>
         </StatusBar>
 
         {/* the points total is hidden inside the bar below lg, so repeat it here */}
         <div className="flex items-center justify-between chamfer-sm border border-bone/10 bg-char-2 px-3 py-2 lg:hidden">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">Your result</p>
+          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+            Your result
+          </p>
           <p className="font-display text-xl font-black leading-none tabular-nums text-ember">
             {existing.total_points}
-            <span className="text-ash/50"> / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}</span>
+            <span className="text-ash/50">
+              {" "}
+              / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}
+            </span>
           </p>
         </div>
 
-        <div className={resultMulti ? "grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2 lg:items-start" : "grid grid-cols-[minmax(0,1fr)] gap-3"}>
+        <div
+          className={
+            resultMulti
+              ? "grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2 lg:items-start"
+              : "grid grid-cols-[minmax(0,1fr)] gap-3"
+          }
+        >
           {resultSessions.map((sn) => (
-            <section key={sn} className="min-w-0 overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+            <section
+              key={sn}
+              className="min-w-0 overflow-hidden chamfer-sm border border-bone/10 bg-char-2"
+            >
               {resultMulti && (
                 <div className="border-b border-bone/10 px-3 py-2">
-                  <p className="font-display text-lg font-black uppercase leading-none">Session {sn}</p>
+                  <p className="font-display text-lg font-black uppercase leading-none">
+                    Session {sn}
+                  </p>
                 </div>
               )}
               <div className={`${twoCol} p-2 sm:p-3`}>
@@ -332,7 +416,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
     <>
       {!allReviewed && (
         <span className="hidden font-stat text-[9px] uppercase tracking-widest text-ash xl:block">
-          {multi ? `${setCount}/${sessions.length} sessions set` : "Set your order to continue"}
+          {multi
+            ? `${setCount}/${sessions.length} sessions set`
+            : "Set your order to continue"}
         </span>
       )}
       <Button
@@ -341,7 +427,9 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
         disabled={!allReviewed}
         className="min-w-[9rem] flex-1 !px-5 !py-2 !text-base lg:flex-none"
       >
-        {allReviewed || !multi ? "Review & submit" : `Review & submit (${setCount}/${sessions.length})`}
+        {allReviewed || !multi
+          ? "Review & submit"
+          : `Review & submit (${setCount}/${sessions.length})`}
       </Button>
     </>
   );
@@ -369,12 +457,16 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
 
       {!locked && !confirming && (
         <p className="font-stat text-[10px] uppercase leading-snug tracking-widest text-ash">
-          Rank {multi ? "each session" : "the teams"} 1st → 12th · drag a team (on touch, use the
+          Rank {multi ? "each session" : "the teams"} 1st → 12th · drag a team
+          (on touch, use the
           <span className="text-ember"> ⇅ </span>handle) or use ▲ ▼
         </p>
       )}
 
-      <p aria-live="polite" className="font-stat text-xs text-danger empty:hidden">
+      <p
+        aria-live="polite"
+        className="font-stat text-xs text-danger empty:hidden"
+      >
         {error}
       </p>
 
@@ -385,36 +477,49 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
               key={sn}
               compact
               order={orders[sn] ?? []}
-              heading={multi ? `Session ${sn} — confirm before submitting` : "Confirm before submitting"}
+              heading={
+                multi
+                  ? `Session ${sn} — confirm before submitting`
+                  : "Confirm before submitting"
+              }
             />
           ))}
         </div>
       ) : (
         <div className={gridClass}>
           {sessions.map((sn) => {
-            const sessionColor = sn === 1
-              ? {
-                  section: "border-blue-400/40 bg-blue-500/[0.035]",
-                  header: "border-blue-400/25 bg-blue-500/[0.10]",
-                  accent: "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,.65)]",
-                  status: "text-blue-300",
-                  button: "hover:border-blue-400 hover:text-blue-300",
-                  teams: "bg-blue-500/[0.045]",
-                }
-              : {
-                  section: "border-violet-400/40 bg-violet-500/[0.035]",
-                  header: "border-violet-400/25 bg-violet-500/[0.10]",
-                  accent: "bg-violet-400 shadow-[0_0_10px_rgba(167,139,250,.65)]",
-                  status: "text-violet-300",
-                  button: "hover:border-violet-400 hover:text-violet-300",
-                  teams: "bg-violet-500/[0.045]",
-                };
+            const sessionColor =
+              sn === 1
+                ? {
+                    section: "border-purple-500/50 bg-purple-950/[0.20]",
+                    header: "border-purple-500/30 bg-purple-900/[0.35]",
+                    accent:
+                      "bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,.8)]",
+                    status: "text-purple-300",
+                    button: "hover:border-purple-400 hover:text-purple-300",
+                    teams: "bg-purple-950/[0.30]",
+                  }
+                : {
+                    section: "border-red-800/60 bg-red-950/[0.25]",
+                    header: "border-red-800/40 bg-red-900/[0.40]",
+                    accent: "bg-red-500 shadow-[0_0_10px_rgba(153,27,27,.8)]",
+                    status: "text-red-300",
+                    button: "hover:border-red-700 hover:text-red-300",
+                    teams: "bg-red-950/[0.35]",
+                  };
 
             return (
-              <section key={sn} className={`min-w-0 overflow-hidden chamfer-sm border ${sessionColor.section}`}>
-                <div className={`flex items-center justify-between gap-2 border-b px-3 py-2 ${sessionColor.header}`}>
+              <section
+                key={sn}
+                className={`min-w-0 overflow-hidden chamfer-sm border ${sessionColor.section}`}
+              >
+                <div
+                  className={`flex items-center justify-between gap-2 border-b px-3 py-2 ${sessionColor.header}`}
+                >
                   <div className="flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full ${sessionColor.accent}`} />
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${sessionColor.accent}`}
+                    />
                     <p className="font-display text-lg font-black uppercase leading-none">
                       {multi ? `Session ${sn}` : "Your ranking"}
                     </p>
@@ -422,13 +527,17 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
 
                   {!locked &&
                     (reviewed[sn] ? (
-                      <span className={`font-stat text-[10px] uppercase tracking-widest ${sessionColor.status}`}>
+                      <span
+                        className={`font-stat text-[10px] uppercase tracking-widest ${sessionColor.status}`}
+                      >
                         ✓ Order set
                       </span>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
+                        onClick={() =>
+                          setReviewed((r) => ({ ...r, [sn]: true }))
+                        }
                         className={`chamfer-sm border border-bone/25 px-2.5 py-1 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition ${sessionColor.button}`}
                       >
                         Keep this order
@@ -453,9 +562,13 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
       {actions && (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-bone/15 bg-char/95 px-3 pt-2.5 backdrop-blur-md lg:hidden"
-          style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+          style={{
+            paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))",
+          }}
         >
-          <div className="mx-auto flex max-w-2xl items-center gap-2">{actions}</div>
+          <div className="mx-auto flex max-w-2xl items-center gap-2">
+            {actions}
+          </div>
         </div>
       )}
     </div>
