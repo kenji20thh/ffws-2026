@@ -1,3 +1,4 @@
+import PageHeader from "@/components/layout/PageHeader";
 import PredictionLeaderboard from "@/components/predictions/PredictionLeaderboard";
 import ErrorState from "@/components/ui/ErrorState";
 import { getDays, getTournament } from "@/lib/api";
@@ -9,10 +10,17 @@ export default async function PredictionLeaderboardPage() {
   try {
     const t = await getTournament("ffws-2026");
     const days = await getDays(t.id);
+
     return (
-      <div className="mx-auto max-w-4xl px-5 py-10">
-        <PredictionLeaderboard tournamentId={t.id} days={days} />
-      </div>
+      <>
+        <PageHeader eyebrow="Fantasy predictions" title="Leaderboard">
+          See where you stand in the prediction game, overall or for any day, week or phase.
+        </PageHeader>
+
+        <div className="mx-auto max-w-4xl px-5 py-10">
+          <PredictionLeaderboard tournamentId={t.id} days={days} />
+        </div>
+      </>
     );
   } catch (e) {
     return (
