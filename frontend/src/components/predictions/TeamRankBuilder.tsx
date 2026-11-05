@@ -4,7 +4,7 @@ import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy,
+  SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import type { Team } from "@/types";
 import RankSlot from "./RankSlot";
@@ -37,8 +37,10 @@ export default function TeamRankBuilder({ order, onReorder, disabled }: Props) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={order.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
+      {/* rectSortingStrategy works for any layout, so the list can flow down column 1
+          (ranks 1-6) and then column 2 (ranks 7-12) and still be drag-sortable. */}
+      <SortableContext items={order.map((t) => t.id)} strategy={rectSortingStrategy}>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-flow-col sm:grid-cols-[repeat(2,minmax(0,1fr))] sm:grid-rows-6 sm:gap-x-3">
           {order.map((team, i) => (
             <RankSlot
               key={team.id}

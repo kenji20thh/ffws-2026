@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreateFantasyTeamForm from "@/components/fantasy/CreateFantasyTeamForm";
@@ -31,6 +31,61 @@ function pickOpenDay(days: TournamentDay[]): TournamentDay | null {
     return new Date(d.deadline).getTime() > now;
   });
   return open ?? sorted[sorted.length - 1];
+}
+
+/** One slim bar: who is predicting, for which day, plus the page's main action(s). */
+function StatusBar({
+  team,
+  day,
+  children,
+}: {
+  team: FantasyTeam;
+  day: TournamentDay;
+  children?: ReactNode;
+}) {
+  return (
+    <section className="relative overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+      <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-ember/[0.07] to-transparent" />
+
+      <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center chamfer-sm border border-ember/25 bg-ember/10">
+            <span className="font-display text-base font-black text-ember">
+              {team.team_name.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
+              Predicting as
+            </p>
+            <p className="truncate font-display text-lg font-black uppercase leading-tight">
+              {team.team_name}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 sm:border-l sm:border-bone/10 sm:pl-6">
+          <div className="flex h-10 min-w-10 items-center justify-center chamfer-sm border border-ember/30 bg-ember/10 px-1">
+            <span className="font-stat text-[11px] font-black uppercase text-ember">
+              D{day.day_order}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">
+              Prediction for
+            </p>
+            <p className="truncate font-display text-lg font-black uppercase leading-tight">
+              {day.name}
+            </p>
+          </div>
+        </div>
+
+        {children && (
+          <div className="hidden items-center gap-3 lg:ml-auto lg:flex">{children}</div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export default function PredictionConsole({ tournamentId }: { tournamentId: number }) {
@@ -188,143 +243,200 @@ export default function PredictionConsole({ tournamentId }: { tournamentId: numb
   }
 
   const multi = sessions.length > 1;
-  // Days with two sessions show both boards side by side, so give them more room.
-  const widthClass = multi ? "max-w-6xl" : "max-w-3xl";
-  const gridClass = multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : "space-y-2";
+  // Two sessions sit side by side on desktop, so give them more room; one session stays centred.
+  const widthClass = multi ? "max-w-[87.5rem]" : "max-w-5xl";
+  const pageClass = `mx-auto ${widthClass} min-w-0 space-y-3 overflow-x-clip px-3 py-3 sm:px-5 lg:px-6 lg:py-4`;
+  const gridClass = multi
+    ? "grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2 lg:items-start"
+    : "grid grid-cols-[minmax(0,1fr)] gap-3";
+  const twoCol =
+    "grid grid-cols-1 gap-1.5 sm:grid-flow-col sm:grid-cols-[repeat(2,minmax(0,1fr))] sm:grid-rows-6 sm:gap-x-3";
 
+  // ───────────────────────── Results ─────────────────────────
   if (existing?.scored) {
     const bySession = groupEntriesBySession(existing.teams);
     const resultSessions = sessionKeys(bySession);
+    const resultMulti = resultSessions.length > 1;
     return (
-      <div className={`mx-auto ${widthClass} min-w-0 space-y-6 overflow-x-clip px-4 py-10 sm:px-5`}>
-        <div className="chamfer border border-bone/10 bg-char-2 p-6">
-          <p className="font-stat text-[10px] uppercase tracking-widest text-ash">{day.name} — results</p>
-          <p className="font-display text-4xl font-black tabular-nums text-ember">
-            {existing.total_points} / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}
+      <div className={`mx-auto ${resultMulti ? "max-w-[87.5rem]" : "max-w-5xl"} min-w-0 space-y-3 overflow-x-clip px-3 py-3 sm:px-5 lg:px-6 lg:py-4`}>
+        <StatusBar team={team} day={day}>
+          <div className="text-right">
+            <p className="font-stat text-[8px] uppercase tracking-[0.2em] text-ash">Your result</p>
+            <p className="font-display text-2xl font-black leading-none tabular-nums text-ember">
+              {existing.total_points}
+              <span className="text-ash/50"> / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}</span>
+            </p>
+          </div>
+        </StatusBar>
+
+        {/* the points total is hidden inside the bar below lg, so repeat it here */}
+        <div className="flex items-center justify-between chamfer-sm border border-bone/10 bg-char-2 px-3 py-2 lg:hidden">
+          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">Your result</p>
+          <p className="font-display text-xl font-black leading-none tabular-nums text-ember">
+            {existing.total_points}
+            <span className="text-ash/50"> / {MAX_SESSION_POINTS * Math.max(resultSessions.length, 1)}</span>
           </p>
         </div>
-        <div className={gridClass}>
+
+        <div className={resultMulti ? "grid grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-2 lg:items-start" : "grid grid-cols-[minmax(0,1fr)] gap-3"}>
           {resultSessions.map((sn) => (
-            <div key={sn} className="min-w-0 space-y-2">
-              {resultSessions.length > 1 && (
-                <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
+            <section key={sn} className="min-w-0 overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+              {resultMulti && (
+                <div className="border-b border-bone/10 px-3 py-2">
+                  <p className="font-display text-lg font-black uppercase leading-none">Session {sn}</p>
+                </div>
               )}
-              {bySession[sn].map((e) => (
-                <PredictionResultRow key={e.id} entry={e} />
-              ))}
-            </div>
+              <div className={`${twoCol} p-2 sm:p-3`}>
+                {bySession[sn].map((e) => (
+                  <PredictionResultRow key={e.id} entry={e} compact />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       </div>
     );
   }
 
+  // ───────────────────────── Builder ─────────────────────────
   const allReviewed = sessions.every((sn) => reviewed[sn]);
+  const setCount = sessions.filter((sn) => reviewed[sn]).length;
 
   function reorder(sn: number, next: Team[]) {
     setOrders((o) => ({ ...o, [sn]: next }));
     setReviewed((r) => ({ ...r, [sn]: true }));
   }
 
-  return (
-    <div className={`mx-auto ${widthClass} min-w-0 space-y-6 overflow-x-clip px-4 py-10 sm:px-5`}>
-      <div className="chamfer-sm border border-bone/15 bg-char-2 px-5 py-3">
-        <p className="font-stat text-[10px] uppercase tracking-widest text-ash">Predicting as</p>
-        <p className="font-display text-2xl font-black uppercase text-ember">{team.team_name}</p>
-        <p className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">for {day.name}</p>
-      </div>
+  // The main action(s). Shown in the top bar on desktop and in a fixed bottom bar below lg.
+  const actions = locked ? null : confirming ? (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => setConfirming(false)}
+        disabled={busy}
+        className="!px-4 !py-2 !text-base"
+      >
+        Back to edit
+      </Button>
+      <Button
+        type="button"
+        onClick={handleSubmit}
+        disabled={busy}
+        className="min-w-[9rem] flex-1 !px-5 !py-2 !text-base lg:flex-none"
+      >
+        {busy ? "Submitting…" : "Confirm & submit"}
+      </Button>
+    </>
+  ) : (
+    <>
+      {!allReviewed && (
+        <span className="hidden font-stat text-[9px] uppercase tracking-widest text-ash xl:block">
+          {multi ? `${setCount}/${sessions.length} sessions set` : "Set your order to continue"}
+        </span>
+      )}
+      <Button
+        type="button"
+        onClick={() => setConfirming(true)}
+        disabled={!allReviewed}
+        className="min-w-[9rem] flex-1 !px-5 !py-2 !text-base lg:flex-none"
+      >
+        {allReviewed || !multi ? "Review & submit" : `Review & submit (${setCount}/${sessions.length})`}
+      </Button>
+    </>
+  );
 
-      {locked ? (
-        <p className="border-l-2 border-danger pl-3 font-stat text-xs uppercase tracking-widest text-danger">
+  return (
+    <div className={`${pageClass} ${actions ? "pb-24 lg:pb-4" : ""}`}>
+      <StatusBar team={team} day={day}>
+        {locked ? (
+          <div className="flex items-center gap-2 border border-danger/25 bg-danger/[0.06] px-3 py-2">
+            <span aria-hidden="true">🔒</span>
+            <p className="font-stat text-[10px] font-bold uppercase tracking-widest text-danger">
+              Locked · awaiting results
+            </p>
+          </div>
+        ) : (
+          actions
+        )}
+      </StatusBar>
+
+      {locked && (
+        <p className="flex items-center gap-2 border-l-2 border-danger pl-3 font-stat text-[10px] uppercase tracking-widest text-danger lg:hidden">
           Predictions are locked for this day — awaiting results
-        </p>
-      ) : (
-        <p className="font-stat text-xs uppercase tracking-widest text-ash">
-          {multi
-            ? `Rank the teams in each of the ${sessions.length} sessions. 1st at the top. Drag to reorder (on phones, press and drag the DRAG button on the left), or use the arrow buttons.`
-            : "Drag a team to reorder (on phones, press and drag the DRAG button on the left), or use the arrow buttons. 1st at the top."}
         </p>
       )}
 
-      {confirming ? (
-        <>
-          <div className={multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : "space-y-6"}>
-            {sessions.map((sn) => (
-              <PredictionSummary
-                key={sn}
-                order={orders[sn] ?? []}
-                heading={multi ? `Session ${sn} — confirm before submitting` : undefined}
-              />
-            ))}
-          </div>
-          <p aria-live="polite" className="min-h-5 font-stat text-xs text-danger">{error}</p>
-          <div className="flex gap-3">
-            <Button type="button" onClick={handleSubmit} disabled={busy}>
-              {busy ? "Submitting…" : "Confirm & submit"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
-              Back to edit
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={multi ? "grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:items-start" : ""}>
-            {sessions.map((sn) => (
-              <section key={sn} className="min-w-0 space-y-3">
-                {multi && (
-                  <div className="flex items-center justify-between border-b border-bone/10 pb-2">
-                    <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-amber">Session {sn}</p>
-                    {!locked && (
-                      <span
-                        className={`font-stat text-[10px] uppercase tracking-widest ${
-                          reviewed[sn] ? "text-ember" : "text-ash"
-                        }`}
-                      >
-                        {reviewed[sn] ? "✓ Order set" : "Not set yet"}
-                      </span>
-                    )}
-                  </div>
-                )}
+      {!locked && !confirming && (
+        <p className="font-stat text-[10px] uppercase leading-snug tracking-widest text-ash">
+          Rank {multi ? "each session" : "the teams"} 1st → 12th · drag a team (on touch, use the
+          <span className="text-ember"> ⇅ </span>handle) or use ▲ ▼
+        </p>
+      )}
 
+      <p aria-live="polite" className="font-stat text-xs text-danger empty:hidden">
+        {error}
+      </p>
+
+      {confirming ? (
+        <div className={gridClass}>
+          {sessions.map((sn) => (
+            <PredictionSummary
+              key={sn}
+              compact
+              order={orders[sn] ?? []}
+              heading={multi ? `Session ${sn} — confirm before submitting` : "Confirm before submitting"}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={gridClass}>
+          {sessions.map((sn) => (
+            <section key={sn} className="min-w-0 overflow-hidden chamfer-sm border border-bone/10 bg-char-2">
+              <div className="flex items-center justify-between gap-2 border-b border-bone/10 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ember shadow-[0_0_10px_rgba(255,100,40,.8)]" />
+                  <p className="font-display text-lg font-black uppercase leading-none">
+                    {multi ? `Session ${sn}` : "Your ranking"}
+                  </p>
+                </div>
+
+                {!locked &&
+                  (reviewed[sn] ? (
+                    <span className="font-stat text-[10px] uppercase tracking-widest text-ember">
+                      ✓ Order set
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
+                      className="chamfer-sm border border-bone/25 px-2.5 py-1 font-stat text-[9px] font-bold uppercase tracking-widest text-bone transition hover:border-ember hover:text-ember"
+                    >
+                      Keep this order
+                    </button>
+                  ))}
+              </div>
+
+              <div className="p-2 sm:p-3">
                 <TeamRankBuilder
                   order={orders[sn] ?? []}
                   onReorder={(next) => reorder(sn, next)}
                   disabled={locked}
                 />
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
-                {!locked && !reviewed[sn] && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setReviewed((r) => ({ ...r, [sn]: true }))}
-                    className="w-full sm:w-auto"
-                  >
-                    Keep this order
-                  </Button>
-                )}
-              </section>
-            ))}
-          </div>
-
-          {!locked && (
-            <div className="space-y-2">
-              <Button
-                type="button"
-                onClick={() => setConfirming(true)}
-                disabled={!allReviewed}
-                className="w-full sm:w-auto"
-              >
-                Review & submit
-              </Button>
-              {!allReviewed && (
-                <p className="font-stat text-[10px] uppercase tracking-widest text-ash">
-                  Set an order for every session to continue
-                </p>
-              )}
-            </div>
-          )}
-        </>
+      {/* Below lg the action bar is fixed to the bottom so it is always reachable */}
+      {actions && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-bone/15 bg-char/95 px-3 pt-2.5 backdrop-blur-md lg:hidden"
+          style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+        >
+          <div className="mx-auto flex max-w-2xl items-center gap-2">{actions}</div>
+        </div>
       )}
     </div>
   );

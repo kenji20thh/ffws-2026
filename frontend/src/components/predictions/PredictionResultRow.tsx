@@ -4,8 +4,11 @@ import type { PredictionTeamEntry } from "@/types";
 
 export default function PredictionResultRow({
   entry,
+  compact = false,
 }: {
   entry: PredictionTeamEntry;
+  /** One-line row, so a whole 12-team session fits on screen. */
+  compact?: boolean;
 }) {
   const scored = entry.actual_placement > 0;
   const diff = scored
@@ -13,6 +16,45 @@ export default function PredictionResultRow({
     : null;
   const tone = scored ? pointsTone(entry.points) : null;
   const exact = scored && diff === 0;
+
+  if (compact) {
+    return (
+      <article
+        style={
+          tone ? { borderLeftColor: tone.color, backgroundColor: tone.bg } : undefined
+        }
+        className={`flex min-h-[2.9rem] min-w-0 items-center gap-2.5 border border-white/[0.08] border-l-[3px] px-2.5 py-1 ${
+          tone ? "" : "border-l-white/15 bg-char-2"
+        }`}
+      >
+        <Monogram
+          label={entry.team.tag || entry.team.name}
+          imageUrl={entry.team.logo_url}
+          size={30}
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-base font-extrabold uppercase leading-none">
+            {entry.team.name}
+          </p>
+          <p className="mt-1 truncate font-stat text-[9px] uppercase tracking-wider text-ash">
+            {scored
+              ? `Pred #${entry.predicted_placement} → Actual #${entry.actual_placement} · ${
+                  exact ? "Exact" : `${diff} off`
+                }`
+              : `Pred #${entry.predicted_placement} · awaiting result`}
+          </p>
+        </div>
+
+        <p
+          className="shrink-0 font-display text-xl font-black leading-none tabular-nums"
+          style={{ color: tone?.color ?? "#f1e9dc" }}
+        >
+          {scored ? `${entry.points > 0 ? "+" : ""}${entry.points}` : "—"}
+        </p>
+      </article>
+    );
+  }
 
   return (
     <article
