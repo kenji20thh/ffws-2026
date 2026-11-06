@@ -39,7 +39,17 @@ func (h *PlayerStatsHandler) GetLeaderboard(c *gin.Context) {
 		}
 	}
 
-	entries, err := h.repo.GetLeaderboard(uint(tournamentID), uint(dayID))
+	// Optional (needs day_id): only count one session (lobby) of that day.
+	session := 0
+	if sessionStr := c.Query("session"); sessionStr != "" {
+		session, err = strconv.Atoi(sessionStr)
+		if err != nil || session < 1 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid session"})
+			return
+		}
+	}
+
+	entries, err := h.repo.GetLeaderboard(uint(tournamentID), uint(dayID), session)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player leaderboard"})
 		return

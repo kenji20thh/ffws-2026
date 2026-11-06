@@ -114,12 +114,19 @@ export const getRoomResults = (roomId: number) =>
   list<RoomTeamSummary>(`/rooms/${roomId}/results`);
 export const getStandings = (tournamentId: number) =>
   list<TeamStanding>(`/standings?tournament_id=${tournamentId}`);
-/** Kills ranking. Pass dayId to count only the rooms of that tournament day. */
-export const getPlayerLeaderboard = (tournamentId: number, dayId?: number) =>
+/**
+ * Kills ranking. Pass dayId to count only the rooms of that tournament day, and
+ * session (1 or 2, needs dayId) to count only that session's rooms of the day.
+ */
+export const getPlayerLeaderboard = (
+  tournamentId: number,
+  dayId?: number,
+  session?: number,
+) =>
   list<PlayerLeaderboardEntry>(
     `/player-leaderboard?tournament_id=${tournamentId}${
       dayId ? `&day_id=${dayId}` : ""
-    }`,
+    }${dayId && session ? `&session=${session}` : ""}`,
   );
 export const getPlayerProfile = (playerId: number) =>
   one<PlayerProfile>(`/players/${playerId}`);

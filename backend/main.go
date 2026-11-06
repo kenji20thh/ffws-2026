@@ -210,7 +210,7 @@ func main() {
 		api.GET("/rooms/:id/results", live(), roomResultHandler.GetSummary)
 		api.GET("/standings", live("tournament_id"), roomResultHandler.GetStandings)
 
-		api.GET("/player-leaderboard", live("tournament_id", "day_id"), playerStatsHandler.GetLeaderboard)
+		api.GET("/player-leaderboard", live("tournament_id", "day_id", "session"), playerStatsHandler.GetLeaderboard)
 
 		api.GET("/fantasy/players", live("tournament_id", "day_id"), fantasyHandler.GetPlayerPool)
 		api.GET("/fantasy/player-form", live("tournament_id"), fantasyHandler.GetPlayerForm)

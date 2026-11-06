@@ -324,7 +324,8 @@ export default function StandingsExperience({
   const [week, setWeek] = useState<Week>("week-1");
   const [selectedDayId, setSelectedDayId] = useState<number | null>(null);
   const [session, setSession] = useState<Session>("overall");
-  const [viewMode, setViewMode] = useState<ViewMode>("overall");
+  // Lands on the Day 1 table (the first Phase 1 day is selected once the data loads).
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   /** Room (id) selected inside a single day/session; null = all rooms. */
   const [roomFilter, setRoomFilter] = useState<number | null>(null);
 

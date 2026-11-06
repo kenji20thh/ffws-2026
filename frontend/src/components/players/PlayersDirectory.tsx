@@ -58,11 +58,18 @@ export default function PlayersDirectory({
 }: Props) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("all");
-  const [selectedDay, setSelectedDay] = useState("all");
+  // Lands on Day 1 (the first matchday); falls back to "all" if no days exist yet.
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const first = [...days].sort((a, b) => a.day_order - b.day_order)[0];
+    return first ? String(first.id) : "all";
+  });
+  // 0 = both sessions; 1 / 2 = one session. Only used when a single day is selected.
+  const [selectedSession, setSelectedSession] = useState<0 | 1 | 2>(0);
 
   // Kills per day are loaded on demand and cached once fetched. A week or a phase is the
   // sum of its days (rooms never overlap between days, so the sums are exact).
-  const [dayStats, setDayStats] = useState<Record<number, DayStats>>({});
+  // Cache key: "<dayId>:<session>" (session 0 = both sessions of the day).
+  const [dayStats, setDayStats] = useState<Record<string, DayStats>>({});
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
 
@@ -70,6 +77,13 @@ export default function PlayersDirectory({
   const selection = useMemo(
     () => resolveSelection(selectedDay, days),
     [selectedDay, days],
+  );
+
+  // Sessions only exist for a single day; weeks and phases always add up both sessions.
+  const session = selection.scope === "day" ? selectedSession : 0;
+  const statKeys = useMemo(
+    () => selection.dayIds.map((id) => ({ id, key: `${id}:${session}` })),
+    [selection, session],
   );
 
   // The loader reads the cache through a ref so that saving a loaded day doesn't make it
@@ -82,15 +96,19 @@ export default function PlayersDirectory({
   useEffect(() => {
     if (selection.scope === "all") return;
 
-    const missing = selection.dayIds.filter((id) => !cacheRef.current[id]);
+    const missing = statKeys.filter(({ key }) => !cacheRef.current[key]);
     if (missing.length === 0) return;
 
     let cancelled = false;
     setError("");
 
     Promise.allSettled(
-      missing.map(async (id) => {
-        const entries = await getPlayerLeaderboard(tournamentId, id);
+      missing.map(async ({ id, key }) => {
+        const entries = await getPlayerLeaderboard(
+          tournamentId,
+          id,
+          session || undefined,
+        );
         const map: DayStats = new Map(
           entries.map((entry) => [
             entry.player_id,
@@ -101,7 +119,7 @@ export default function PlayersDirectory({
             },
           ]),
         );
-        return [id, map] as const;
+        return [key, map] as const;
       }),
     ).then((results) => {
       if (cancelled) return;
@@ -120,18 +138,18 @@ export default function PlayersDirectory({
     return () => {
       cancelled = true;
     };
-  }, [selection, tournamentId, attempt]);
+  }, [selection, statKeys, session, tournamentId, attempt]);
 
   const selectionLoaded =
-    selection.scope !== "all" && selection.dayIds.every((id) => dayStats[id]);
+    selection.scope !== "all" && statKeys.every(({ key }) => dayStats[key]);
 
   // Totals of the selected day / week / phase, per player.
   const stats = useMemo<DayStats | null>(() => {
     if (selection.scope === "all" || !selectionLoaded) return null;
 
     const total: DayStats = new Map();
-    for (const id of selection.dayIds) {
-      for (const [playerId, entry] of dayStats[id]) {
+    for (const { key } of statKeys) {
+      for (const [playerId, entry] of dayStats[key]) {
         const current = total.get(playerId) ?? { kills: 0, rooms: 0, firstBloods: 0 };
         total.set(playerId, {
           kills: current.kills + entry.kills,
@@ -141,10 +159,11 @@ export default function PlayersDirectory({
       }
     }
     return total;
-  }, [selection, selectionLoaded, dayStats]);
+  }, [selection, statKeys, selectionLoaded, dayStats]);
 
   const dayLoading = selection.scope !== "all" && !stats && !error;
-  const dayName = selection.label;
+  const dayName =
+    session === 0 ? selection.label : `${selection.label} · Session ${session}`;
 
   // Every player with the numbers of the selected day (or the whole tournament).
   // For a single day, only players who actually played that day are ranked.
@@ -223,10 +242,47 @@ export default function PlayersDirectory({
           ariaLabel="Day"
           sections={daySections}
           value={selectedDay}
-          onChange={setSelectedDay}
+          onChange={(value) => {
+            setSelectedDay(value);
+            setSelectedSession(0); // a new day starts on "Both sessions"
+          }}
           disabled={days.length === 0}
           placeholder="All days"
         />
+
+        {/* Session picker: only when a single day is selected */}
+        {selection.scope === "day" && (
+          <div
+            role="group"
+            aria-label="Session"
+            className="inline-flex h-12 shrink-0 divide-x divide-bone/20 border border-bone/10 bg-char-2 md:h-10 md:self-center"
+          >
+            {(
+              [
+                { value: 0, label: "Both" },
+                { value: 1, label: "Session 1" },
+                { value: 2, label: "Session 2" },
+              ] as const
+            ).map((option) => {
+              const active = selectedSession === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setSelectedSession(option.value)}
+                  className={`flex flex-1 items-center justify-center px-3 font-stat text-xs font-bold uppercase tracking-wider transition-colors ${
+                    active
+                      ? "bg-ember text-char"
+                      : "text-ash hover:bg-char-3 hover:text-bone"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <TeamSelect
           teams={teamsWithPlayers}

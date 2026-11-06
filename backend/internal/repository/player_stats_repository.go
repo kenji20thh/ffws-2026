@@ -359,7 +359,10 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 // When dayID is non-zero only the rooms of that tournament day are counted (kills,
 // rooms played and first bloods for that day); players with no stats still appear
 // with zeros. Ties are broken by first bloods, then fewer rooms played, then IGN.
-func (r *PlayerStatsRepository) GetLeaderboard(tournamentID uint, dayID uint) ([]PlayerLeaderboardEntry, error) {
+//
+// When session is non-zero (and dayID is set) only the rooms of that session of the day
+// are counted (1 = first lobby, 2 = second lobby).
+func (r *PlayerStatsRepository) GetLeaderboard(tournamentID uint, dayID uint, session int) ([]PlayerLeaderboardEntry, error) {
 	var entries []PlayerLeaderboardEntry
 
 	roomFilter := ""
@@ -367,6 +370,10 @@ func (r *PlayerStatsRepository) GetLeaderboard(tournamentID uint, dayID uint) ([
 	if dayID != 0 {
 		roomFilter = " AND prs.room_id IN (SELECT id FROM rooms WHERE tournament_day_id = ?)"
 		args = append(args, dayID)
+		if session != 0 {
+			roomFilter = " AND prs.room_id IN (SELECT id FROM rooms WHERE tournament_day_id = ? AND session = ?)"
+			args = append(args, session)
+		}
 	}
 	args = append(args, tournamentID)
 
