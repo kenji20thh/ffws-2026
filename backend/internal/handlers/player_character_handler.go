@@ -26,7 +26,7 @@ type setPlayerCharactersRequest struct {
 }
 
 // A character is the file name of its picture in public/characters/, so keep it simple.
-var characterSlug = regexp.MustCompile(`^[a-z0-9_-]{1,40}$`)
+var characterSlug = regexp.MustCompile(`^[a-z0-9._-]{1,40}$`)
 
 // GetPlayerCharacters returns the characters saved for a player, in order (admin).
 func (h *PlayerCharacterHandler) GetPlayerCharacters(c *gin.Context) {
