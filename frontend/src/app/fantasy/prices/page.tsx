@@ -9,12 +9,15 @@ const priceChanges = [
   { id: 91, name: "CHAR!ZARDX77", oldPrice: 13, newPrice: 15 },
   { id: 101, name: "ROMAN", oldPrice: 12, newPrice: 14 },
   { id: 92, name: "PIKXCHU7", oldPrice: 12, newPrice: 13 },
+  { id: 82, name: "DAAFIQ20", oldPrice: 12, newPrice: 14 },
 
   { id: 30, name: "BAROS", oldPrice: 30, newPrice: 28 },
   { id: 105, name: "RAONE7", oldPrice: 28, newPrice: 26 },
   { id: 128, name: "ANDREXZ", oldPrice: 22, newPrice: 20 },
   { id: 28, name: "SAIFA", oldPrice: 32, newPrice: 31 },
   { id: 31, name: "DEW", oldPrice: 29, newPrice: 28 },
+  { id: 8, name: "HAXXSZZ", oldPrice: 23, newPrice: 20 },
+
 ];
 
 const increases = priceChanges.filter((p) => p.newPrice > p.oldPrice);
