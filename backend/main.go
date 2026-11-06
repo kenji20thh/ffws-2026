@@ -251,6 +251,7 @@ func main() {
 				adminOnly.POST("/tournament-days/:id/teams", tournamentDayHandler.AssignTeams)
 				adminOnly.POST("/rooms", roomHandler.Create)
 				adminOnly.POST("/rooms/:id/results", roomResultHandler.Submit)
+				adminOnly.GET("/rooms/:id/player-stats", roomResultHandler.GetPlayerStats)
 
 				adminOnly.POST("/teams/:id/staff", teamStaffHandler.Create)
 				adminOnly.DELETE("/staff/:id", teamStaffHandler.Delete)

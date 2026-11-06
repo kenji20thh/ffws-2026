@@ -122,3 +122,21 @@ func (h *RoomResultHandler) GetStandings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": standings})
 }
+
+// GetPlayerStats returns the saved per-player lines of a room so the admin panel can
+// re-open a room with its already-entered stats. Admin only (not cached).
+func (h *RoomResultHandler) GetPlayerStats(c *gin.Context) {
+	roomID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid room id"})
+		return
+	}
+
+	rows, err := h.repo.GetRoomPlayerStats(uint(roomID))
+	if err != nil {
+		log.Printf("fetch room player stats failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch player stats"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": rows})
+}

@@ -258,6 +258,26 @@ func (r *RoomResultRepository) GetRoomSummary(roomID uint) ([]TeamRoomSummary, e
 	return summaries, nil
 }
 
+// PlayerRoomStatRow is one saved player line of a room (used to pre-fill the admin panel).
+type PlayerRoomStatRow struct {
+	TeamID     uint `json:"team_id"`
+	PlayerID   uint `json:"player_id"`
+	Kills      int  `json:"kills"`
+	FirstBlood bool `json:"first_blood"`
+}
+
+// GetRoomPlayerStats returns every saved player line (kills, first blood) of a room.
+// A player with no row here did not play that room.
+func (r *RoomResultRepository) GetRoomPlayerStats(roomID uint) ([]PlayerRoomStatRow, error) {
+	rows := []PlayerRoomStatRow{}
+	err := r.db.Model(&models.PlayerRoomStat{}).
+		Select("team_id, player_id, kills, first_blood").
+		Where("room_id = ?", roomID).
+		Order("team_id asc, player_id asc").
+		Scan(&rows).Error
+	return rows, err
+}
+
 type TeamRoomSummary struct {
 	TeamID          uint   `json:"team_id"`
 	TeamName        string `json:"team_name"`

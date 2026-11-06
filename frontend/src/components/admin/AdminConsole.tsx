@@ -10,6 +10,7 @@ import {
   ApiError,
   getDayTeams,
   getDays,
+  getRoomPlayerStats,
   getRoomResults,
   getRooms,
   getTeam,
@@ -154,6 +155,7 @@ export default function AdminConsole() {
     setRoomId((inSession.find((r) => r.status === "live") ?? inSession[0])?.id ?? null);
   }
 
+  // Refresh only the saved summary (used after a save; drafts are left as typed).
   const loadSaved = useCallback(() => {
     if (!roomId) return setSaved([]);
     getRoomResults(roomId)
@@ -161,12 +163,50 @@ export default function AdminConsole() {
       .catch(() => {});
   }, [roomId]);
 
-  // room change: reset drafts, load saved
+  // Room change: load what is already saved and pre-fill the form with it,
+  // so an opened room shows its existing placements and kills instead of zeros.
   useEffect(() => {
-    setDrafts({});
     setNotice(null);
-    loadSaved();
-  }, [roomId, loadSaved]);
+    setDrafts({});
+    setSaved([]);
+    if (!roomId) return;
+    let cancelled = false;
+    Promise.all([getRoomResults(roomId), getRoomPlayerStats(roomId)])
+      .then(([summary, stats]) => {
+        if (cancelled) return;
+        setSaved(summary);
+        const next: Record<number, Draft> = {};
+        for (const row of summary) {
+          const team = teams.find((t) => t.id === row.team_id);
+          if (!team) continue;
+          const lines = stats.filter((s) => s.team_id === row.team_id);
+          const played = new Set(lines.map((l) => l.player_id));
+          const kills: Record<number, string> = {};
+          const dnp: Record<number, boolean> = {};
+          for (const pl of team.players ?? []) {
+            if (played.has(pl.id)) {
+              kills[pl.id] = String(
+                lines.find((l) => l.player_id === pl.id)?.kills ?? 0,
+              );
+            } else {
+              dnp[pl.id] = true; // no saved line = did not play this room
+            }
+          }
+          next[row.team_id] = {
+            placement: String(row.placement),
+            kills,
+            firstBloodPlayerId:
+              lines.find((l) => l.first_blood)?.player_id ?? null,
+            dnp,
+          };
+        }
+        setDrafts(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, teams]);
 
   const savedByTeam = useMemo(
     () => new Map(saved.map((s) => [s.team_id, s])),

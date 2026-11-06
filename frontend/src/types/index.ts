@@ -74,6 +74,13 @@ export interface RoomTeamSummary {
   total_points: number;
 }
 
+export interface RoomPlayerStat {
+  team_id: number;
+  player_id: number;
+  kills: number;
+  first_blood: boolean;
+}
+
 export interface TeamStanding {
   team_id: number;
   team_name: string;

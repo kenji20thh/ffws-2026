@@ -7,6 +7,7 @@ import type {
   PlayerLeaderboardEntry,
   PlayerProfile,
   Room,
+  RoomPlayerStat,
   RoomTeamSummary,
   SubmitTeamResult,
   Team,
@@ -185,6 +186,15 @@ export const submitRoomResults = (roomId: number, teams: SubmitTeamResult[]) =>
     { method: "POST", body: JSON.stringify({ teams }) },
     true,
   );
+/** Saved per-player lines of a room (admin). A player with no line did not play. */
+export const getRoomPlayerStats = async (roomId: number) => {
+  const res = await request<{ data: RoomPlayerStat[] | null }>(
+    `/rooms/${roomId}/player-stats`,
+    {},
+    true,
+  );
+  return res.data ?? [];
+};
 export const getWeapons = () => list<Weapon>("/weapons");
 export const getPlayerWeaponKills = async (playerId: number) => {
   const res = await request<{ data: PlayerWeaponKill[] | null; headshot_kills?: number }>(
