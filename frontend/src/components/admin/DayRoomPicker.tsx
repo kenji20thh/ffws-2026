@@ -5,6 +5,9 @@ interface Props {
   rooms: Room[];
   dayId: number;
   roomId: number | null;
+  sessions: number[];
+  session: number;
+  onSession: (s: number) => void;
   onDay: (id: number) => void;
   onRoom: (id: number) => void;
 }
@@ -12,7 +15,7 @@ interface Props {
 const select =
   "chamfer-sm border border-bone/20 bg-char-2 px-4 py-3 font-display text-xl font-bold uppercase text-bone focus:border-ember focus:outline-none";
 
-export default function DayRoomPicker({ days, rooms, dayId, roomId, onDay, onRoom }: Props) {
+export default function DayRoomPicker({ days, rooms, dayId, roomId, sessions, session, onSession, onDay, onRoom }: Props) {
   return (
     <div className="flex flex-wrap gap-4">
       <div>
@@ -21,6 +24,14 @@ export default function DayRoomPicker({ days, rooms, dayId, roomId, onDay, onRoo
           {days.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
       </div>
+      {sessions.length > 1 && (
+        <div>
+          <label htmlFor="session" className="mb-1 block font-stat text-[10px] uppercase tracking-widest text-ash">Session</label>
+          <select id="session" className={select} value={session} onChange={(e) => onSession(Number(e.target.value))}>
+            {sessions.map((s) => <option key={s} value={s}>Session {s}</option>)}
+          </select>
+        </div>
+      )}
       <div>
         <label htmlFor="room" className="mb-1 block font-stat text-[10px] uppercase tracking-widest text-ash">Room</label>
         <select id="room" className={select} value={roomId ?? ""} onChange={(e) => onRoom(Number(e.target.value))}

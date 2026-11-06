@@ -50,6 +50,8 @@ export default function AdminConsole() {
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [dayId, setDayId] = useState(0);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [session, setSession] = useState(1);
+  const [teamSession, setTeamSession] = useState<Record<number, number>>({});
   const [roomId, setRoomId] = useState<number | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [saved, setSaved] = useState<RoomTeamSummary[]>([]);
@@ -105,15 +107,52 @@ export default function AdminConsole() {
       .then(async ([r, dt]) => {
         const full = await Promise.all(dt.map((x) => getTeam(x.team_id)));
         if (cancelled) return;
+        const bySession: Record<number, number> = {};
+        dt.forEach((x) => (bySession[x.team_id] = x.session ?? 1));
+        // Start on the session that is live now, else the first one with teams.
+        const live = r.find((x) => x.status === "live");
+        const firstSession = live
+          ? (live.session ?? 1)
+          : Math.min(...(dt.length ? dt.map((x) => x.session ?? 1) : [1]));
         setRooms(r);
         setTeams(full);
-        setRoomId((r.find((x) => x.status === "live") ?? r[0])?.id ?? null);
+        setTeamSession(bySession);
+        setSession(firstSession);
+        setRoomId(
+          (
+            r.find((x) => (x.session ?? 1) === firstSession && x.status === "live") ??
+            r.find((x) => (x.session ?? 1) === firstSession)
+          )?.id ?? null,
+        );
       })
       .catch(fail);
     return () => {
       cancelled = true;
     };
   }, [dayId, fail]);
+
+  // Only the teams and rooms of the selected session are shown.
+  const sessions = useMemo(
+    () =>
+      Array.from(new Set(Object.values(teamSession).concat(rooms.map((r) => r.session ?? 1)))).sort(
+        (a, b) => a - b,
+      ),
+    [teamSession, rooms],
+  );
+  const sessionRooms = useMemo(
+    () => rooms.filter((r) => (r.session ?? 1) === session),
+    [rooms, session],
+  );
+  const sessionTeams = useMemo(
+    () => teams.filter((t) => (teamSession[t.id] ?? 1) === session),
+    [teams, teamSession, session],
+  );
+
+  function changeSession(s: number) {
+    setSession(s);
+    const inSession = rooms.filter((r) => (r.session ?? 1) === s);
+    setRoomId((inSession.find((r) => r.status === "live") ?? inSession[0])?.id ?? null);
+  }
 
   const loadSaved = useCallback(() => {
     if (!roomId) return setSaved([]);
@@ -164,7 +203,7 @@ export default function AdminConsole() {
     }
   }
 
-  const fillable = teams.filter(
+  const fillable = sessionTeams.filter(
     (t) =>
       (drafts[t.id]?.placement ?? "") !== "" && !draftError(t, drafts[t.id]),
   );
@@ -182,9 +221,12 @@ export default function AdminConsole() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <DayRoomPicker
           days={days}
-          rooms={rooms}
+          rooms={sessionRooms}
           dayId={dayId}
           roomId={roomId}
+          sessions={sessions}
+          session={session}
+          onSession={changeSession}
           onDay={setDayId}
           onRoom={setRoomId}
         />
@@ -234,13 +276,13 @@ export default function AdminConsole() {
       {!roomId ? (
         <EmptyState
           title="No room selected"
-          hint="Create a room for this day first."
+          hint="Create a room for this session first."
         />
-      ) : teams.length === 0 ? (
-        <EmptyState title="No teams assigned to this day" />
+      ) : sessionTeams.length === 0 ? (
+        <EmptyState title="No teams assigned to this session" />
       ) : (
         <div className="space-y-4">
-          {teams.map((t) => {
+          {sessionTeams.map((t) => {
             const d = drafts[t.id] ?? emptyDraft;
             return (
               <TeamResultRow

@@ -6,6 +6,9 @@ type Room struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
 	TournamentDayID uint      `gorm:"not null;index" json:"tournament_day_id"`
 	RoomNumber      int       `gorm:"not null" json:"room_number"`
+	// Session is the lobby this room belongs to within the day (1 = first lobby of 12 teams,
+	// 2 = second...). Only teams assigned to that session on the day play in this room.
+	Session         int       `gorm:"not null;default:1;index" json:"session"`
 	MapName         string    `json:"map_name"`
 	ScheduledAt     time.Time `json:"scheduled_at"`
 	Status          string    `gorm:"default:upcoming" json:"status"` // upcoming, live, completed

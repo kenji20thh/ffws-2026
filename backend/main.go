@@ -64,6 +64,17 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
+	// One-off backfill for rooms created before rooms had a session: on days that have two
+	// lobbies, rooms numbered above 6 (7-12) are the second lobby's. Idempotent: it only
+	// touches rooms still on the default session 1.
+	if err := database.Exec(`
+		UPDATE rooms SET session = 2
+		WHERE session = 1 AND room_number > 6
+		  AND tournament_day_id IN (SELECT tournament_day_id FROM tournament_day_teams WHERE session >= 2)
+	`).Error; err != nil {
+		log.Printf("room session backfill skipped: %v", err)
+	}
+
 	if cfg.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}

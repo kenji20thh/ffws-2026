@@ -36,6 +36,8 @@ export interface Room {
   id: number;
   tournament_day_id: number;
   room_number: number;
+  /** Lobby (session) this room belongs to within the day, starting at 1. Missing = 1. */
+  session?: number;
   map_name: string;
   scheduled_at: string;
   status: "upcoming" | "live" | "completed" | string;

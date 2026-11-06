@@ -21,7 +21,7 @@ func (r *RoomRepository) Create(room *models.Room) error {
 func (r *RoomRepository) FindByDay(dayID uint) ([]models.Room, error) {
 	var rooms []models.Room
 	err := r.db.Where("tournament_day_id = ?", dayID).
-		Order("room_number asc").
+		Order("session asc, room_number asc").
 		Find(&rooms).Error
 	return rooms, err
 }

@@ -128,20 +128,33 @@ func (r *RoomResultRepository) validateResults(room *models.Room, teams []TeamRe
 		placementTaken[t.Placement] = true
 	}
 
-	// 2. Every team must be assigned to this room's tournament day.
-	var assigned []uint
-	if err := r.db.Model(&models.TournamentDayTeam{}).
+	// 2. Every team must be assigned to this room's tournament day AND to this room's session
+	//    (a day can hold several lobbies; a team only plays in the rooms of its own lobby).
+	var assigned []models.TournamentDayTeam
+	if err := r.db.
 		Where("tournament_day_id = ? AND team_id IN ?", room.TournamentDayID, teamIDs).
-		Pluck("team_id", &assigned).Error; err != nil {
+		Find(&assigned).Error; err != nil {
 		return err
 	}
-	assignedSet := map[uint]bool{}
-	for _, id := range assigned {
-		assignedSet[id] = true
+	sessionOf := map[uint]int{}
+	for _, a := range assigned {
+		s := a.Session
+		if s < 1 {
+			s = 1
+		}
+		sessionOf[a.TeamID] = s
+	}
+	roomSession := room.Session
+	if roomSession < 1 {
+		roomSession = 1
 	}
 	for _, id := range teamIDs {
-		if !assignedSet[id] {
+		s, ok := sessionOf[id]
+		if !ok {
 			return invalidResult("team %d is not assigned to this room's tournament day", id)
+		}
+		if s != roomSession {
+			return invalidResult("team %d plays in session %d, but room %d is a session %d room", id, s, room.RoomNumber, roomSession)
 		}
 	}
 

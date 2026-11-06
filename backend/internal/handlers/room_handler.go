@@ -22,6 +22,7 @@ func NewRoomHandler(repo *repository.RoomRepository) *RoomHandler {
 type createRoomRequest struct {
 	TournamentDayID uint   `json:"tournament_day_id" binding:"required"`
 	RoomNumber      int    `json:"room_number" binding:"required"`
+	Session         int    `json:"session" binding:"omitempty,gte=1,lte=10"` // defaults to 1
 	MapName         string `json:"map_name"`
 	ScheduledAt     string `json:"scheduled_at"` // "2026-11-06T18:00:00Z"
 	Status          string `json:"status"`
@@ -39,6 +40,7 @@ type updatePlayerRequest struct {
 
 type updateRoomRequest struct {
 	RoomNumber  int    `json:"room_number"`
+	Session     int    `json:"session" binding:"omitempty,gte=1,lte=10"`
 	MapName     string `json:"map_name"`
 	ScheduledAt string `json:"scheduled_at"`
 	Status      string `json:"status"`
@@ -54,8 +56,12 @@ func (h *RoomHandler) Create(c *gin.Context) {
 	room := models.Room{
 		TournamentDayID: req.TournamentDayID,
 		RoomNumber:      req.RoomNumber,
+		Session:         req.Session,
 		MapName:         req.MapName,
 		Status:          req.Status,
+	}
+	if room.Session < 1 {
+		room.Session = 1
 	}
 	if room.Status == "" {
 		room.Status = "upcoming"
@@ -196,6 +202,9 @@ func (h *RoomHandler) Update(c *gin.Context) {
 		return
 	}
 
+	if req.Session != 0 {
+		room.Session = req.Session
+	}
 	if req.RoomNumber != 0 {
 		room.RoomNumber = req.RoomNumber
 	}
