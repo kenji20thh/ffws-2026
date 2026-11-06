@@ -559,15 +559,8 @@ export default function StandingsExperience({
 
     const rows = calculateStandings(teams, rooms, allowedTeamIds);
 
-    if (activeRoom) {
-      // Room table is ordered by the placement the team got in that room.
-      rows.sort(
-        (a, b) =>
-          (a.placement ?? 99) - (b.placement ?? 99) ||
-          b.totalPoints - a.totalPoints,
-      );
-      return rows;
-    }
+    // Room table keeps the normal ranking: total points, then placement points, then kills.
+    if (activeRoom) return rows;
 
     // Keep unknown qualification slots visible as TBA.
     const def = resolveDef(stage, phase, viewMode, selectedDay?.day ?? null);
