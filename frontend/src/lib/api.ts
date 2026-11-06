@@ -13,6 +13,7 @@ import type {
   Team,
   TeamProfile,
   TeamStaff,
+  TeamPenalty,
   TeamStanding,
   Tournament,
   TournamentDay,
@@ -114,6 +115,8 @@ export const getRoomResults = (roomId: number) =>
   list<RoomTeamSummary>(`/rooms/${roomId}/results`);
 export const getStandings = (tournamentId: number) =>
   list<TeamStanding>(`/standings?tournament_id=${tournamentId}`);
+export const getPenalties = (tournamentId: number) =>
+  list<TeamPenalty>(`/penalties?tournament_id=${tournamentId}`);
 /**
  * Kills ranking. Pass dayId to count only the rooms of that tournament day, and
  * session (1 or 2, needs dayId) to count only that session's rooms of the day.

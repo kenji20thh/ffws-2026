@@ -87,7 +87,19 @@ export interface TeamStanding {
   rooms_played: number;
   placement_points: number;
   kill_points: number;
+  /** Points deducted by penalties (already subtracted from total_points). */
+  penalty_points?: number;
   total_points: number;
+}
+
+/** A points deduction given to a team on one tournament day. */
+export interface TeamPenalty {
+  id: number;
+  tournament_day_id: number;
+  team_id: number;
+  /** Positive number; subtracted from the team's total that day. */
+  points: number;
+  reason?: string;
 }
 
 export interface PlayerLeaderboardEntry {

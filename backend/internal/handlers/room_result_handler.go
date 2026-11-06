@@ -140,3 +140,21 @@ func (h *RoomResultHandler) GetPlayerStats(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"data": rows})
 }
+
+// GetPenalties lists the penalties of every day of a tournament (public, read-only).
+// Penalties are added directly in the database.
+func (h *RoomResultHandler) GetPenalties(c *gin.Context) {
+	tournamentID, err := strconv.ParseUint(c.Query("tournament_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "valid tournament_id query param is required"})
+		return
+	}
+
+	rows, err := h.repo.GetTournamentPenalties(uint(tournamentID))
+	if err != nil {
+		log.Printf("fetch penalties failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch penalties"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": rows})
+}

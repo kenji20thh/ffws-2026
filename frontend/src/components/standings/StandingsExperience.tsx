@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getDays,
+  getPenalties,
   getDayTeams,
   getRoomResults,
   getRooms,
@@ -31,6 +32,7 @@ import type {
   Room,
   RoomTeamSummary,
   Team,
+  TeamPenalty,
   TournamentDay,
 } from "@/types";
 
@@ -60,6 +62,10 @@ type StandingRow = {
   roomsPlayed: number;
   placementPoints: number;
   killPoints: number;
+  /** Points deducted by penalties in the days counted (shown as a negative). */
+  penaltyPoints: number;
+  /** Reasons of the penalties counted, for the tooltip. */
+  penaltyNotes: string[];
   totalPoints: number;
   /** Placement in the last room counted; only meaningful in a single-room view. */
   placement?: number;
@@ -136,6 +142,7 @@ function calculateStandings(
   teams: Team[],
   rooms: RoomData[],
   allowedTeamIds?: number[],
+  penalties: TeamPenalty[] = [],
 ): StandingRow[] {
   const allowed = allowedTeamIds ? new Set(allowedTeamIds) : null;
 
@@ -150,6 +157,8 @@ function calculateStandings(
       roomsPlayed: 0,
       placementPoints: 0,
       killPoints: 0,
+      penaltyPoints: 0,
+      penaltyNotes: [],
       totalPoints: 0,
     });
   }
@@ -165,6 +174,16 @@ function calculateStandings(
       standing.killPoints += result.kill_points;
       standing.totalPoints += result.total_points;
     }
+  }
+
+  // Penalties come off the total of the days being shown.
+  for (const penalty of penalties) {
+    const standing = totals.get(penalty.team_id);
+    if (!standing) continue;
+
+    standing.penaltyPoints += penalty.points;
+    standing.totalPoints -= penalty.points;
+    if (penalty.reason) standing.penaltyNotes.push(`-${penalty.points}: ${penalty.reason}`);
   }
 
   return [...totals.values()].sort(
@@ -316,6 +335,7 @@ export default function StandingsExperience({
   const [teams, setTeams] = useState<Team[]>([]);
   const [days, setDays] = useState<TournamentDay[]>([]);
   const [dayData, setDayData] = useState<DayData[]>([]);
+  const [penalties, setPenalties] = useState<TeamPenalty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -334,9 +354,11 @@ export default function StandingsExperience({
     setError("");
 
     try {
-      const [loadedTeams, loadedDays] = await Promise.all([
+      const [loadedTeams, loadedDays, loadedPenalties] = await Promise.all([
         getTeams(tournamentId),
         getDays(tournamentId),
+        // Penalties are optional: if they fail to load the table still shows.
+        getPenalties(tournamentId).catch(() => [] as TeamPenalty[]),
       ]);
 
       const orderedDays = sortDays(loadedDays);
@@ -384,6 +406,7 @@ export default function StandingsExperience({
       );
 
       setTeams(loadedTeams);
+      setPenalties(loadedPenalties);
       setDays(orderedDays);
       setDayData(loadedDayData);
 
@@ -558,7 +581,13 @@ export default function StandingsExperience({
       );
     }
 
-    const rows = calculateStandings(teams, rooms, allowedTeamIds);
+    // Penalties belong to a day, so they count for every day in view (not in a single-room view).
+    const dayIds = new Set(sourceDays.map((item) => item.day.id));
+    const viewPenalties = activeRoom
+      ? []
+      : penalties.filter((p) => dayIds.has(p.tournament_day_id));
+
+    const rows = calculateStandings(teams, rooms, allowedTeamIds, viewPenalties);
 
     // Room table keeps the normal ranking: total points, then placement points, then kills.
     if (activeRoom) return rows;
@@ -573,6 +602,8 @@ export default function StandingsExperience({
           roomsPlayed: 0,
           placementPoints: 0,
           killPoints: 0,
+          penaltyPoints: 0,
+          penaltyNotes: [],
           totalPoints: 0,
         });
       }
@@ -591,6 +622,7 @@ export default function StandingsExperience({
     allPhaseTwoDays,
     teams,
     activeRoom,
+    penalties,
   ]);
 
   function chooseStage(nextStage: Stage) {
@@ -684,6 +716,8 @@ export default function StandingsExperience({
 
   const showQualification = activeDef !== null;
   const showGroup = isPhaseOne;
+  // The Pen column only appears when someone in this view actually has a penalty.
+  const showPenalty = activeRows.some((row) => row.penaltyPoints > 0);
   const anyResults = activeRows.some(
     (row) => row.team && row.roomsPlayed > 0,
   );
@@ -936,6 +970,9 @@ export default function StandingsExperience({
                   )}
                   <th className="px-3 py-3 text-right">Place</th>
                   <th className="px-3 py-3 text-right">Kills</th>
+                  {showPenalty && (
+                    <th className="px-3 py-3 text-right text-danger">Pen</th>
+                  )}
                   <th className="px-4 py-3 text-right text-ember">Pts</th>
                   {showQualification && (
                     <th className="px-4 py-3">Advances</th>
@@ -1057,6 +1094,15 @@ export default function StandingsExperience({
                       <td className="px-3 py-3 text-right font-stat tabular-nums text-bone/70">
                         {row.killPoints}
                       </td>
+
+                      {showPenalty && (
+                        <td
+                          className="px-3 py-3 text-right font-stat tabular-nums text-danger"
+                          title={row.penaltyNotes.join("\n") || undefined}
+                        >
+                          {row.penaltyPoints > 0 ? `-${row.penaltyPoints}` : "—"}
+                        </td>
+                      )}
 
                       <td className="px-4 py-3 text-right font-stat text-lg font-bold tabular-nums text-ember">
                         {row.totalPoints}

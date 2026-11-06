@@ -285,6 +285,7 @@ type TeamRoomSummary struct {
 	TotalKills      int    `json:"total_kills"`
 	PlacementPoints int    `json:"placement_points"`
 	KillPoints      int    `json:"kill_points"`
+	PenaltyPoints   int    `json:"penalty_points"`
 	TotalPoints     int    `json:"total_points"`
 }
 
@@ -351,8 +352,19 @@ func (r *RoomResultRepository) GetTournamentStandings(tournamentID uint) ([]Team
 		s.PlacementPoints += service.PlacementPoints(res.Placement)
 		s.KillPoints += service.KillPoints(kills[roomTeam{res.RoomID, res.TeamID}])
 	}
+
+	// Penalties (points deducted per day) come off the overall total.
+	penalties, err := r.GetTournamentPenalties(tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range penalties {
+		if s := byTeam[p.TeamID]; s != nil {
+			s.PenaltyPoints += p.Points
+		}
+	}
 	for i := range standings {
-		standings[i].TotalPoints = standings[i].PlacementPoints + standings[i].KillPoints
+		standings[i].TotalPoints = standings[i].PlacementPoints + standings[i].KillPoints - standings[i].PenaltyPoints
 	}
 
 	// highest points first; equal points keep their original order (no tiebreak rule is applied)
@@ -366,5 +378,27 @@ type TeamStandingSummary struct {
 	RoomsPlayed     int    `json:"rooms_played"`
 	PlacementPoints int    `json:"placement_points"`
 	KillPoints      int    `json:"kill_points"`
+	PenaltyPoints   int    `json:"penalty_points"`
 	TotalPoints     int    `json:"total_points"`
+}
+
+// PenaltyRow is one penalty given to a team on a tournament day.
+type PenaltyRow struct {
+	ID              uint   `json:"id"`
+	TournamentDayID uint   `json:"tournament_day_id"`
+	TeamID          uint   `json:"team_id"`
+	Points          int    `json:"points"`
+	Reason          string `json:"reason"`
+}
+
+// GetTournamentPenalties returns every penalty of every day of a tournament.
+func (r *RoomResultRepository) GetTournamentPenalties(tournamentID uint) ([]PenaltyRow, error) {
+	rows := []PenaltyRow{}
+	err := r.db.Raw(`
+		SELECT p.id, p.tournament_day_id, p.team_id, p.points, p.reason
+		FROM team_penalties p
+		JOIN tournament_days d ON d.id = p.tournament_day_id
+		WHERE d.tournament_id = ?
+		ORDER BY p.tournament_day_id ASC, p.id ASC`, tournamentID).Scan(&rows).Error
+	return rows, err
 }

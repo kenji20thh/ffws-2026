@@ -52,6 +52,7 @@ func main() {
 		&models.Room{},
 		&models.RoomTeamResult{},
 		&models.PlayerRoomStat{},
+		&models.TeamPenalty{},
 		&models.User{},
 		&models.FantasyTeam{},
 		&models.FantasySelection{},
@@ -209,6 +210,7 @@ func main() {
 		api.GET("/rooms/:id", live(), roomHandler.GetByID)
 		api.GET("/rooms/:id/results", live(), roomResultHandler.GetSummary)
 		api.GET("/standings", live("tournament_id"), roomResultHandler.GetStandings)
+		api.GET("/penalties", live("tournament_id"), roomResultHandler.GetPenalties)
 
 		api.GET("/player-leaderboard", live("tournament_id", "day_id", "session"), playerStatsHandler.GetLeaderboard)
 
