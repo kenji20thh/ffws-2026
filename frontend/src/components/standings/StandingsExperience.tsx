@@ -97,15 +97,10 @@ function sortDays(days: TournamentDay[]) {
 function splitSessionRooms(rooms: RoomData[], session: Session) {
   if (session === "overall") return rooms;
 
-  const sorted = [...rooms].sort(
-    (a, b) => a.room.room_number - b.room.room_number,
-  );
+  // Rooms carry their own session (each session has its own Room 1-6).
+  const wanted = session === "session-1" ? 1 : 2;
 
-  const midpoint = Math.ceil(sorted.length / 2);
-
-  return session === "session-1"
-    ? sorted.slice(0, midpoint)
-    : sorted.slice(midpoint);
+  return rooms.filter((item) => (item.room.session ?? 1) === wanted);
 }
 
 /** Resolve the qualification rules for the current standings view. */
@@ -342,7 +337,11 @@ export default function StandingsExperience({
 
           const loadedRooms = await Promise.all(
             [...rooms]
-              .sort((a, b) => a.room_number - b.room_number)
+              .sort(
+                (a, b) =>
+                  (a.session ?? 1) - (b.session ?? 1) ||
+                  a.room_number - b.room_number,
+              )
               .map(async (room): Promise<RoomData> => ({
                 room,
                 results: await getRoomResults(room.id),

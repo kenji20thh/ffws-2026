@@ -253,11 +253,11 @@ function DayGroupsSummary({ day }: { day: TournamentDay }) {
 
 /** Phase 1 match day: 24 teams, split into two separately played 12-team sessions. */
 function PhaseOneDay({ day, dayTeams, rooms, roomId, onSelectRoom }: { day: TournamentDay; dayTeams: DayTeam[]; rooms: Room[]; roomId: number | null; onSelectRoom: (id: number) => void }) {
-  const sortedRooms = [...rooms].sort((a, b) => a.room_number - b.room_number);
-  const midpoint = Math.ceil(sortedRooms.length / 2);
+  const sortedRooms = [...rooms].sort((a, b) => (a.session ?? 1) - (b.session ?? 1) || a.room_number - b.room_number);
+  // Rooms carry their own session (each session has its own Room 1-6).
   const sessions: { key: SessionKey; label: string; rooms: Room[] }[] = [
-    { key: "session-1", label: "Session 1", rooms: sortedRooms.slice(0, midpoint) },
-    { key: "session-2", label: "Session 2", rooms: sortedRooms.slice(midpoint) },
+    { key: "session-1", label: "Session 1", rooms: sortedRooms.filter((r) => (r.session ?? 1) === 1) },
+    { key: "session-2", label: "Session 2", rooms: sortedRooms.filter((r) => (r.session ?? 1) === 2) },
   ];
 
   return <>
