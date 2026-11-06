@@ -13,7 +13,7 @@ export default function TeamHeader({ team }: { team: Team }) {
       />
 
       <div>
-        <p className="font-stat text-[11px] uppercase tracking-[0.3em] text-ember">
+        <p className="font-stat text-[0.6875rem] uppercase tracking-[0.3em] text-ember">
           {team.country && (
             <span className="mr-2 tracking-normal">
               <Flag country={team.country} height={18} />

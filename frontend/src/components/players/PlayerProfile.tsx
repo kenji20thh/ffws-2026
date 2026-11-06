@@ -13,7 +13,7 @@ export default function PlayerProfile({ player, team }: PlayerProfileProps) {
 const icon = roleIcon(player.role);
 
 return ( <section className="relative overflow-hidden bg-[#151515] text-white">
-{/* Background */} <div className="absolute inset-0"> <div className="absolute -right-32 -top-40 h-[520px] w-[520px] rounded-full bg-white/[0.035]" />
+{/* Background */} <div className="absolute inset-0"> <div className="absolute -right-32 -top-40 h-[32.5rem] w-[32.5rem] rounded-full bg-white/[0.035]" />
 
     <div className="absolute bottom-0 left-1/3 h-px w-2/3 bg-white/10" />
 
@@ -23,15 +23,15 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
         style={{
           backgroundImage:
             "linear-gradient(135deg, transparent 0%, transparent 49%, white 50%, transparent 51%, transparent 100%)",
-          backgroundSize: "22px 22px",
+          backgroundSize: "1.375rem 1.375rem",
         }}
       />
     </div>
   </div>
 
-  <div className="relative mx-auto flex min-h-[430px] max-w-[1440px] items-end px-5 md:px-10 lg:px-16">
+  <div className="relative mx-auto flex min-h-[26.875rem] max-w-[90rem] items-end px-5 md:px-10 lg:px-16">
     {/* Player photo */}
-    <div className="relative h-[360px] w-[270px] shrink-0 self-end md:h-[450px] md:w-[340px] lg:h-[500px] lg:w-[390px]">
+    <div className="relative h-[22.5rem] w-[16.875rem] shrink-0 self-end md:h-[28.125rem] md:w-[21.25rem] lg:h-[31.25rem] lg:w-[24.375rem]">
       {player.photo_url ? (
         <Image
           src={player.photo_url}
@@ -82,7 +82,7 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
             alt=""
             width={25}
             height={25}
-            className="object-contain"
+            className="h-[1.5625rem] w-[1.5625rem] object-contain"
             unoptimized
           />
         )}
@@ -110,7 +110,7 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
       <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-5">
         {/* Country */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+          <p className="text-[0.625rem] font-bold uppercase tracking-[0.2em] text-white/35">
             Country
           </p>
 
@@ -123,7 +123,7 @@ return ( <section className="relative overflow-hidden bg-[#151515] text-white">
 
         {/* Region */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+          <p className="text-[0.625rem] font-bold uppercase tracking-[0.2em] text-white/35">
             Region
           </p>
 

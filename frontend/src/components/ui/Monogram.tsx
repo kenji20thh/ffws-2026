@@ -12,6 +12,10 @@ interface Props {
   size?: number;
 }
 
+// `size` is given in px at the base 16px root; it is rendered in rem so it grows with the
+// site's big-screen scaling (see globals.css) instead of staying a fixed pixel size.
+const rem = (px: number) => `${px / 16}rem`;
+
 export default function Monogram({ label, imageUrl, size = 64 }: Props) {
   const color = PALETTE[hash(label) % PALETTE.length];
   const dark = color === "#f1e9dc" || color === "#ffb000";
@@ -21,8 +25,8 @@ export default function Monogram({ label, imageUrl, size = 64 }: Props) {
   return (
     <div
       style={{
-        width: size,
-        height: size,
+        width: rem(size),
+        height: rem(size),
       }}
       className="flex items-center justify-center"
     >
@@ -43,12 +47,12 @@ export default function Monogram({ label, imageUrl, size = 64 }: Props) {
   return (
     <div
       aria-label={label}
-      style={{ width: size, height: size, background: color, clipPath: hex }}
+      style={{ width: rem(size), height: rem(size), background: color, clipPath: hex }}
       className={`flex items-center justify-center font-display font-black uppercase leading-none ${
         dark ? "text-char" : "text-char"
       }`}
     >
-      <span style={{ fontSize: size * 0.34 }}>{label.slice(0, 3)}</span>
+      <span style={{ fontSize: rem(size * 0.34) }}>{label.slice(0, 3)}</span>
     </div>
   );
 }

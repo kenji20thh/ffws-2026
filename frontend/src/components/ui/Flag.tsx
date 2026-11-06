@@ -3,7 +3,7 @@ import { countryFlagUrl } from "@/lib/flags";
 type FlagProps = {
   country?: string | null;
   className?: string;
-  /** Height in px (number) or any CSS length; width follows the aspect ratio. */
+  /** Height in px at the base root size (number, rendered as rem) or any CSS length; width follows the aspect ratio. */
   height?: number | string;
 };
 
@@ -24,7 +24,7 @@ export default function Flag({ country, className = "", height = 16 }: FlagProps
       alt={country}
       title={country}
       loading="lazy"
-      style={{ height, width: "auto" }}
+      style={{ height: typeof height === "number" ? `${height / 16}rem` : height, width: "auto" }}
       className={`inline-block shrink-0 object-contain align-middle ${className}`}
     />
   );

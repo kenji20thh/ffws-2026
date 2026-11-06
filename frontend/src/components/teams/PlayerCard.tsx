@@ -10,7 +10,7 @@ return ( <div className="chamfer border border-bone/10 bg-char-2 p-5"> <div clas
 )} </div> </div>
 
 
-  <div className="mt-4 flex items-center justify-between font-stat text-[11px] uppercase tracking-widest text-ash">
+  <div className="mt-4 flex items-center justify-between font-stat text-[0.6875rem] uppercase tracking-widest text-ash">
     <span className="flex items-center gap-2 text-ember">
       {player.role || "player"}
       {player.is_captain && <CaptainBadge />}

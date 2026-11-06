@@ -48,7 +48,7 @@ export default function PlayerOverallStats({
           style={{
             backgroundImage:
               "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
+            backgroundSize: "3rem 3rem",
           }}
         />
 
@@ -62,12 +62,12 @@ export default function PlayerOverallStats({
         <div className="absolute right-0 top-[30%] h-px w-[14%] bg-[#f5c542]/25" />
       </div>
 
-      <div className="relative mx-auto max-w-[1440px] px-5 py-14 md:px-10 md:py-16 lg:px-16 lg:py-20">
+      <div className="relative mx-auto max-w-[90rem] px-5 py-14 md:px-10 md:py-16 lg:px-16 lg:py-20">
         {/* Header */}
         <div className="mb-8 flex items-end justify-between border-b border-white/[0.08] pb-5">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
-              <span className="h-[2px] w-5 bg-[#f5c542]/60" />
+            <p className="mb-2 flex items-center gap-2 text-[0.625rem] font-bold uppercase tracking-[0.25em] text-white/30">
+              <span className="h-[0.125rem] w-5 bg-[#f5c542]/60" />
               Player Performance
             </p>
 
@@ -77,7 +77,7 @@ export default function PlayerOverallStats({
           </div>
 
           <div className="text-right">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/25">
+            <p className="text-[0.5625rem] font-bold uppercase tracking-[0.2em] text-white/25">
               Rooms Played
             </p>
 
@@ -99,7 +99,7 @@ export default function PlayerOverallStats({
                 <div className="absolute left-0 top-0 h-px w-8 bg-[#f5c542]/60" />
               )}
 
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">
+              <p className="text-[0.5625rem] font-bold uppercase tracking-[0.18em] text-white/30">
                 {stat.label}
               </p>
 
@@ -123,7 +123,7 @@ export default function PlayerOverallStats({
 
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">
+              <p className="text-[0.5625rem] font-bold uppercase tracking-[0.2em] text-white/30">
                 Kill Participation
               </p>
 
@@ -132,24 +132,24 @@ export default function PlayerOverallStats({
                   {formatNumber(overall.kill_participation, 1)}%
                 </span>
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
+                <span className="text-[0.5625rem] font-bold uppercase tracking-[0.15em] text-white/25">
                   of team kills
                 </span>
               </div>
             </div>
 
-            <div className="w-full md:max-w-[420px]">
+            <div className="w-full md:max-w-[26.25rem]">
               <div className="mb-2 flex justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25">
+                <span className="text-[0.5625rem] font-bold uppercase tracking-[0.15em] text-white/25">
                   Participation
                 </span>
 
-                <span className="text-[9px] font-bold text-white/35">
+                <span className="text-[0.5625rem] font-bold text-white/35">
                   {formatNumber(overall.kill_participation, 1)}%
                 </span>
               </div>
 
-              <div className="relative h-[3px] w-full bg-white/[0.08]">
+              <div className="relative h-[0.1875rem] w-full bg-white/[0.08]">
                 <div
                   className="h-full bg-[#f5c542]/60 transition-all"
                   style={{

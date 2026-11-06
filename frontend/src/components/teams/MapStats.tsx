@@ -65,7 +65,7 @@ export default function MapStats({
         return (
           <div
             key={name}
-            className="relative min-h-[270px] overflow-hidden"
+            className="relative min-h-[16.875rem] overflow-hidden"
             style={{
               backgroundColor: theme.background,
               color: theme.text,
@@ -73,7 +73,7 @@ export default function MapStats({
           >
             {/* Large decorative circle */}
             <div
-              className="pointer-events-none absolute -right-2 top-0 h-[190px] w-[190px] rounded-full"
+              className="pointer-events-none absolute -right-2 top-0 h-[11.875rem] w-[11.875rem] rounded-full"
               style={{
                 backgroundColor: "rgba(255,255,255,0.22)",
               }}
@@ -81,7 +81,7 @@ export default function MapStats({
 
             {/* Large diagonal */}
             <div
-              className="pointer-events-none absolute left-[34%] top-[-45%] h-[180%] w-[42px] rotate-45"
+              className="pointer-events-none absolute left-[34%] top-[-45%] h-[180%] w-[2.625rem] rotate-45"
               style={{
                 backgroundColor: "rgba(255,255,255,0.20)",
               }}
@@ -89,22 +89,22 @@ export default function MapStats({
 
             {/* Bottom-left geometric shape */}
             <div
-              className="pointer-events-none absolute -bottom-28 -left-10 h-48 w-48 rotate-12 border-[18px]"
+              className="pointer-events-none absolute -bottom-28 -left-10 h-48 w-48 rotate-12 border-[1.125rem]"
               style={{
                 borderColor: "rgba(23,23,23,0.10)",
               }}
             />
 
             {/* Map label */}
-            <div className="absolute left-[18px] top-0 z-10 -translate-y-[1px] bg-[#111] px-5 py-3">
-              <span className="font-stat text-[10px] font-bold uppercase tracking-[0.28em] text-white">
+            <div className="absolute left-[1.125rem] top-0 z-10 -translate-y-[0.0625rem] bg-[#111] px-5 py-3">
+              <span className="font-stat text-[0.625rem] font-bold uppercase tracking-[0.28em] text-white">
                 {name}
               </span>
             </div>
 
             {/* Map initial */}
             <span
-              className="pointer-events-none absolute right-8 top-8 font-display text-[78px] font-black leading-none"
+              className="pointer-events-none absolute right-8 top-8 font-display text-[4.875rem] font-black leading-none"
               style={{
                 color: "rgba(23,23,23,0.07)",
               }}
@@ -116,24 +116,24 @@ export default function MapStats({
               {/* Heading */}
               <div>
                 <p
-                  className="font-stat text-[9px] uppercase tracking-[0.32em]"
+                  className="font-stat text-[0.5625rem] uppercase tracking-[0.32em]"
                   style={{ color: theme.muted }}
                 >
                   Team Performance
                 </p>
 
-                <h3 className="mt-1 font-display text-3xl font-extrabold uppercase leading-none sm:text-[34px]">
+                <h3 className="mt-1 font-display text-3xl font-extrabold uppercase leading-none sm:text-[2.125rem]">
                   {name}
                 </h3>
               </div>
 
               {/* Stats */}
               {played && m ? (
-                <div className="mt-8 grid max-w-[720px] grid-cols-1 sm:grid-cols-3">
+                <div className="mt-8 grid max-w-[45rem] grid-cols-1 sm:grid-cols-3">
                   {/* Rooms */}
                   <div className="border-l border-black/20 pl-4 sm:pl-4">
                     <p
-                      className="font-stat text-[9px] uppercase tracking-[0.18em]"
+                      className="font-stat text-[0.5625rem] uppercase tracking-[0.18em]"
                       style={{ color: theme.muted }}
                     >
                       Rooms Played
@@ -147,7 +147,7 @@ export default function MapStats({
                   {/* Average kills */}
                   <div className="mt-5 border-l border-black/20 pl-4 sm:mt-0 sm:pl-4">
                     <p
-                      className="font-stat text-[9px] uppercase tracking-[0.18em]"
+                      className="font-stat text-[0.5625rem] uppercase tracking-[0.18em]"
                       style={{ color: theme.muted }}
                     >
                       Average Kills
@@ -163,7 +163,7 @@ export default function MapStats({
                   {/* Average placement */}
                   <div className="mt-5 border-l border-black/20 pl-4 sm:mt-0 sm:pl-4">
                     <p
-                      className="font-stat text-[9px] uppercase tracking-[0.18em]"
+                      className="font-stat text-[0.5625rem] uppercase tracking-[0.18em]"
                       style={{ color: theme.muted }}
                     >
                       Average Placement
@@ -177,7 +177,7 @@ export default function MapStats({
               ) : (
                 <div className="mt-10">
                   <p
-                    className="font-stat text-[10px] uppercase tracking-[0.2em]"
+                    className="font-stat text-[0.625rem] uppercase tracking-[0.2em]"
                     style={{ color: theme.muted }}
                   >
                     No data yet
@@ -188,12 +188,12 @@ export default function MapStats({
               {/* Bottom decoration */}
               <div className="mt-12 flex items-center gap-2">
                 <div
-                  className="h-[4px] w-[72px]"
+                  className="h-[0.25rem] w-[4.5rem]"
                   style={{ backgroundColor: theme.text, opacity: 0.65 }}
                 />
 
                 <div
-                  className="h-[4px] w-[42px]"
+                  className="h-[0.25rem] w-[2.625rem]"
                   style={{ backgroundColor: theme.text, opacity: 0.25 }}
                 />
               </div>

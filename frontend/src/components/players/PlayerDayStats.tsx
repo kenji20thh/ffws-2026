@@ -14,7 +14,7 @@ export default function PlayerDayStats({ days }: Props) {
     <section className="bg-char">
       <div className="mx-auto max-w-7xl px-5 py-16">
         <div className="mb-8 border-b border-bone/10 pb-5">
-          <p className="mb-2 font-stat text-[10px] uppercase tracking-[0.3em] text-ember">Tournament breakdown</p>
+          <p className="mb-2 font-stat text-[0.625rem] uppercase tracking-[0.3em] text-ember">Tournament breakdown</p>
           <h2 className="font-display text-4xl font-black uppercase">Performance by day</h2>
         </div>
 
@@ -34,26 +34,26 @@ export default function PlayerDayStats({ days }: Props) {
 
                   <div className="min-w-0 flex-1">
                     <p className="font-display text-xl font-black uppercase">{day.day_name}</p>
-                    <p className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">{day.date}</p>
+                    <p className="mt-1 font-stat text-[0.625rem] uppercase tracking-widest text-ash">{day.date}</p>
                   </div>
 
                   <div className="hidden items-center gap-8 font-stat tabular-nums md:flex">
                     <div className="text-right">
-                      <p className="text-[9px] uppercase tracking-widest text-ash">Kills</p>
+                      <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Kills</p>
                       <p className="mt-1 text-lg font-black">{day.total_kills}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] uppercase tracking-widest text-ash">Place pts</p>
+                      <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Place pts</p>
                       <p className="mt-1 text-lg font-black">{day.placement_points}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] uppercase tracking-widest text-ash">Booyahs</p>
+                      <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Booyahs</p>
                       <p className="mt-1 text-lg font-black text-amber">{day.booyahs}</p>
                     </div>
                   </div>
 
                   <div className="text-right font-stat tabular-nums md:hidden">
-                    <p className="text-[9px] uppercase tracking-widest text-ash">Kills</p>
+                    <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Kills</p>
                     <p className="mt-1 text-lg font-black">{day.total_kills}</p>
                   </div>
 
@@ -65,22 +65,22 @@ export default function PlayerDayStats({ days }: Props) {
                 </button>
 
                 {isOpen && (
-                  <div className="pb-7 md:pl-[74px]">
+                  <div className="pb-7 md:pl-[4.625rem]">
                     <div className="mb-5 grid grid-cols-2 border-l border-t border-bone/10 font-stat tabular-nums md:hidden">
                       <div className="border-b border-r border-bone/10 p-4">
-                        <p className="text-[9px] uppercase tracking-widest text-ash">Place pts</p>
+                        <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Place pts</p>
                         <p className="mt-1 text-xl font-black">{day.placement_points}</p>
                       </div>
                       <div className="border-b border-r border-bone/10 p-4">
-                        <p className="text-[9px] uppercase tracking-widest text-ash">First bloods</p>
+                        <p className="text-[0.5625rem] uppercase tracking-widest text-ash">First bloods</p>
                         <p className="mt-1 text-xl font-black">{day.first_bloods}</p>
                       </div>
                       <div className="border-b border-r border-bone/10 p-4">
-                        <p className="text-[9px] uppercase tracking-widest text-ash">Booyahs</p>
+                        <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Booyahs</p>
                         <p className="mt-1 text-xl font-black text-amber">{day.booyahs}</p>
                       </div>
                       <div className="border-b border-r border-bone/10 p-4">
-                        <p className="text-[9px] uppercase tracking-widest text-ash">Rooms</p>
+                        <p className="text-[0.5625rem] uppercase tracking-widest text-ash">Rooms</p>
                         <p className="mt-1 text-xl font-black">{day.rooms_played}</p>
                       </div>
                     </div>

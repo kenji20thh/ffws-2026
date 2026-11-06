@@ -12,7 +12,7 @@ export default function TeamStatsOverview({ overall }: { overall: TeamOverallSta
     <div className="grid grid-cols-2 border-l border-t border-bone/10 sm:grid-cols-5">
       {stats.map((s) => (
         <div key={s.label} className="border-b border-r border-bone/10 px-5 py-6">
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">{s.label}</p>
+          <p className="font-stat text-[0.5625rem] uppercase tracking-widest text-ash">{s.label}</p>
           <p className={`mt-2 font-display font-black leading-none tabular-nums ${s.big ? "text-4xl text-ember" : "text-3xl text-bone/90"}`}>
             {s.value}
           </p>

@@ -34,7 +34,7 @@ export default function TeamCard({ team }: { team: Team }) {
         {team.name}
       </h3>
 
-      <p className="mt-2 font-stat text-[11px] uppercase tracking-widest text-ash">
+      <p className="mt-2 font-stat text-[0.6875rem] uppercase tracking-widest text-ash">
         {[team.country, team.region].filter(Boolean).join(" · ") || "—"}
       </p>
     </Link>

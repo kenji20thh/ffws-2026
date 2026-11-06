@@ -61,7 +61,7 @@ export default function PlayerRosterRow({
               <p className="truncate font-display text-xl font-extrabold uppercase leading-none">
                 {p.ign}
               </p>
-              <div className="mt-2 flex items-center justify-between font-stat text-[10px] uppercase tracking-widest">
+              <div className="mt-2 flex items-center justify-between font-stat text-[0.625rem] uppercase tracking-widest">
                 <span className="flex items-center gap-1 text-ember">
                   {icon && (
                     // eslint-disable-next-line @next/next/no-img-element

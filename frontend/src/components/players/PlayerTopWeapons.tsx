@@ -108,22 +108,22 @@ export default function PlayerTopWeapons({
         style={{
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
-          backgroundSize: "36px 36px",
+          backgroundSize: "2.25rem 2.25rem",
         }}
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 top-0 h-80 w-80 rounded-full bg-[#f5c542]/[0.045] blur-[100px]"
+        className="pointer-events-none absolute -right-32 top-0 h-80 w-80 rounded-full bg-[#f5c542]/[0.045] blur-[6.25rem]"
       />
 
-      <div className="relative mx-auto max-w-[1440px] px-5 py-12 sm:px-8 md:px-10 md:py-16 lg:px-16">
+      <div className="relative mx-auto max-w-[90rem] px-5 py-12 sm:px-8 md:px-10 md:py-16 lg:px-16">
         {/* Section heading */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-5 border-b border-white/[0.09] pb-6">
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <span className="h-[2px] w-6 bg-[#f5c542]" />
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.28em] text-[#f5c542]">
+              <span className="h-[0.125rem] w-6 bg-[#f5c542]" />
+              <p className="text-[0.625rem] font-extrabold uppercase tracking-[0.28em] text-[#f5c542]">
                 Combat analytics
               </p>
             </div>
@@ -140,7 +140,7 @@ export default function PlayerTopWeapons({
 
           <div className="flex items-center gap-2 border border-white/[0.09] bg-white/[0.025] px-3 py-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#f5c542]" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">
+            <span className="text-[0.5625rem] font-bold uppercase tracking-[0.18em] text-white/45">
               Player statistics
             </span>
           </div>
@@ -161,7 +161,7 @@ export default function PlayerTopWeapons({
               />
 
               <div className="relative flex items-center gap-5 sm:gap-7">
-                <div className="relative flex h-[92px] w-[92px] shrink-0 items-center justify-center border border-[#f5c542]/30 bg-[#f5c542]/[0.08] text-[#f5c542] sm:h-28 sm:w-28">
+                <div className="relative flex h-[5.75rem] w-[5.75rem] shrink-0 items-center justify-center border border-[#f5c542]/30 bg-[#f5c542]/[0.08] text-[#f5c542] sm:h-28 sm:w-28">
                   <div className="absolute inset-2 border border-[#f5c542]/10" />
                   <HeadshotIcon />
 
@@ -184,7 +184,7 @@ export default function PlayerTopWeapons({
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#f5c542]/70">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#f5c542]/70">
                     Precision kills
                   </p>
 
@@ -193,7 +193,7 @@ export default function PlayerTopWeapons({
                       {headshotKills.toLocaleString()}
                     </span>
 
-                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">
+                    <span className="text-[0.625rem] font-bold uppercase tracking-[0.16em] text-white/35">
                       Headshot kills
                     </span>
                   </div>
@@ -206,11 +206,11 @@ export default function PlayerTopWeapons({
 
               <div className="relative mt-7 border-t border-white/[0.08] pt-4">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">
+                  <span className="text-[0.5625rem] font-bold uppercase tracking-[0.18em] text-white/35">
                     Headshot kill count
                   </span>
 
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#f5c542]">
+                  <span className="text-[0.5625rem] font-bold uppercase tracking-[0.15em] text-[#f5c542]">
                     Recorded stats
                   </span>
                 </div>
@@ -235,7 +235,7 @@ export default function PlayerTopWeapons({
         {/* Top weapons — directly follows headshot stats */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f5c542]/75">
+            <p className="text-[0.625rem] font-bold uppercase tracking-[0.2em] text-[#f5c542]/75">
               Weapon leaderboard
             </p>
 
@@ -244,7 +244,7 @@ export default function PlayerTopWeapons({
             </h3>
           </div>
 
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/30">
+          <p className="text-[0.5625rem] font-bold uppercase tracking-[0.15em] text-white/30">
             Ranked by kills
           </p>
         </div>
@@ -279,7 +279,7 @@ export default function PlayerTopWeapons({
                   }`}
                 >
                   {isFirst && (
-                    <div className="absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-[#f5c542] via-[#f5c542]/50 to-transparent" />
+                    <div className="absolute left-0 top-0 h-[0.125rem] w-full bg-gradient-to-r from-[#f5c542] via-[#f5c542]/50 to-transparent" />
                   )}
 
                   <div className="flex items-start justify-between px-5 pt-5">
@@ -288,7 +288,7 @@ export default function PlayerTopWeapons({
 
                       <div>
                         <p
-                          className={`text-[9px] font-extrabold uppercase tracking-[0.2em] ${
+                          className={`text-[0.5625rem] font-extrabold uppercase tracking-[0.2em] ${
                             isFirst ? "text-[#f5c542]" : "text-white/35"
                           }`}
                         >
@@ -296,7 +296,7 @@ export default function PlayerTopWeapons({
                         </p>
 
                         {weapon.category && (
-                          <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
+                          <p className="mt-1 text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
                             {weapon.category}
                           </p>
                         )}
@@ -306,7 +306,7 @@ export default function PlayerTopWeapons({
                     {isFirst && (
                       <div className="flex items-center gap-1.5 border border-[#f5c542]/20 bg-[#f5c542]/[0.08] px-2 py-1 text-[#f5c542]">
                         <TrophyIcon />
-                        <span className="text-[8px] font-black uppercase tracking-[0.12em]">
+                        <span className="text-[0.5rem] font-black uppercase tracking-[0.12em]">
                           #1
                         </span>
                       </div>
@@ -345,7 +345,7 @@ export default function PlayerTopWeapons({
 
                     <div className="mt-5 flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-white/35">
+                        <p className="text-[0.5625rem] font-bold uppercase tracking-[0.17em] text-white/35">
                           Total kills
                         </p>
 
@@ -359,7 +359,7 @@ export default function PlayerTopWeapons({
                       </div>
 
                       <div className="text-right">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
+                        <p className="text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
                           Kill share
                         </p>
 
@@ -391,11 +391,11 @@ export default function PlayerTopWeapons({
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
+                      <span className="text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
                         Weapon contribution
                       </span>
 
-                      <span className="text-[9px] font-bold tabular-nums text-white/45">
+                      <span className="text-[0.5625rem] font-bold tabular-nums text-white/45">
                         {weapon.kills.toLocaleString()} K
                       </span>
                     </div>

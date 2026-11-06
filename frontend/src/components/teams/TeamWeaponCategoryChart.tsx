@@ -63,9 +63,9 @@ export default function TeamWeaponCategoryChart({
   const hoveredSegment = segments.find((s) => s.category === hovered);
 
   return (
-    <div className="grid items-center gap-8 lg:grid-cols-[minmax(260px,320px)_1fr]">
+    <div className="grid items-center gap-8 lg:grid-cols-[minmax(16.25rem,20rem)_1fr]">
       {/* Donut */}
-      <div className="relative mx-auto aspect-square w-full max-w-[300px]">
+      <div className="relative mx-auto aspect-square w-full max-w-[18.75rem]">
         <svg
           viewBox={`0 0 ${size} ${size}`}
           className="h-full w-full -rotate-90"
@@ -121,13 +121,13 @@ export default function TeamWeaponCategoryChart({
               >
                 {hoveredSegment.percentage.toFixed(1)}%
               </span>
-              <span className="mt-1 font-stat text-[10px] uppercase tracking-widest text-ash">
+              <span className="mt-1 font-stat text-[0.625rem] uppercase tracking-widest text-ash">
                 {hoveredSegment.kills} KILLS
               </span>
             </>
           ) : (
             <>
-              <span className="font-stat text-[10px] uppercase tracking-[0.25em] text-ash">
+              <span className="font-stat text-[0.625rem] uppercase tracking-[0.25em] text-ash">
                 WEAPON KILLS
               </span>
               <span className="font-display text-4xl text-bone">{totalKills}</span>
@@ -151,7 +151,7 @@ export default function TeamWeaponCategoryChart({
               onMouseLeave={() => setHovered(null)}
             >
               <div className="flex min-w-0 items-center gap-4">
-                <span className="w-5 shrink-0 font-stat text-[10px] tabular-nums text-ash">
+                <span className="w-5 shrink-0 font-stat text-[0.625rem] tabular-nums text-ash">
                   {String(index + 1).padStart(2, "0")}
                 </span>
 
