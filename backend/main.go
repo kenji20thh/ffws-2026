@@ -46,6 +46,7 @@ func main() {
 		&models.Weapon{},
 		&models.PlayerWeaponKill{},
 		&models.PlayerHeadshot{},
+		&models.PlayerCharacter{},
 		&models.TeamStaff{},
 		&models.TournamentDay{},
 		&models.TournamentDayTeam{},
@@ -163,6 +164,9 @@ func main() {
 	weaponRepo := repository.NewWeaponRepository(database)
 	weaponHandler := handlers.NewWeaponHandler(weaponRepo)
 
+	playerCharacterRepo := repository.NewPlayerCharacterRepository(database)
+	playerCharacterHandler := handlers.NewPlayerCharacterHandler(playerCharacterRepo)
+
 	teamStatsRepo := repository.NewTeamStatsRepository(database)
 	teamStatsHandler := handlers.NewTeamStatsHandler(teamStatsRepo)
 
@@ -262,6 +266,8 @@ func main() {
 				adminOnly.PUT("/players/:id", playerHandler.Update)
 				adminOnly.GET("/players/:id/weapons", weaponHandler.GetPlayerKills)
 				adminOnly.PUT("/players/:id/weapons", weaponHandler.SetPlayerKills)
+				adminOnly.GET("/players/:id/characters", playerCharacterHandler.GetPlayerCharacters)
+				adminOnly.PUT("/players/:id/characters", playerCharacterHandler.SetPlayerCharacters)
 				adminOnly.DELETE("/players/:id", playerHandler.Delete)
 				adminOnly.PUT("/rooms/:id", roomHandler.Update)
 				adminOnly.DELETE("/rooms/:id", roomHandler.Delete)

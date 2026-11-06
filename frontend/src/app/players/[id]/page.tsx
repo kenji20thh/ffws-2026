@@ -3,6 +3,7 @@ import PlayerProfile from "@/components/players/PlayerProfile";
 import PlayerOverallStats from "@/components/players/PlayerOverallStats";
 import PlayerDayStats from "@/components/players/PlayerDayStats";
 import PlayerTopWeapons from "@/components/players/PlayerTopWeapons";
+import PlayerCharacters from "@/components/players/PlayerCharacters";
 import { getPlayerProfile } from "@/lib/api";
 
 type PlayerPageProps = {
@@ -33,6 +34,8 @@ export default async function PlayerPage({
         />
 
         <PlayerOverallStats overall={profile.overall} />
+
+        <PlayerCharacters characters={profile.top_characters ?? []} />
 
         <PlayerTopWeapons
           weapons={profile.top_weapons ?? []}

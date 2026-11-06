@@ -22,6 +22,7 @@ import type {
   FantasyLeague,
   FantasyPlayerOption,
   PlayerFormEntry,
+  PlayerCharacter,
   PlayerWeaponKill,
   Weapon,
   FantasySelectionResponse,
@@ -231,6 +232,22 @@ export const savePlayerWeaponKills = (
         headshotKills === undefined ? { weapons } : { weapons, headshot_kills: headshotKills },
       ),
     },
+    true,
+  );
+/** The characters saved for a player, in order (slot 1 = main) (admin). */
+export const getPlayerCharacters = async (playerId: number) => {
+  const res = await request<{ data: PlayerCharacter[] | null }>(
+    `/players/${playerId}/characters`,
+    {},
+    true,
+  );
+  return res.data ?? [];
+};
+/** Replaces the player's character list: the first name is the main character (max 5). */
+export const savePlayerCharacters = (playerId: number, characters: string[]) =>
+  request<{ message: string }>(
+    `/players/${playerId}/characters`,
+    { method: "PUT", body: JSON.stringify({ characters }) },
     true,
   );
 export const getTeamProfile = (teamId: number) =>

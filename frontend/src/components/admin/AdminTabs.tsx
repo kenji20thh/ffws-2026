@@ -3,16 +3,18 @@
 import { useState } from "react";
 import AdminConsole from "./AdminConsole";
 import PlayerWeaponsPanel from "./PlayerWeaponsPanel";
+import PlayerCharactersPanel from "./PlayerCharactersPanel";
 
 const TABS = [
   { id: "results", label: "Room results" },
   { id: "weapons", label: "Player weapons" },
+  { id: "characters", label: "Player characters" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 /**
- * Both panels stay mounted and the inactive one is only hidden, so switching tabs
+ * All panels stay mounted and the inactive one is only hidden, so switching tabs
  * never loses what was typed into the room results.
  */
 export default function AdminTabs() {
@@ -42,6 +44,9 @@ export default function AdminTabs() {
       </div>
       <div hidden={tab !== "weapons"}>
         <PlayerWeaponsPanel />
+      </div>
+      <div hidden={tab !== "characters"}>
+        <PlayerCharactersPanel />
       </div>
     </div>
   );

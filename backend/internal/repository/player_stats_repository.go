@@ -86,8 +86,9 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			Region:  player.Region,
 			Country: player.Country,
 		},
-		Days:       []PlayerDayStats{},
-		TopWeapons: []PlayerWeaponStat{},
+		Days:          []PlayerDayStats{},
+		TopWeapons:    []PlayerWeaponStat{},
+		TopCharacters: []PlayerCharacterStat{},
 	}
 
 	// Find the tournament this player's team belongs to.
@@ -387,6 +388,17 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 		profile.TopWeapons = weapons
 	}
 
+	// Characters are an extra too: the profile still works if they cannot be loaded.
+	var chars []PlayerCharacterStat
+	if cerr := r.db.Raw(`
+		SELECT slot, character_name AS character
+		FROM player_characters
+		WHERE player_id = ?
+		ORDER BY slot ASC
+	`, playerID).Scan(&chars).Error; cerr == nil && chars != nil {
+		profile.TopCharacters = chars
+	}
+
 	return profile, nil
 }
 
@@ -435,6 +447,14 @@ type PlayerProfile struct {
 	Days    []PlayerDayStats    `json:"days"`
 	// The player's three most-used weapons (empty until weapon kills are entered).
 	TopWeapons []PlayerWeaponStat `json:"top_weapons"`
+	// The characters the player uses most, in order (slot 1 = main). Empty until an admin sets them.
+	TopCharacters []PlayerCharacterStat `json:"top_characters"`
+}
+
+// PlayerCharacterStat is one character in a player's most-used characters.
+type PlayerCharacterStat struct {
+	Slot      int    `json:"slot"`
+	Character string `json:"character"` // picture file name in public/characters/, without extension
 }
 
 // PlayerWeaponStat is one weapon in a player's top weapons.

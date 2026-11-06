@@ -225,12 +225,20 @@ export interface PlayerWeaponStat {
   percentage: number; // share of the kills recorded with weapons, 0-100
 }
 
+// One of the characters a player uses most. slot 1 = main. character = picture file name
+// (no extension) in public/characters/.
+export interface PlayerCharacter {
+  slot: number;
+  character: string;
+}
+
 export interface PlayerProfile {
   player: PlayerProfilePlayer;
   team: PlayerProfileTeam;
   overall: PlayerOverallStats;
   days: PlayerDayStats[];
   top_weapons?: PlayerWeaponStat[];
+  top_characters?: PlayerCharacter[];
 }
 
 export interface TeamStaff {
