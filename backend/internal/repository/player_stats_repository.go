@@ -132,6 +132,7 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 		ID              uint
 		RoomNumber      int
 		MapName         string
+		Session         int
 		TournamentDayID uint
 	}
 	roomsByDay := map[uint][]roomRow{}
@@ -147,20 +148,42 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 	playerStats := map[uint]playerStat{} // room id -> this player's stat row (present = played)
 	placements := map[uint]int{}         // room id -> this team's placement
 	teamKillsByRoom := map[uint]int{}    // room id -> this team's total kills
+	teamSessionByDay := map[uint]int{}   // day id -> the session (lobby) this team plays in
 
 	if len(dayIDs) > 0 {
 		var roomRows []roomRow
 		err = r.db.Raw(`
-			SELECT id, room_number, map_name, tournament_day_id
+			SELECT id, room_number, map_name, session, tournament_day_id
 			FROM rooms
 			WHERE tournament_day_id IN (?)
-			ORDER BY room_number ASC
+			ORDER BY session ASC, room_number ASC
 		`, dayIDs).Scan(&roomRows).Error
 		if err != nil {
 			return nil, err
 		}
 		for _, rr := range roomRows {
 			roomsByDay[rr.TournamentDayID] = append(roomsByDay[rr.TournamentDayID], rr)
+		}
+
+		// The lobby (session) this team plays in on each day. A day can hold several
+		// lobbies, each with its own rooms; the team only plays in the rooms of its own.
+		var sessionRows []struct {
+			TournamentDayID uint
+			Session         int
+		}
+		err = r.db.Raw(`
+			SELECT tournament_day_id, session
+			FROM tournament_day_teams
+			WHERE team_id = ? AND tournament_day_id IN (?)
+		`, player.TeamID, dayIDs).Scan(&sessionRows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, sr := range sessionRows {
+			if sr.Session < 1 {
+				sr.Session = 1
+			}
+			teamSessionByDay[sr.TournamentDayID] = sr.Session
 		}
 
 		var statRows []struct {
@@ -227,8 +250,20 @@ func (r *PlayerStatsRepository) GetProfile(playerID uint) (*PlayerProfile, error
 			Rooms:    []PlayerRoomStats{},
 		}
 
+		teamSession, hasSession := teamSessionByDay[day.ID]
+
 		for _, room := range roomsByDay[day.ID] {
 			stat, played := playerStats[room.ID]
+
+			// Skip rooms of the other lobbies of the day. If the team has no session
+			// assignment for the day, fall back to rooms it actually has data for.
+			if hasSession {
+				if room.Session != teamSession {
+					continue
+				}
+			} else if _, hasResult := placements[room.ID]; !hasResult && !played {
+				continue
+			}
 			placement := placements[room.ID]
 			teamKills := teamKillsByRoom[room.ID]
 
