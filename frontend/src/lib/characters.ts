@@ -4,7 +4,7 @@
 
 /** Normalises what an admin types to the picture's file name: "Skyler " -> "skyler". */
 export function normalizeCharacter(input: string): string {
-  return input.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return input.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
 }
 
 export function characterImageSrc(character: string): string {
