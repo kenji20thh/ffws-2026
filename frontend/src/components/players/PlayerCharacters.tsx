@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -33,27 +32,33 @@ function CharacterImage({
       src={characterImageSrc(character)}
       alt={characterLabel(character)}
       onError={() => setFailed(true)}
-      className="h-full w-full object-contain object-bottom drop-shadow-[0_8px_15px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:scale-105"
+      className="h-full w-full object-contain object-bottom drop-shadow-[0_8px_15px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-105"
     />
   );
 }
 
 function NameRibbon({
   name,
-  main,
+  variant,
 }: {
   name: string;
-  main?: boolean;
+  variant?: "main" | "blue" | "red";
 }) {
+  let bgColor = "bg-[#35a6d9] text-white";
+  if (variant === "main") {
+    bgColor = "bg-[#f5c542] text-[#16101f]";
+  } else if (variant === "red") {
+    bgColor = "bg-[#e24a4a] text-white";
+  }
+
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-10 flex items-center justify-center px-2 text-center font-black uppercase tracking-wide ${
-        main
-          ? "h-8 bg-[#f5c542] text-xs text-[#16101f] sm:h-9 sm:text-sm"
-          : "h-6 bg-[#35a6d9] text-[9px] text-white sm:h-7 sm:text-[10px]"
+      className={`absolute -bottom-1 inset-x-2 z-10 flex items-center justify-center py-1 px-3 text-center font-black uppercase tracking-wider drop-shadow-md ${bgColor} ${
+        variant === "main" ? "text-xs sm:text-sm py-1.5" : "text-[9px] sm:text-[10px]"
       }`}
       style={{
-        clipPath: "polygon(0 0, 100% 0, 96% 100%, 4% 100%)",
+        clipPath:
+          "polygon(0% 15%, 5% 0%, 95% 0%, 100% 15%, 100% 85%, 95% 100%, 8% 100%, 0% 80%)",
       }}
     >
       <span className="truncate">{characterLabel(name)}</span>
@@ -64,36 +69,36 @@ function NameRibbon({
 function CharacterCard({
   character,
   large,
+  variant = "blue",
 }: {
   character: string;
   large?: boolean;
+  variant?: "main" | "blue" | "red";
 }) {
   return (
-    <article
-      className={`group relative overflow-hidden border border-[#8c5ce7]/50 bg-gradient-to-b from-[#38215e] via-[#25153f] to-[#140d24] ${
-        large ? "h-full" : "h-full"
-      }`}
-    >
-      {/* Purple frame */}
-      <div className="absolute inset-0 border-[3px] border-[#6c42b5]/30" />
+    <article className="group relative h-full w-full">
+      {/* Torn paper / spiked frame effect using polygon clip-path */}
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-[#3a2063] via-[#24133d] to-[#120822] p-1 border-2 border-[#8c5ce7]/60 shadow-xl"
+        style={{
+          clipPath:
+            "polygon(0% 4%, 3% 0%, 8% 3%, 15% 0%, 90% 0%, 97% 3%, 100% 2%, 100% 96%, 97% 100%, 92% 97%, 85% 100%, 10% 100%, 3% 97%, 0% 98%)",
+        }}
+      >
+        {/* Inner background glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#5e389c]/40 via-transparent to-transparent pointer-events-none" />
 
-      {/* Top glow */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#b78aff] to-transparent" />
-
-      {/* Character */}
-      <div className="absolute inset-x-0 bottom-6 top-1 px-1 sm:bottom-7 sm:px-2">
-        <CharacterImage character={character} large={large} />
+        {/* Character Image container */}
+        <div className="absolute inset-x-2 bottom-6 top-2">
+          <CharacterImage character={character} large={large} />
+        </div>
       </div>
 
-      <NameRibbon name={character} main={large} />
+      <NameRibbon name={character} variant={variant} />
     </article>
   );
 }
 
-/**
- * Main character on the left.
- * Four remaining characters in a 2x2 grid on the right.
- */
 export default function PlayerCharacters({
   characters,
 }: {
@@ -108,45 +113,36 @@ export default function PlayerCharacters({
   const [main, ...others] = sorted;
 
   return (
-    <section className="relative overflow-hidden bg-[#120c20] text-white">
+    <section className="relative overflow-hidden bg-[#120c20] text-white py-6">
       {/* Background atmosphere */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage:
-            "radial-gradient(ellipse at 50% 0%, rgba(111,55,190,0.2), transparent 65%), linear-gradient(135deg, rgba(255,255,255,0.02), transparent 50%)",
+            "radial-gradient(ellipse at 50% 20%, rgba(120,50,200,0.3), transparent 70%)",
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
-        {/* Header */}
-        <div className="mb-5 flex items-center gap-3">
-          <div className="h-8 w-1 bg-[#a66bff]" />
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#a66bff]">
-              Character collection
-            </p>
-            <h2 className="text-xl font-black uppercase tracking-tight sm:text-2xl">
-              Most used characters
-            </h2>
-          </div>
-        </div>
-
-        {/* Showcase layout */}
-        <div className="grid grid-cols-[1fr_1fr] gap-2 sm:gap-4">
-          {/* Main character */}
-          <div className="aspect-[3/4] min-h-0">
-            <CharacterCard character={main.character} large />
+      <div className="relative mx-auto max-w-4xl px-4 sm:px-6">
+        {/* Showcase layout matching reference */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 items-center">
+          {/* Main character on the left */}
+          <div className="aspect-[3/4] w-full">
+            <CharacterCard character={main.character} large variant="main" />
           </div>
 
-          {/* Other characters */}
-          <div className="grid grid-cols-2 grid-rows-2 gap-2 sm:gap-4">
-            {others.map((c) => (
-              <div key={c.slot} className="aspect-[3/4] min-h-0">
-                <CharacterCard character={c.character} />
-              </div>
-            ))}
+          {/* 2x2 grid on the right */}
+          <div className="grid grid-cols-2 grid-rows-2 gap-2.5 sm:gap-3.5 aspect-[3/4] w-full">
+            {others.map((c, index) => {
+              // Give the last item a red ribbon variant to match the reference style if desired
+              const cardVariant = index === 3 ? "red" : "blue";
+              return (
+                <div key={c.slot} className="h-full w-full">
+                  <CharacterCard character={c.character} variant={cardVariant} />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
