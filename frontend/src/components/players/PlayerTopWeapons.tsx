@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { PlayerWeaponStat } from "@/types";
 
 function weaponImageSrc(url: string): string | undefined {
@@ -22,7 +22,7 @@ function WeaponImage({ url, name }: { url: string; name: string }) {
       src={src}
       alt={name}
       onError={() => setFailed(true)}
-      className="h-20 w-32 shrink-0 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:scale-110 sm:h-24 sm:w-36"
+      className="h-full w-full object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:scale-110"
     />
   );
 }
@@ -90,11 +90,14 @@ function WeaponRank({ rank }: { rank: number }) {
 export default function PlayerTopWeapons({
   weapons,
   headshotKills = 0,
+  sideContent,
 }: {
   weapons: PlayerWeaponStat[];
   headshotKills?: number;
+  /** Rendered to the left of the weapons list (e.g. the characters showcase). */
+  sideContent?: ReactNode;
 }) {
-  if (weapons.length === 0 && headshotKills <= 0) return null;
+  if (weapons.length === 0 && headshotKills <= 0 && !sideContent) return null;
 
   const topWeapons = [...weapons]
     .sort((a, b) => b.kills - a.kills)
@@ -249,162 +252,120 @@ export default function PlayerTopWeapons({
           </p>
         </div>
 
-        {topWeapons.length === 0 ? (
-          <div className="border border-white/[0.08] bg-white/[0.02] px-5 py-10 text-center">
-            <p className="text-sm font-bold text-white/60">
-              No weapon stats yet
-            </p>
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-10">
+          {sideContent ? <div>{sideContent}</div> : null}
 
-            <p className="mt-2 text-xs text-white/30">
-              Weapon analytics will appear when match statistics are recorded.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {topWeapons.map((weapon, index) => {
-              const rank = index + 1;
-              const isFirst = rank === 1;
-              const percentage = Math.min(
-                100,
-                Math.max(0, Number(weapon.percentage) || 0)
-              );
+          <div className={sideContent ? "" : "lg:col-span-2"}>
+            {topWeapons.length === 0 ? (
+              <div className="border border-white/[0.08] bg-white/[0.02] px-5 py-10 text-center">
+                <p className="text-sm font-bold text-white/60">
+                  No weapon stats yet
+                </p>
 
-              return (
-                <article
-                  key={weapon.weapon_id}
-                  className={`group relative overflow-hidden border transition-colors duration-300 ${
-                    isFirst
-                      ? "border-[#f5c542]/25 bg-gradient-to-b from-[#201c10] to-[#111214]"
-                      : "border-white/[0.08] bg-[#111316] hover:border-white/20"
-                  }`}
-                >
-                  {isFirst && (
-                    <div className="absolute left-0 top-0 h-[0.125rem] w-full bg-gradient-to-r from-[#f5c542] via-[#f5c542]/50 to-transparent" />
-                  )}
+                <p className="mt-2 text-xs text-white/30">
+                  Weapon analytics will appear when match statistics are
+                  recorded.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {topWeapons.map((weapon, index) => {
+                  const rank = index + 1;
+                  const isFirst = rank === 1;
+                  const percentage = Math.min(
+                    100,
+                    Math.max(0, Number(weapon.percentage) || 0)
+                  );
+                  // staircase: 1st pushed furthest right, 3rd flush left
+                  const offset = [
+                    "ml-8 sm:ml-16 lg:ml-24",
+                    "ml-4 sm:ml-8 lg:ml-12",
+                    "ml-0",
+                  ][index];
 
-                  <div className="flex items-start justify-between px-5 pt-5">
-                    <div className="flex items-center gap-3">
-                      <WeaponRank rank={rank} />
-
-                      <div>
-                        <p
-                          className={`text-[0.5625rem] font-extrabold uppercase tracking-[0.2em] ${
-                            isFirst ? "text-[#f5c542]" : "text-white/35"
-                          }`}
-                        >
-                          {isFirst ? "Most lethal" : `Rank ${rank}`}
-                        </p>
-
-                        {weapon.category && (
-                          <p className="mt-1 text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
-                            {weapon.category}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {isFirst && (
-                      <div className="flex items-center gap-1.5 border border-[#f5c542]/20 bg-[#f5c542]/[0.08] px-2 py-1 text-[#f5c542]">
-                        <TrophyIcon />
-                        <span className="text-[0.5rem] font-black uppercase tracking-[0.12em]">
-                          #1
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative flex h-36 items-center justify-center px-3 sm:h-40">
-                    <div
-                      aria-hidden="true"
-                      className={`absolute h-24 w-24 rounded-full border ${
+                  return (
+                    <article
+                      key={weapon.weapon_id}
+                      className={`group relative overflow-hidden border transition-colors duration-300 ${offset} ${
                         isFirst
-                          ? "border-[#f5c542]/10"
-                          : "border-white/[0.04]"
+                          ? "border-[#f5c542]/25 bg-gradient-to-r from-[#201c10] to-[#111214]"
+                          : "border-white/[0.08] bg-[#111316] hover:border-white/20"
                       }`}
-                    />
-
-                    <div
-                      aria-hidden="true"
-                      className="absolute h-16 w-16 rounded-full border border-white/[0.04]"
-                    />
-
-                    <div
-                      aria-hidden="true"
-                      className={`absolute inset-x-8 bottom-5 h-px ${
-                        isFirst ? "bg-[#f5c542]/15" : "bg-white/[0.06]"
-                      }`}
-                    />
-
-                    <WeaponImage url={weapon.image_url} name={weapon.name} />
-                  </div>
-
-                  <div className="border-t border-white/[0.07] px-5 pb-5 pt-4">
-                    <h4 className="truncate text-xl font-black uppercase tracking-[-0.035em] sm:text-2xl">
-                      {weapon.name}
-                    </h4>
-
-                    <div className="mt-5 flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-[0.5625rem] font-bold uppercase tracking-[0.17em] text-white/35">
-                          Total kills
-                        </p>
-
-                        <p
-                          className={`mt-1 text-4xl font-black leading-none tracking-[-0.06em] ${
-                            isFirst ? "text-[#f5c542]" : "text-white"
-                          }`}
-                        >
-                          {weapon.kills.toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
-                          Kill share
-                        </p>
-
-                        <p className="mt-1 text-xl font-black tracking-[-0.04em]">
-                          {weapon.percentage.toFixed(1)}
-                          <span className="ml-0.5 text-sm text-white/45">
-                            %
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className="mt-4 h-2 overflow-hidden bg-white/[0.07]"
-                      role="progressbar"
-                      aria-label={`${weapon.name} kill share`}
-                      aria-valuenow={percentage}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
                     >
-                      <div
-                        className={`h-full transition-[width] duration-700 ease-out ${
-                          isFirst
-                            ? "bg-gradient-to-r from-[#c99c22] to-[#ffe58a]"
-                            : "bg-gradient-to-r from-white/35 to-white/70"
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+                      {isFirst && (
+                        <div className="absolute left-0 top-0 h-[0.125rem] w-full bg-gradient-to-r from-[#f5c542] via-[#f5c542]/50 to-transparent" />
+                      )}
 
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-[0.5625rem] font-bold uppercase tracking-[0.14em] text-white/30">
-                        Weapon contribution
-                      </span>
+                      <div className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+                        <WeaponRank rank={rank} />
 
-                      <span className="text-[0.5625rem] font-bold tabular-nums text-white/45">
-                        {weapon.kills.toLocaleString()} K
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                        <div className="flex h-20 w-28 shrink-0 items-center justify-center sm:w-36">
+                          <WeaponImage url={weapon.image_url} name={weapon.name} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              className={`text-[0.5625rem] font-extrabold uppercase tracking-[0.2em] ${
+                                isFirst ? "text-[#f5c542]" : "text-white/35"
+                              }`}
+                            >
+                              {isFirst ? "Most lethal" : `Rank ${rank}`}
+                              {weapon.category ? ` · ${weapon.category}` : ""}
+                            </p>
+                            {isFirst && (
+                              <span className="text-[#f5c542]">
+                                <TrophyIcon />
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="mt-1 truncate text-lg font-black uppercase tracking-[-0.035em] sm:text-xl">
+                            {weapon.name}
+                          </h4>
+
+                          <div className="mt-2 flex items-end justify-between gap-3">
+                            <p
+                              className={`text-2xl font-black leading-none tracking-[-0.05em] sm:text-3xl ${
+                                isFirst ? "text-[#f5c542]" : "text-white"
+                              }`}
+                            >
+                              {weapon.kills.toLocaleString()}
+                              <span className="ml-1 text-[0.5625rem] font-bold uppercase tracking-[0.15em] text-white/35">
+                                kills
+                              </span>
+                            </p>
+                            <p className="text-sm font-black text-white/70">
+                              {weapon.percentage.toFixed(1)}%
+                            </p>
+                          </div>
+
+                          <div
+                            className="mt-2 h-1.5 overflow-hidden bg-white/[0.07]"
+                            role="progressbar"
+                            aria-label={`${weapon.name} kill share`}
+                            aria-valuenow={percentage}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className={`h-full transition-[width] duration-700 ease-out ${
+                                isFirst
+                                  ? "bg-gradient-to-r from-[#c99c22] to-[#ffe58a]"
+                                  : "bg-gradient-to-r from-white/35 to-white/70"
+                              }`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );

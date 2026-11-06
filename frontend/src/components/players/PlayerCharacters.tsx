@@ -101,8 +101,11 @@ function CharacterCard({
 
 export default function PlayerCharacters({
   characters,
+  embedded = false,
 }: {
   characters: PlayerCharacter[];
+  /** Render without its own section wrapper so it can sit beside other content. */
+  embedded?: boolean;
 }) {
   const sorted = [...characters]
     .sort((a, b) => a.slot - b.slot)
@@ -111,6 +114,34 @@ export default function PlayerCharacters({
   if (!sorted.length) return null;
 
   const [main, ...others] = sorted;
+
+  if (embedded) {
+    return (
+      <div className="w-full">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-[0.125rem] w-6 bg-[#8c5ce7]" />
+          <p className="text-[0.625rem] font-extrabold uppercase tracking-[0.22em] text-[#b99bf5]">
+            Characters
+          </p>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-2 sm:gap-3">
+          <div className="aspect-[3/4] w-full">
+            <CharacterCard character={main.character} large variant="main" />
+          </div>
+          <div className="grid aspect-[3/4] w-full grid-cols-2 grid-rows-2 gap-2">
+            {others.map((c, index) => (
+              <div key={c.slot} className="h-full w-full">
+                <CharacterCard
+                  character={c.character}
+                  variant={index === 3 ? "red" : "blue"}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="relative overflow-hidden bg-[#120c20] text-white py-6">
