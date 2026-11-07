@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Player, Team, TournamentDay } from "@/types";
@@ -7,6 +8,7 @@ import { getPlayerLeaderboard } from "@/lib/api";
 import { buildDayMenu, resolveSelection } from "@/lib/dayMenu";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Flag from "@/components/ui/Flag";
+import Monogram from "@/components/ui/Monogram";
 import MatchdayMenu from "@/components/standings/MatchdayMenu";
 import TeamSelect from "./TeamSelect";
 import { MvpCard, type MvpEntry } from "./MvpCard";
@@ -18,7 +20,10 @@ type PlayerWithStats = Player & {
   first_bloods?: number;
 };
 
-type DayStats = Map<number, { kills: number; rooms: number; firstBloods: number }>;
+type DayStats = Map<
+  number,
+  { kills: number; rooms: number; firstBloods: number }
+>;
 
 type RankedMvpEntry = MvpEntry & {
   rank: number;
@@ -31,10 +36,6 @@ interface Props {
   days: TournamentDay[];
 }
 
-/**
- * Most kills first. Ties: more first bloods, then fewer rooms played (same kills in
- * fewer rooms is better; only compared when there are kills), then IGN.
- */
 function compareRanking(a: MvpEntry, b: MvpEntry) {
   return (
     b.kills - a.kills ||
@@ -44,13 +45,149 @@ function compareRanking(a: MvpEntry, b: MvpEntry) {
   );
 }
 
-function RowSkeleton() {
+function PlayerSkeleton() {
   return (
-    <div className="space-y-2" aria-hidden="true">
-      {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className="h-[5.5rem] animate-pulse chamfer border border-bone/10 bg-char-2" />
-      ))}
+    <div
+      className="animate-pulse overflow-hidden border border-bone/10 bg-char-2"
+      aria-hidden="true"
+    >
+      <div className="aspect-[4/3] bg-char-3" />
+      <div className="space-y-3 p-3">
+        <div className="h-5 w-2/3 bg-bone/10" />
+        <div className="h-3 w-1/2 bg-bone/5" />
+        <div className="h-8 w-full bg-bone/5" />
+      </div>
     </div>
+  );
+}
+
+function PlayerCard({ player }: { player: RankedMvpEntry }) {
+  const icon = roleIcon(player.role);
+  const remote = /^https?:\/\//.test(player.photo_url ?? "");
+
+  return (
+    <Link
+      href={`/players/${player.id}`}
+      className="group relative min-w-0 overflow-hidden border border-bone/10 bg-char-2 transition-all duration-300 hover:-translate-y-1 hover:border-ember/70 hover:bg-char-3"
+    >
+      {/* Portrait */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-char-3">
+        {player.photo_url ? (
+          <Image
+            src={player.photo_url}
+            alt={player.ign}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            unoptimized={remote}
+            className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Monogram label={player.ign} size={64} />
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-char-2 via-char/10 to-transparent" />
+
+        {/* Rank */}
+        <div className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center border border-bone/20 bg-char/80 px-1.5 backdrop-blur-sm">
+          <span className="font-stat text-[9px] font-bold tabular-nums text-bone">
+            #{String(player.rank).padStart(2, "0")}
+          </span>
+        </div>
+
+        {/* Team logo */}
+        <div className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char/80 p-1.5 backdrop-blur-sm">
+          {player.team.logo_url ? (
+            <Image
+              src={player.team.logo_url}
+              alt={player.team.name}
+              width={28}
+              height={28}
+              unoptimized
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className="font-display text-[9px] font-black text-bone">
+              {player.team.tag.slice(0, 3)}
+            </span>
+          )}
+        </div>
+
+        {/* Portrait identity */}
+        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h3 className="truncate font-display text-lg font-black uppercase leading-none text-bone sm:text-xl">
+              {player.ign}
+            </h3>
+            <Flag country={player.country} height={13} />
+          </div>
+
+          <p className="mt-1 truncate font-stat text-[8px] font-bold uppercase tracking-[0.15em] text-ember">
+            {player.team.name}
+          </p>
+        </div>
+
+        {/* Hover accent */}
+        <div className="absolute bottom-0 left-0 h-[2px] w-full origin-left scale-x-0 bg-ember transition-transform duration-300 group-hover:scale-x-100" />
+      </div>
+
+      {/* Player details */}
+      <div className="p-2.5 sm:p-3">
+        <div className="flex min-h-5 items-center gap-1.5">
+          {icon && (
+            <Image
+              src={icon}
+              alt=""
+              width={15}
+              height={15}
+              unoptimized
+              className="h-4 w-4 shrink-0 object-contain"
+            />
+          )}
+
+          <span className="truncate font-stat text-[8px] uppercase tracking-wider text-ash sm:text-[9px]">
+            {roleLabel(player.role)}
+          </span>
+
+          {player.is_captain && (
+            <span className="ml-auto shrink-0 font-stat text-[8px] font-bold uppercase text-ember">
+              CAP
+            </span>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="mt-3 flex items-end justify-between border-t border-bone/10 pt-2.5">
+          <div>
+            <p className="font-display text-2xl font-black leading-none tabular-nums text-bone sm:text-3xl">
+              {player.kills}
+            </p>
+            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+              Kills
+            </p>
+          </div>
+
+          <div className="text-right">
+            <p className="font-display text-lg font-bold leading-none tabular-nums text-bone/80">
+              {player.rooms}
+            </p>
+            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+              Rooms
+            </p>
+          </div>
+
+          <div className="text-right">
+            <p className="font-display text-lg font-bold leading-none tabular-nums text-ember">
+              {player.firstBloods}
+            </p>
+            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+              FB
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -62,37 +199,40 @@ export default function PlayersDirectory({
 }: Props) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("all");
-  // Lands on Day 1 (the first matchday); falls back to "all" if no days exist yet.
+
   const [selectedDay, setSelectedDay] = useState(() => {
-    const first = [...days].sort((a, b) => a.day_order - b.day_order)[0];
+    const first = [...days].sort(
+      (a, b) => a.day_order - b.day_order,
+    )[0];
+
     return first ? String(first.id) : "all";
   });
-  // 0 = both sessions; 1 / 2 = one session. Only used when a single day is selected.
-  const [selectedSession, setSelectedSession] = useState<0 | 1 | 2>(0);
 
-  // Kills per day are loaded on demand and cached once fetched. A week or a phase is the
-  // sum of its days (rooms never overlap between days, so the sums are exact).
-  // Cache key: "<dayId>:<session>" (session 0 = both sessions of the day).
+  const [selectedSession, setSelectedSession] = useState<0 | 1 | 2>(0);
   const [dayStats, setDayStats] = useState<Record<string, DayStats>>({});
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
 
   const daySections = useMemo(() => buildDayMenu(days), [days]);
+
   const selection = useMemo(
     () => resolveSelection(selectedDay, days),
     [selectedDay, days],
   );
 
-  // Sessions only exist for a single day; weeks and phases always add up both sessions.
   const session = selection.scope === "day" ? selectedSession : 0;
+
   const statKeys = useMemo(
-    () => selection.dayIds.map((id) => ({ id, key: `${id}:${session}` })),
+    () =>
+      selection.dayIds.map((id) => ({
+        id,
+        key: `${id}:${session}`,
+      })),
     [selection, session],
   );
 
-  // The loader reads the cache through a ref so that saving a loaded day doesn't make it
-  // run again (only a new selection or "Try again" should trigger requests).
   const cacheRef = useRef(dayStats);
+
   useEffect(() => {
     cacheRef.current = dayStats;
   }, [dayStats]);
@@ -100,7 +240,10 @@ export default function PlayersDirectory({
   useEffect(() => {
     if (selection.scope === "all") return;
 
-    const missing = statKeys.filter(({ key }) => !cacheRef.current[key]);
+    const missing = statKeys.filter(
+      ({ key }) => !cacheRef.current[key],
+    );
+
     if (missing.length === 0) return;
 
     let cancelled = false;
@@ -113,6 +256,7 @@ export default function PlayersDirectory({
           id,
           session || undefined,
         );
+
         const map: DayStats = new Map(
           entries.map((entry) => [
             entry.player_id,
@@ -123,20 +267,26 @@ export default function PlayersDirectory({
             },
           ]),
         );
+
         return [key, map] as const;
       }),
     ).then((results) => {
       if (cancelled) return;
 
-      // keep every day that did load, so "Try again" only re-requests the failed ones
       const loaded = results.flatMap((result) =>
         result.status === "fulfilled" ? [result.value] : [],
       );
+
       if (loaded.length > 0) {
-        setDayStats((prev) => ({ ...prev, ...Object.fromEntries(loaded) }));
+        setDayStats((prev) => ({
+          ...prev,
+          ...Object.fromEntries(loaded),
+        }));
       }
 
-      if (loaded.length < results.length) setError("Unable to load these stats.");
+      if (loaded.length < results.length) {
+        setError("Unable to load these stats.");
+      }
     });
 
     return () => {
@@ -145,16 +295,22 @@ export default function PlayersDirectory({
   }, [selection, statKeys, session, tournamentId, attempt]);
 
   const selectionLoaded =
-    selection.scope !== "all" && statKeys.every(({ key }) => dayStats[key]);
+    selection.scope !== "all" &&
+    statKeys.every(({ key }) => dayStats[key]);
 
-  // Totals of the selected day / week / phase, per player.
   const stats = useMemo<DayStats | null>(() => {
     if (selection.scope === "all" || !selectionLoaded) return null;
 
     const total: DayStats = new Map();
+
     for (const { key } of statKeys) {
       for (const [playerId, entry] of dayStats[key]) {
-        const current = total.get(playerId) ?? { kills: 0, rooms: 0, firstBloods: 0 };
+        const current = total.get(playerId) ?? {
+          kills: 0,
+          rooms: 0,
+          firstBloods: 0,
+        };
+
         total.set(playerId, {
           kills: current.kills + entry.kills,
           rooms: current.rooms + entry.rooms,
@@ -162,15 +318,18 @@ export default function PlayersDirectory({
         });
       }
     }
+
     return total;
   }, [selection, statKeys, selectionLoaded, dayStats]);
 
-  const dayLoading = selection.scope !== "all" && !stats && !error;
-  const dayName =
-    session === 0 ? selection.label : `${selection.label} · Session ${session}`;
+  const dayLoading =
+    selection.scope !== "all" && !stats && !error;
 
-  // Every player with the numbers of the selected day (or the whole tournament).
-  // For a single day, only players who actually played that day are ranked.
+  const dayName =
+    session === 0
+      ? selection.label
+      : `${selection.label} · Session ${session}`;
+
   const ranked = useMemo<RankedMvpEntry[]>(() => {
     const rows: MvpEntry[] = players.map((player) => {
       if (selection.scope === "all") {
@@ -183,6 +342,7 @@ export default function PlayersDirectory({
       }
 
       const day = stats?.get(player.id);
+
       return {
         ...player,
         kills: day?.kills ?? 0,
@@ -191,7 +351,10 @@ export default function PlayersDirectory({
       };
     });
 
-    const played = selection.scope === "all" ? rows : rows.filter((r) => r.rooms > 0);
+    const played =
+      selection.scope === "all"
+        ? rows
+        : rows.filter((player) => player.rooms > 0);
 
     return played
       .sort(compareRanking)
@@ -201,14 +364,17 @@ export default function PlayersDirectory({
       }));
   }, [players, selection, stats]);
 
-  // MVP is picked from everyone that day, whatever the search / team filters say.
-  const mvp = ranked[0] && ranked[0].kills > 0 ? ranked[0] : null;
+  const mvp =
+    ranked[0] && ranked[0].kills > 0 ? ranked[0] : null;
 
   const filteredPlayers = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return ranked.filter((player) => {
-      if (selectedTeam !== "all" && player.team.id.toString() !== selectedTeam) {
+      if (
+        selectedTeam !== "all" &&
+        player.team.id.toString() !== selectedTeam
+      ) {
         return false;
       }
 
@@ -227,7 +393,10 @@ export default function PlayersDirectory({
   );
 
   const noResultsForDay =
-    selection.scope !== "all" && !dayLoading && !error && ranked.length === 0;
+    selection.scope !== "all" &&
+    !dayLoading &&
+    !error &&
+    ranked.length === 0;
 
   const mvpTitle =
     selection.scope === "all"
@@ -235,226 +404,217 @@ export default function PlayersDirectory({
       : `MVP of the ${selection.scope}`;
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
-      {/* Filters */}
-      <div className="mb-8 flex flex-col gap-3 md:flex-row">
-        <div className="relative flex-1">
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="SEARCH PLAYER..."
-            className="h-12 w-full chamfer border border-bone/10 bg-char-2 px-4 font-stat text-xs uppercase tracking-widest text-bone outline-none placeholder:text-ash focus:border-ember"
-          />
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+
+      {/* MVP FEATURE */}
+      <section className="mb-8">
+        <MvpCard
+          mvp={error ? null : mvp}
+          title={mvpTitle}
+          dayLabel={dayName}
+        />
+      </section>
+
+      {/* DIRECTORY HEADER */}
+      <section>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ember">
+              THE COMPETITORS
+            </p>
+            <h2 className="mt-1 font-display text-3xl font-black uppercase leading-none text-bone sm:text-4xl">
+              Player roster<span className="text-ember">.</span>
+            </h2>
+          </div>
+
+          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
+            {filteredPlayers.length} / {ranked.length} PLAYERS
+          </p>
         </div>
 
-        <MatchdayMenu
-          ariaLabel="Day"
-          sections={daySections}
-          value={selectedDay}
-          onChange={(value) => {
-            setSelectedDay(value);
-            setSelectedSession(0); // a new day starts on "Both sessions"
-          }}
-          disabled={days.length === 0}
-          placeholder="All days"
-        />
+        {/* FILTERS */}
+        <div className="mb-6 border border-bone/10 bg-char-2 p-3 sm:p-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,220px)_auto_minmax(180px,220px)] xl:items-center">
 
-        {/* Session picker: only when a single day is selected */}
-        {selection.scope === "day" && (
-          <div
-            role="group"
-            aria-label="Session"
-            className="inline-flex h-12 shrink-0 divide-x divide-bone/20 border border-bone/10 bg-char-2 md:h-10 md:self-center"
-          >
-            {(
-              [
-                { value: 0, label: "Both" },
-                { value: 1, label: "Session 1" },
-                { value: 2, label: "Session 2" },
-              ] as const
-            ).map((option) => {
-              const active = selectedSession === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setSelectedSession(option.value)}
-                  className={`flex flex-1 items-center justify-center px-3 font-stat text-xs font-bold uppercase tracking-wider transition-colors ${
-                    active
-                      ? "bg-ember text-char"
-                      : "text-ash hover:bg-char-3 hover:text-bone"
-                  }`}
+            {/* Search */}
+            <div className="relative min-w-0">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-4 w-4"
+                  aria-hidden="true"
                 >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m16 16 4 4" />
+                </svg>
+              </span>
 
-        <TeamSelect
-          teams={teamsWithPlayers}
-          value={selectedTeam}
-          onChange={setSelectedTeam}
-        />
-      </div>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="SEARCH PLAYER OR TEAM..."
+                aria-label="Search players or teams"
+                className="h-11 w-full border border-bone/10 bg-char px-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition-colors placeholder:text-ash/60 focus:border-ember"
+              />
+            </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
-        {/* MVP of the selected day (above the list on small screens) */}
-        <aside className="lg:order-2 lg:sticky lg:top-24">
-          {dayLoading ? (
-            <div className="h-[34rem] animate-pulse chamfer border border-bone/10 bg-char-2" aria-hidden="true" />
-          ) : (
-            <MvpCard
-              mvp={error ? null : mvp}
-              title={mvpTitle}
-              dayLabel={dayName}
+            {/* Matchday */}
+            <MatchdayMenu
+              ariaLabel="Day"
+              sections={daySections}
+              value={selectedDay}
+              onChange={(value) => {
+                setSelectedDay(value);
+                setSelectedSession(0);
+              }}
+              disabled={days.length === 0}
+              placeholder="All days"
             />
-          )}
-        </aside>
 
-        <section className="min-w-0 lg:order-1">
-          {/* Result count */}
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="font-stat text-[0.6875rem] uppercase tracking-[0.2em] text-ash">
-              {filteredPlayers.length}{" "}
-              {filteredPlayers.length === 1 ? "PLAYER" : "PLAYERS"}
-            </p>
+            {/* Session picker */}
+            {selection.scope === "day" ? (
+              <div
+                role="group"
+                aria-label="Session"
+                className="flex h-11 min-w-0 border border-bone/10 bg-char"
+              >
+                {(
+                  [
+                    { value: 0, label: "Both" },
+                    { value: 1, label: "S1" },
+                    { value: 2, label: "S2" },
+                  ] as const
+                ).map((option) => {
+                  const active = selectedSession === option.value;
 
-            <p className="truncate font-stat text-[0.6875rem] uppercase tracking-[0.2em] text-ash">
-              SORTED BY KILLS · {dayName}
-            </p>
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSelectedSession(option.value)}
+                      className={`flex-1 px-3 font-stat text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                        active
+                          ? "bg-ember text-char"
+                          : "text-ash hover:bg-char-3 hover:text-bone"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="hidden xl:block" />
+            )}
+
+            {/* Team */}
+            <TeamSelect
+              teams={teamsWithPlayers}
+              value={selectedTeam}
+              onChange={setSelectedTeam}
+            />
           </div>
 
-          {error && (
-            <div className="chamfer border border-danger/30 bg-char-2 px-6 py-8 text-center">
-              <p className="text-sm text-bone">{error}</p>
+          {/* Active selection */}
+          {(search || selectedTeam !== "all") && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-bone/10 pt-3">
+              <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+                Showing filtered results
+              </p>
+
               <button
                 type="button"
-                onClick={() => setAttempt((n) => n + 1)}
-                className="mt-4 border border-ember px-4 py-2 font-stat text-xs uppercase tracking-wider text-ember"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedTeam("all");
+                }}
+                className="font-stat text-[9px] font-bold uppercase tracking-widest text-ember transition-colors hover:text-bone"
               >
-                Try again
+                Clear filters ×
               </button>
             </div>
           )}
+        </div>
 
-          {dayLoading && <RowSkeleton />}
+        {/* RESULT BAR */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
+            <span className="text-bone">{filteredPlayers.length}</span>{" "}
+            {filteredPlayers.length === 1 ? "PLAYER" : "PLAYERS"}
+          </p>
 
-          {/* Players */}
-          {!dayLoading && !error && (
-            <div className="space-y-2">
-              {filteredPlayers.map((player) => {
-                const icon = roleIcon(player.role);
+          <p className="font-stat text-[9px] uppercase tracking-[0.15em] text-ash">
+            RANKED BY KILLS · {dayName}
+          </p>
+        </div>
 
-                return (
-                  <Link
-                    key={player.id}
-                    href={`/players/${player.id}`}
-                    className="group block chamfer border border-bone/10 bg-char-2 transition-colors hover:border-ember"
-                  >
-                    <div className="flex min-h-[5.5rem] items-center gap-4 px-4 py-3 md:px-6">
-                      {/* Rank */}
-                      <div className="hidden w-8 shrink-0 text-center font-stat text-xs text-ash sm:block">
-                        {String(player.rank).padStart(2, "0")}
-                      </div>
+        {/* ERROR */}
+        {error && (
+          <div className="border border-danger/30 bg-char-2 px-6 py-8 text-center">
+            <p className="text-sm text-bone">{error}</p>
+            <button
+              type="button"
+              onClick={() => setAttempt((n) => n + 1)}
+              className="mt-4 border border-ember px-4 py-2 font-stat text-xs uppercase tracking-wider text-ember transition-colors hover:bg-ember hover:text-char"
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
-                      {/* Team logo */}
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center">
-                        {player.team.logo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={player.team.logo_url}
-                            alt={player.team.name}
-                            className="h-12 w-12 object-contain"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center border border-bone/10 font-display text-xs font-black text-ash">
-                            {player.team.tag.slice(0, 3)}
-                          </div>
-                        )}
-                      </div>
+        {/* LOADING */}
+        {dayLoading && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5">
+            {Array.from({ length: 10 }, (_, i) => (
+              <PlayerSkeleton key={i} />
+            ))}
+          </div>
+        )}
 
-                      {/* Player information */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h2 className="truncate font-display text-xl font-extrabold uppercase leading-none md:text-2xl">
-                            {player.ign}
-                          </h2>
+        {/* PLAYER GRID */}
+        {!dayLoading && !error && (
+          <>
+            {filteredPlayers.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5">
+                {filteredPlayers.map((player) => (
+                  <PlayerCard key={player.id} player={player} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-                          <Flag country={player.country} height={16} />
-                        </div>
+        {/* EMPTY STATES */}
+        {noResultsForDay && (
+          <div className="border border-bone/10 bg-char-2 px-6 py-16 text-center">
+            <p className="font-display text-3xl font-black uppercase text-bone">
+              No results yet<span className="text-ember">.</span>
+            </p>
+            <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
+              Kills for {dayName} appear once matches are played.
+            </p>
+          </div>
+        )}
 
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {/* Role */}
-                          <div className="flex items-center gap-1.5">
-                            {icon && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={icon}
-                                alt=""
-                                className="h-5 w-5 object-contain"
-                              />
-                            )}
-
-                            <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ember">
-                              {roleLabel(player.role)}
-                            </span>
-                          </div>
-
-                          <span className="text-bone/20">·</span>
-
-                          <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ash">
-                            {player.team.name}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Kills */}
-                      <div className="shrink-0 text-right">
-                        <p className="font-display text-3xl font-black leading-none text-bone md:text-4xl">
-                          {player.kills}
-                        </p>
-
-                        <p className="mt-1 font-stat text-[0.5625rem] uppercase tracking-[0.18em] text-ash">
-                          KILLS
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Empty states */}
-          {noResultsForDay && (
-            <div className="chamfer border border-bone/10 bg-char-2 px-6 py-16 text-center">
-              <p className="font-display text-2xl font-extrabold uppercase">
-                No results yet
+        {!dayLoading &&
+          !error &&
+          !noResultsForDay &&
+          filteredPlayers.length === 0 && (
+            <div className="border border-bone/10 bg-char-2 px-6 py-16 text-center">
+              <p className="font-display text-3xl font-black uppercase text-bone">
+                No players found<span className="text-ember">.</span>
               </p>
-
-              <p className="mt-2 font-stat text-xs uppercase tracking-widest text-ash">
-                Kills for {dayName} appear once matches are played.
-              </p>
-            </div>
-          )}
-
-          {!dayLoading && !error && !noResultsForDay && filteredPlayers.length === 0 && (
-            <div className="chamfer border border-bone/10 bg-char-2 px-6 py-16 text-center">
-              <p className="font-display text-2xl font-extrabold uppercase">
-                No players found
-              </p>
-
-              <p className="mt-2 font-stat text-xs uppercase tracking-widest text-ash">
+              <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
                 Try another player or team.
               </p>
             </div>
           )}
-        </section>
-      </div>
+      </section>
     </main>
   );
 }
