@@ -130,9 +130,7 @@ function resolveDef(
   }
 
   if (stage === "knockout") {
-    return viewMode !== "overall" && day
-      ? (stageDefForDay(day) ?? null)
-      : null;
+    return viewMode !== "overall" && day ? (stageDefForDay(day) ?? null) : null;
   }
 
   return stage === "last-chance" ? LAST_CHANCE : GRAND_FINAL;
@@ -183,7 +181,8 @@ function calculateStandings(
 
     standing.penaltyPoints += penalty.points;
     standing.totalPoints -= penalty.points;
-    if (penalty.reason) standing.penaltyNotes.push(`-${penalty.points}: ${penalty.reason}`);
+    if (penalty.reason)
+      standing.penaltyNotes.push(`-${penalty.points}: ${penalty.reason}`);
   }
 
   return [...totals.values()].sort(
@@ -377,10 +376,12 @@ export default function StandingsExperience({
                   (a.session ?? 1) - (b.session ?? 1) ||
                   a.room_number - b.room_number,
               )
-              .map(async (room): Promise<RoomData> => ({
-                room,
-                results: await getRoomResults(room.id),
-              })),
+              .map(
+                async (room): Promise<RoomData> => ({
+                  room,
+                  results: await getRoomResults(room.id),
+                }),
+              ),
           );
 
           const teamIds = [
@@ -410,11 +411,14 @@ export default function StandingsExperience({
       setDays(orderedDays);
       setDayData(loadedDayData);
 
-      const firstPhaseOneDay = orderedDays.find(
-        (day) => getStage(day) === "knockout" && getPhase(day) === "phase-1",
+      const defaultDay = orderedDays.find(
+        (day) =>
+          getStage(day) === "knockout" &&
+          getPhase(day) === "phase-1" &&
+          day.day_order === 2,
       );
 
-      setSelectedDayId(firstPhaseOneDay?.id ?? null);
+      setSelectedDayId(defaultDay?.id ?? null);
     } catch (err) {
       console.error("Failed to load standings:", err);
       setError("Unable to load placements. Please try again.");
@@ -485,7 +489,10 @@ export default function StandingsExperience({
   // Rooms that can be picked for the current single-day view (one session when a session is chosen).
   const scopeRooms = useMemo(() => {
     if (viewMode !== "day" && viewMode !== "session") return [];
-    if (!selectedDay || !weekDays.some(({ day }) => day.id === selectedDay.day.id))
+    if (
+      !selectedDay ||
+      !weekDays.some(({ day }) => day.id === selectedDay.day.id)
+    )
       return [];
 
     return splitSessionRooms(
@@ -561,9 +568,7 @@ export default function StandingsExperience({
       } else {
         // Fallback if team names do not match the configured group list.
         const played = new Set(
-          rooms.flatMap((room) =>
-            room.results.map((result) => result.team_id),
-          ),
+          rooms.flatMap((room) => room.results.map((result) => result.team_id)),
         );
 
         if (played.size > 0) {
@@ -587,7 +592,12 @@ export default function StandingsExperience({
       ? []
       : penalties.filter((p) => dayIds.has(p.tournament_day_id));
 
-    const rows = calculateStandings(teams, rooms, allowedTeamIds, viewPenalties);
+    const rows = calculateStandings(
+      teams,
+      rooms,
+      allowedTeamIds,
+      viewPenalties,
+    );
 
     // Room table keeps the normal ranking: total points, then placement points, then kills.
     if (activeRoom) return rows;
@@ -718,16 +728,16 @@ export default function StandingsExperience({
   const showGroup = isPhaseOne;
   // The Pen column only appears when someone in this view actually has a penalty.
   const showPenalty = activeRows.some((row) => row.penaltyPoints > 0);
-  const anyResults = activeRows.some(
-    (row) => row.team && row.roomsPlayed > 0,
-  );
+  const anyResults = activeRows.some((row) => row.team && row.roomsPlayed > 0);
 
   const selectedDayIsVisible = weekDays.some(
     ({ day }) => day.id === selectedDayId,
   );
 
   // ----- compact navigation helpers -----
-  const dayLabel = selectedDay ? shortDayName(selectedDay.day.name) : "Matchday";
+  const dayLabel = selectedDay
+    ? shortDayName(selectedDay.day.name)
+    : "Matchday";
 
   const showSessionControl =
     isPhaseOne &&
@@ -736,16 +746,15 @@ export default function StandingsExperience({
     selectedDayIsVisible;
 
   // matchday dropdown: days of the chosen phase, grouped by week
-  const dayOptionGroups = phaseDays.reduce<{ week: Week; days: TournamentDay[] }[]>(
-    (groups, { day }) => {
-      const dayWeek = getWeek(day);
-      const existing = groups.find((group) => group.week === dayWeek);
-      if (existing) existing.days.push(day);
-      else groups.push({ week: dayWeek, days: [day] });
-      return groups;
-    },
-    [],
-  );
+  const dayOptionGroups = phaseDays.reduce<
+    { week: Week; days: TournamentDay[] }[]
+  >((groups, { day }) => {
+    const dayWeek = getWeek(day);
+    const existing = groups.find((group) => group.week === dayWeek);
+    if (existing) existing.days.push(day);
+    else groups.push({ week: dayWeek, days: [day] });
+    return groups;
+  }, []);
 
   const matchdayValue =
     viewMode === "overall" && isPhaseOne
@@ -800,7 +809,8 @@ export default function StandingsExperience({
 
   function onMatchdayChange(value: string) {
     if (value === "overall") chooseOverall();
-    else if (value.startsWith("week:")) chooseWeekOverall(value.slice(5) as Week);
+    else if (value.startsWith("week:"))
+      chooseWeekOverall(value.slice(5) as Week);
     else chooseDay(Number(value));
   }
 
@@ -809,8 +819,9 @@ export default function StandingsExperience({
   // single heading for the table card
   let viewTitle: string;
   if (activeRoom) {
-    const sessionText =
-      sessionLabelsNeeded(scopeRooms) ? ` · Session ${activeRoom.room.session ?? 1}` : "";
+    const sessionText = sessionLabelsNeeded(scopeRooms)
+      ? ` · Session ${activeRoom.room.session ?? 1}`
+      : "";
     viewTitle = `${dayLabel}${sessionText} · Room ${activeRoom.room.room_number}`;
   } else if (stage === "last-chance") {
     viewTitle = viewMode === "overall" ? "Last Chance" : dayLabel;
@@ -974,9 +985,7 @@ export default function StandingsExperience({
                     <th className="px-3 py-3 text-right text-danger">Pen</th>
                   )}
                   <th className="px-4 py-3 text-right text-ember">Pts</th>
-                  {showQualification && (
-                    <th className="px-4 py-3">Advances</th>
-                  )}
+                  {showQualification && <th className="px-4 py-3">Advances</th>}
                 </tr>
               </thead>
 
@@ -1100,7 +1109,9 @@ export default function StandingsExperience({
                           className="px-3 py-3 text-right font-stat tabular-nums text-danger"
                           title={row.penaltyNotes.join("\n") || undefined}
                         >
-                          {row.penaltyPoints > 0 ? `-${row.penaltyPoints}` : "—"}
+                          {row.penaltyPoints > 0
+                            ? `-${row.penaltyPoints}`
+                            : "—"}
                         </td>
                       )}
 
@@ -1158,9 +1169,7 @@ function SessionLineup({
           <div
             key={key}
             className={`flex items-center justify-between gap-3 border px-3 py-2 ${
-              isActive
-                ? "border-ember bg-char-2"
-                : "border-bone/10 bg-char"
+              isActive ? "border-ember bg-char-2" : "border-bone/10 bg-char"
             }`}
           >
             <span className="font-stat text-[0.625rem] uppercase tracking-widest text-ash">
