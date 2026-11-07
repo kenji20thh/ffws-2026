@@ -8,7 +8,6 @@ import { getPlayerLeaderboard } from "@/lib/api";
 import { buildDayMenu, resolveSelection } from "@/lib/dayMenu";
 import { roleIcon, roleLabel } from "@/lib/roles";
 import Flag from "@/components/ui/Flag";
-import Monogram from "@/components/ui/Monogram";
 import MatchdayMenu from "@/components/standings/MatchdayMenu";
 import TeamSelect from "./TeamSelect";
 import { MvpCard, type MvpEntry } from "./MvpCard";
@@ -36,6 +35,8 @@ interface Props {
   days: TournamentDay[];
 }
 
+type ViewMode = "players" | "teams";
+
 function compareRanking(a: MvpEntry, b: MvpEntry) {
   return (
     b.kills - a.kills ||
@@ -45,149 +46,201 @@ function compareRanking(a: MvpEntry, b: MvpEntry) {
   );
 }
 
-function PlayerSkeleton() {
-  return (
-    <div
-      className="animate-pulse overflow-hidden border border-bone/10 bg-char-2"
-      aria-hidden="true"
-    >
-      <div className="aspect-[4/3] bg-char-3" />
-      <div className="space-y-3 p-3">
-        <div className="h-5 w-2/3 bg-bone/10" />
-        <div className="h-3 w-1/2 bg-bone/5" />
-        <div className="h-8 w-full bg-bone/5" />
-      </div>
-    </div>
-  );
-}
-
-function PlayerCard({ player }: { player: RankedMvpEntry }) {
+function PlayerRow({ player }: { player: RankedMvpEntry }) {
   const icon = roleIcon(player.role);
   const remote = /^https?:\/\//.test(player.photo_url ?? "");
 
   return (
     <Link
       href={`/players/${player.id}`}
-      className="group relative min-w-0 overflow-hidden border border-bone/10 bg-char-2 transition-all duration-300 hover:-translate-y-1 hover:border-ember/70 hover:bg-char-3"
+      className="group flex min-w-0 items-center gap-3 border border-bone/10 bg-char-2 px-3 py-3 transition-colors hover:border-ember/60 hover:bg-char-3 sm:gap-4 sm:px-4"
     >
-      {/* Portrait */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-char-3">
+      {/* Rank */}
+      <div className="w-6 shrink-0 text-center">
+        <span
+          className={`font-stat text-xs font-bold tabular-nums ${
+            player.rank <= 3 ? "text-ember" : "text-ash"
+          }`}
+        >
+          {String(player.rank).padStart(2, "0")}
+        </span>
+      </div>
+
+      {/* Player portrait */}
+      <div className="relative h-14 w-12 shrink-0 overflow-hidden border border-bone/10 bg-char-3 sm:h-16 sm:w-14">
         {player.photo_url ? (
           <Image
             src={player.photo_url}
             alt={player.ign}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            sizes="56px"
             unoptimized={remote}
-            className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+            className="object-cover object-top transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Monogram label={player.ign} size={64} />
+          <div className="flex h-full items-center justify-center font-display text-lg font-black text-bone/30">
+            {player.ign.slice(0, 2)}
           </div>
         )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-char-2 via-char/10 to-transparent" />
-
-        {/* Rank */}
-        <div className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center border border-bone/20 bg-char/80 px-1.5 backdrop-blur-sm">
-          <span className="font-stat text-[9px] font-bold tabular-nums text-bone">
-            #{String(player.rank).padStart(2, "0")}
-          </span>
-        </div>
-
-        {/* Team logo */}
-        <div className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center border border-bone/10 bg-char/80 p-1.5 backdrop-blur-sm">
-          {player.team.logo_url ? (
-            <Image
-              src={player.team.logo_url}
-              alt={player.team.name}
-              width={28}
-              height={28}
-              unoptimized
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <span className="font-display text-[9px] font-black text-bone">
-              {player.team.tag.slice(0, 3)}
-            </span>
-          )}
-        </div>
-
-        {/* Portrait identity */}
-        <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <h3 className="truncate font-display text-lg font-black uppercase leading-none text-bone sm:text-xl">
-              {player.ign}
-            </h3>
-            <Flag country={player.country} height={13} />
-          </div>
-
-          <p className="mt-1 truncate font-stat text-[8px] font-bold uppercase tracking-[0.15em] text-ember">
-            {player.team.name}
-          </p>
-        </div>
-
-        {/* Hover accent */}
-        <div className="absolute bottom-0 left-0 h-[2px] w-full origin-left scale-x-0 bg-ember transition-transform duration-300 group-hover:scale-x-100" />
       </div>
 
-      {/* Player details */}
-      <div className="p-2.5 sm:p-3">
-        <div className="flex min-h-5 items-center gap-1.5">
-          {icon && (
-            <Image
-              src={icon}
-              alt=""
-              width={15}
-              height={15}
-              unoptimized
-              className="h-4 w-4 shrink-0 object-contain"
-            />
-          )}
+      {/* Team logo */}
+      <div className="hidden h-9 w-9 shrink-0 items-center justify-center sm:flex">
+        {player.team.logo_url ? (
+          <Image
+            src={player.team.logo_url}
+            alt={player.team.name}
+            width={36}
+            height={36}
+            unoptimized
+            className="h-9 w-9 object-contain"
+          />
+        ) : (
+          <span className="font-display text-[9px] font-black text-ash">
+            {player.team.tag.slice(0, 3)}
+          </span>
+        )}
+      </div>
 
-          <span className="truncate font-stat text-[8px] uppercase tracking-wider text-ash sm:text-[9px]">
+      {/* Player information */}
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h3 className="truncate font-display text-lg font-black uppercase leading-none text-bone sm:text-xl">
+            {player.ign}
+          </h3>
+          <Flag country={player.country} height={14} />
+        </div>
+
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="flex items-center gap-1 font-stat text-[9px] uppercase tracking-wider text-ember">
+            {icon && (
+              <Image
+                src={icon}
+                alt=""
+                width={14}
+                height={14}
+                unoptimized
+                className="h-3.5 w-3.5 object-contain"
+              />
+            )}
             {roleLabel(player.role)}
           </span>
 
-          {player.is_captain && (
-            <span className="ml-auto shrink-0 font-stat text-[8px] font-bold uppercase text-ember">
-              CAP
+          <span className="text-bone/20">·</span>
+
+          <span className="truncate font-stat text-[9px] uppercase tracking-wider text-ash">
+            {player.team.name}
+          </span>
+        </div>
+      </div>
+
+      {/* Statistics */}
+      <div className="flex shrink-0 items-center gap-3 sm:gap-6">
+        <div className="hidden text-right xs:block">
+          <p className="font-display text-lg font-bold leading-none text-bone sm:text-xl">
+            {player.rooms}
+          </p>
+          <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+            Rooms
+          </p>
+        </div>
+
+        <div className="hidden text-right sm:block">
+          <p className="font-display text-lg font-bold leading-none text-ember">
+            {player.firstBloods}
+          </p>
+          <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+            First bloods
+          </p>
+        </div>
+
+        <div className="min-w-[42px] text-right">
+          <p className="font-display text-2xl font-black leading-none tabular-nums text-bone sm:text-3xl">
+            {player.kills}
+          </p>
+          <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+            Kills
+          </p>
+        </div>
+
+        <span className="text-ash/40 transition-transform group-hover:translate-x-1 group-hover:text-ember">
+          →
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function PlayerSkeleton() {
+  return (
+    <div
+      className="flex h-[82px] animate-pulse items-center gap-4 border border-bone/10 bg-char-2 p-3"
+      aria-hidden="true"
+    >
+      <div className="h-12 w-12 bg-bone/10" />
+      <div className="flex-1 space-y-2">
+        <div className="h-4 w-1/3 bg-bone/10" />
+        <div className="h-2 w-1/2 bg-bone/5" />
+      </div>
+      <div className="h-8 w-10 bg-bone/10" />
+    </div>
+  );
+}
+
+function TeamGroup({
+  team,
+  players,
+}: {
+  team: Team;
+  players: RankedMvpEntry[];
+}) {
+  return (
+    <section className="border border-bone/10 bg-char-2">
+      {/* Team heading */}
+      <div className="flex items-center gap-3 border-b border-bone/10 bg-char-3 px-4 py-3 sm:px-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-bone/10 bg-char">
+          {team.logo_url ? (
+            <Image
+              src={team.logo_url}
+              alt={team.name}
+              width={40}
+              height={40}
+              unoptimized
+              className="h-9 w-9 object-contain"
+            />
+          ) : (
+            <span className="font-display text-xs font-black text-bone">
+              {team.tag.slice(0, 3)}
             </span>
           )}
         </div>
 
-        {/* Stats */}
-        <div className="mt-3 flex items-end justify-between border-t border-bone/10 pt-2.5">
-          <div>
-            <p className="font-display text-2xl font-black leading-none tabular-nums text-bone sm:text-3xl">
-              {player.kills}
-            </p>
-            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
-              Kills
-            </p>
-          </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-display text-lg font-black uppercase text-bone sm:text-xl">
+            {team.name}
+          </h3>
+          <p className="mt-0.5 font-stat text-[9px] uppercase tracking-widest text-ash">
+            {players.length} PLAYERS
+          </p>
+        </div>
 
-          <div className="text-right">
-            <p className="font-display text-lg font-bold leading-none tabular-nums text-bone/80">
-              {player.rooms}
-            </p>
-            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
-              Rooms
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="font-display text-lg font-bold leading-none tabular-nums text-ember">
-              {player.firstBloods}
-            </p>
-            <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
-              FB
-            </p>
-          </div>
+        <div className="text-right">
+          <p className="font-display text-2xl font-black leading-none text-ember">
+            {players.reduce((sum, player) => sum + player.kills, 0)}
+          </p>
+          <p className="mt-1 font-stat text-[8px] uppercase tracking-widest text-ash">
+            Team kills
+          </p>
         </div>
       </div>
-    </Link>
+
+      {/* Players stay one per line */}
+      <div className="space-y-px">
+        {players.map((player) => (
+          <PlayerRow key={player.id} player={player} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -199,7 +252,9 @@ export default function PlayersDirectory({
 }: Props) {
   const [search, setSearch] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("players");
 
+  // Preserve the original first-matchday default.
   const [selectedDay, setSelectedDay] = useState(() => {
     const first = [...days].sort(
       (a, b) => a.day_order - b.day_order,
@@ -364,6 +419,7 @@ export default function PlayersDirectory({
       }));
   }, [players, selection, stats]);
 
+  // MVP is independent of search and team filters.
   const mvp =
     ranked[0] && ranked[0].kills > 0 ? ranked[0] : null;
 
@@ -388,6 +444,31 @@ export default function PlayersDirectory({
     });
   }, [ranked, search, selectedTeam]);
 
+  // Group the already-ranked players by team.
+  const groupedTeams = useMemo(() => {
+    const groups = new Map<
+      number,
+      { team: Team; players: RankedMvpEntry[] }
+    >();
+
+    for (const player of filteredPlayers) {
+      const existing = groups.get(player.team.id);
+
+      if (existing) {
+        existing.players.push(player);
+      } else {
+        groups.set(player.team.id, {
+          team: player.team,
+          players: [player],
+        });
+      }
+    }
+
+    return Array.from(groups.values()).sort(
+      (a, b) => a.players[0].rank - b.players[0].rank,
+    );
+  }, [filteredPlayers]);
+
   const teamsWithPlayers = teams.filter((team) =>
     players.some((player) => player.team.id === team.id),
   );
@@ -404,67 +485,51 @@ export default function PlayersDirectory({
       : `MVP of the ${selection.scope}`;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-
-      {/* MVP FEATURE */}
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      {/* MVP */}
       <section className="mb-8">
-        <MvpCard
-          mvp={error ? null : mvp}
-          title={mvpTitle}
-          dayLabel={dayName}
-        />
+        {dayLoading ? (
+          <div className="h-48 animate-pulse border border-bone/10 bg-char-2" />
+        ) : (
+          <MvpCard
+            mvp={error ? null : mvp}
+            title={mvpTitle}
+            dayLabel={dayName}
+          />
+        )}
       </section>
 
-      {/* DIRECTORY HEADER */}
-      <section>
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      {/* Directory heading */}
+      <div className="mb-5">
+        <p className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ember">
+          THE WORLD STAGE
+        </p>
+        <h2 className="mt-1 font-display text-3xl font-black uppercase leading-none text-bone sm:text-4xl">
+          Players directory<span className="text-ember">.</span>
+        </h2>
+      </div>
+
+      {/* MATCHDAY SELECTION */}
+      <section className="mb-5 border border-bone/10 bg-char-2 p-3 sm:p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <div>
-            <p className="font-stat text-[9px] font-bold uppercase tracking-[0.25em] text-ember">
-              THE COMPETITORS
+            <p className="font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-bone">
+              Tournament matchday
             </p>
-            <h2 className="mt-1 font-display text-3xl font-black uppercase leading-none text-bone sm:text-4xl">
-              Player roster<span className="text-ember">.</span>
-            </h2>
+            <p className="mt-1 font-stat text-[9px] uppercase tracking-wider text-ash">
+              Choose the matches you want to explore
+            </p>
           </div>
 
-          <p className="font-stat text-[9px] uppercase tracking-widest text-ash">
-            {filteredPlayers.length} / {ranked.length} PLAYERS
-          </p>
+          <span className="shrink-0 font-stat text-[9px] uppercase tracking-wider text-ember">
+            {selection.scope === "all" ? "All tournament" : dayName}
+          </span>
         </div>
 
-        {/* FILTERS */}
-        <div className="mb-6 border border-bone/10 bg-char-2 p-3 sm:p-4">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1fr)_minmax(180px,220px)_auto_minmax(180px,220px)] xl:items-center">
-
-            {/* Search */}
-            <div className="relative min-w-0">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ash">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  className="h-4 w-4"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m16 16 4 4" />
-                </svg>
-              </span>
-
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="SEARCH PLAYER OR TEAM..."
-                aria-label="Search players or teams"
-                className="h-11 w-full border border-bone/10 bg-char px-10 font-stat text-[10px] uppercase tracking-wider text-bone outline-none transition-colors placeholder:text-ash/60 focus:border-ember"
-              />
-            </div>
-
-            {/* Matchday */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
             <MatchdayMenu
-              ariaLabel="Day"
+              ariaLabel="Matchday"
               sections={daySections}
               value={selectedDay}
               onChange={(value) => {
@@ -474,147 +539,213 @@ export default function PlayersDirectory({
               disabled={days.length === 0}
               placeholder="All days"
             />
-
-            {/* Session picker */}
-            {selection.scope === "day" ? (
-              <div
-                role="group"
-                aria-label="Session"
-                className="flex h-11 min-w-0 border border-bone/10 bg-char"
-              >
-                {(
-                  [
-                    { value: 0, label: "Both" },
-                    { value: 1, label: "S1" },
-                    { value: 2, label: "S2" },
-                  ] as const
-                ).map((option) => {
-                  const active = selectedSession === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setSelectedSession(option.value)}
-                      className={`flex-1 px-3 font-stat text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                        active
-                          ? "bg-ember text-char"
-                          : "text-ash hover:bg-char-3 hover:text-bone"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="hidden xl:block" />
-            )}
-
-            {/* Team */}
-            <TeamSelect
-              teams={teamsWithPlayers}
-              value={selectedTeam}
-              onChange={setSelectedTeam}
-            />
           </div>
 
-          {/* Active selection */}
-          {(search || selectedTeam !== "all") && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-bone/10 pt-3">
-              <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
-                Showing filtered results
-              </p>
+          {selection.scope === "day" && (
+            <div
+              role="group"
+              aria-label="Match session"
+              className="grid h-11 shrink-0 grid-cols-3 border border-bone/10 bg-char sm:w-auto"
+            >
+              {(
+                [
+                  { value: 0, label: "Both sessions" },
+                  { value: 1, label: "Session 1" },
+                  { value: 2, label: "Session 2" },
+                ] as const
+              ).map((option) => {
+                const active = selectedSession === option.value;
 
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedTeam("all");
-                }}
-                className="font-stat text-[9px] font-bold uppercase tracking-widest text-ember transition-colors hover:text-bone"
-              >
-                Clear filters ×
-              </button>
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSelectedSession(option.value)}
+                    className={`whitespace-nowrap px-3 font-stat text-[9px] font-bold uppercase tracking-wider transition-colors sm:px-4 ${
+                      active
+                        ? "bg-ember text-char"
+                        : "text-ash hover:bg-char-3 hover:text-bone"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
+      </section>
 
-        {/* RESULT BAR */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-stat text-[9px] uppercase tracking-[0.2em] text-ash">
-            <span className="text-bone">{filteredPlayers.length}</span>{" "}
-            {filteredPlayers.length === 1 ? "PLAYER" : "PLAYERS"}
+      {/* SEARCH AND TEAM FILTER */}
+      <section className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,260px)]">
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="SEARCH PLAYER, REAL NAME OR TEAM..."
+          aria-label="Search players"
+          className="h-12 min-w-0 border border-bone/10 bg-char-2 px-4 font-stat text-[10px] uppercase tracking-widest text-bone outline-none placeholder:text-ash/60 transition-colors focus:border-ember"
+        />
+
+        <TeamSelect
+          teams={teamsWithPlayers}
+          value={selectedTeam}
+          onChange={setSelectedTeam}
+        />
+      </section>
+
+      {/* LARGE VIEW SELECTOR */}
+      <section className="mb-6">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-bone">
+            Display players by
           </p>
 
-          <p className="font-stat text-[9px] uppercase tracking-[0.15em] text-ash">
-            RANKED BY KILLS · {dayName}
+          <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+            {filteredPlayers.length} players
           </p>
         </div>
 
-        {/* ERROR */}
-        {error && (
-          <div className="border border-danger/30 bg-char-2 px-6 py-8 text-center">
-            <p className="text-sm text-bone">{error}</p>
-            <button
-              type="button"
-              onClick={() => setAttempt((n) => n + 1)}
-              className="mt-4 border border-ember px-4 py-2 font-stat text-xs uppercase tracking-wider text-ember transition-colors hover:bg-ember hover:text-char"
-            >
-              Try again
-            </button>
-          </div>
-        )}
+        <div
+          role="group"
+          aria-label="Directory view"
+          className="grid grid-cols-2 gap-2"
+        >
+          <button
+            type="button"
+            aria-pressed={viewMode === "players"}
+            onClick={() => setViewMode("players")}
+            className={`flex min-h-[62px] items-center justify-center gap-3 border px-3 transition-all sm:min-h-[72px] ${
+              viewMode === "players"
+                ? "border-ember bg-ember text-char"
+                : "border-bone/15 bg-char-2 text-bone hover:border-bone/40"
+            }`}
+          >
+            <span className="font-display text-2xl font-black">01</span>
+            <span className="text-left">
+              <span className="block font-stat text-xs font-bold uppercase tracking-widest">
+                Players
+              </span>
+              <span
+                className={`mt-1 block font-stat text-[8px] uppercase tracking-wider ${
+                  viewMode === "players" ? "text-char/70" : "text-ash"
+                }`}
+              >
+                Individual rankings
+              </span>
+            </span>
+          </button>
 
-        {/* LOADING */}
-        {dayLoading && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5">
-            {Array.from({ length: 10 }, (_, i) => (
-              <PlayerSkeleton key={i} />
-            ))}
-          </div>
-        )}
+          <button
+            type="button"
+            aria-pressed={viewMode === "teams"}
+            onClick={() => setViewMode("teams")}
+            className={`flex min-h-[62px] items-center justify-center gap-3 border px-3 transition-all sm:min-h-[72px] ${
+              viewMode === "teams"
+                ? "border-ember bg-ember text-char"
+                : "border-bone/15 bg-char-2 text-bone hover:border-bone/40"
+            }`}
+          >
+            <span className="font-display text-2xl font-black">02</span>
+            <span className="text-left">
+              <span className="block font-stat text-xs font-bold uppercase tracking-widest">
+                By teams
+              </span>
+              <span
+                className={`mt-1 block font-stat text-[8px] uppercase tracking-wider ${
+                  viewMode === "teams" ? "text-char/70" : "text-ash"
+                }`}
+              >
+                Team rosters
+              </span>
+            </span>
+          </button>
+        </div>
+      </section>
 
-        {/* PLAYER GRID */}
-        {!dayLoading && !error && (
-          <>
-            {filteredPlayers.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5">
-                {filteredPlayers.map((player) => (
-                  <PlayerCard key={player.id} player={player} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+      {/* RESULTS HEADER */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-bone/10 pb-3">
+        <p className="font-stat text-[10px] font-bold uppercase tracking-[0.2em] text-bone">
+          {viewMode === "players" ? "Player rankings" : "Team rosters"}
+        </p>
 
-        {/* EMPTY STATES */}
-        {noResultsForDay && (
+        <p className="font-stat text-[9px] uppercase tracking-wider text-ash">
+          SORTED BY KILLS · {dayName}
+        </p>
+      </div>
+
+      {/* ERROR */}
+      {error && (
+        <div className="border border-danger/30 bg-char-2 px-6 py-8 text-center">
+          <p className="text-sm text-bone">{error}</p>
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="mt-4 border border-ember px-4 py-2 font-stat text-xs uppercase tracking-wider text-ember hover:bg-ember hover:text-char"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* LOADING */}
+      {dayLoading && (
+        <div className="space-y-2">
+          {Array.from({ length: 7 }, (_, i) => (
+            <PlayerSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {/* PLAYERS VIEW */}
+      {!dayLoading && !error && viewMode === "players" && (
+        <div className="space-y-2">
+          {filteredPlayers.map((player) => (
+            <PlayerRow key={player.id} player={player} />
+          ))}
+        </div>
+      )}
+
+      {/* TEAMS VIEW */}
+      {!dayLoading && !error && viewMode === "teams" && (
+        <div className="space-y-4">
+          {groupedTeams.map(({ team, players: teamPlayers }) => (
+            <TeamGroup
+              key={team.id}
+              team={team}
+              players={teamPlayers}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* NO MATCH RESULTS */}
+      {noResultsForDay && (
+        <div className="border border-bone/10 bg-char-2 px-6 py-16 text-center">
+          <p className="font-display text-3xl font-black uppercase text-bone">
+            No results yet<span className="text-ember">.</span>
+          </p>
+          <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
+            Kills for {dayName} appear once matches are played.
+          </p>
+        </div>
+      )}
+
+      {/* NO SEARCH RESULTS */}
+      {!dayLoading &&
+        !error &&
+        !noResultsForDay &&
+        filteredPlayers.length === 0 && (
           <div className="border border-bone/10 bg-char-2 px-6 py-16 text-center">
             <p className="font-display text-3xl font-black uppercase text-bone">
-              No results yet<span className="text-ember">.</span>
+              No players found<span className="text-ember">.</span>
             </p>
             <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
-              Kills for {dayName} appear once matches are played.
+              Try another player, team or matchday.
             </p>
           </div>
         )}
-
-        {!dayLoading &&
-          !error &&
-          !noResultsForDay &&
-          filteredPlayers.length === 0 && (
-            <div className="border border-bone/10 bg-char-2 px-6 py-16 text-center">
-              <p className="font-display text-3xl font-black uppercase text-bone">
-                No players found<span className="text-ember">.</span>
-              </p>
-              <p className="mt-2 font-stat text-[9px] uppercase tracking-widest text-ash">
-                Try another player or team.
-              </p>
-            </div>
-          )}
-      </section>
     </main>
   );
 }
