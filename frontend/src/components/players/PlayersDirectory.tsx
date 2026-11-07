@@ -256,12 +256,16 @@ export default function PlayersDirectory({
 
   // Preserve the original first-matchday default.
   const [selectedDay, setSelectedDay] = useState(() => {
-    const first = [...days].sort(
-      (a, b) => a.day_order - b.day_order,
-    )[0];
+  const hasWeek1 = days.some((day) => day.day_order <= 3);
 
-    return first ? String(first.id) : "all";
-  });
+  if (hasWeek1) return "week-1";
+
+  const first = [...days].sort(
+    (a, b) => a.day_order - b.day_order,
+  )[0];
+
+  return first ? String(first.id) : "all";
+});
 
   const [selectedSession, setSelectedSession] = useState<0 | 1 | 2>(0);
   const [dayStats, setDayStats] = useState<Record<string, DayStats>>({});
