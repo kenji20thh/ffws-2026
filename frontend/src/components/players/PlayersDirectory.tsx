@@ -20,6 +20,10 @@ type PlayerWithStats = Player & {
 
 type DayStats = Map<number, { kills: number; rooms: number; firstBloods: number }>;
 
+type RankedMvpEntry = MvpEntry & {
+  rank: number;
+};
+
 interface Props {
   players: PlayerWithStats[];
   teams: Team[];
@@ -167,7 +171,7 @@ export default function PlayersDirectory({
 
   // Every player with the numbers of the selected day (or the whole tournament).
   // For a single day, only players who actually played that day are ranked.
-  const ranked = useMemo<MvpEntry[]>(() => {
+  const ranked = useMemo<RankedMvpEntry[]>(() => {
     const rows: MvpEntry[] = players.map((player) => {
       if (selection.scope === "all") {
         return {
@@ -188,7 +192,13 @@ export default function PlayersDirectory({
     });
 
     const played = selection.scope === "all" ? rows : rows.filter((r) => r.rooms > 0);
-    return played.sort(compareRanking);
+
+    return played
+      .sort(compareRanking)
+      .map((player, index) => ({
+        ...player,
+        rank: index + 1,
+      }));
   }, [players, selection, stats]);
 
   // MVP is picked from everyone that day, whatever the search / team filters say.
@@ -336,7 +346,7 @@ export default function PlayersDirectory({
           {/* Players */}
           {!dayLoading && !error && (
             <div className="space-y-2">
-              {filteredPlayers.map((player, index) => {
+              {filteredPlayers.map((player) => {
                 const icon = roleIcon(player.role);
 
                 return (
@@ -348,7 +358,7 @@ export default function PlayersDirectory({
                     <div className="flex min-h-[5.5rem] items-center gap-4 px-4 py-3 md:px-6">
                       {/* Rank */}
                       <div className="hidden w-8 shrink-0 text-center font-stat text-xs text-ash sm:block">
-                        {String(index + 1).padStart(2, "0")}
+                        {String(player.rank).padStart(2, "0")}
                       </div>
 
                       {/* Team logo */}
