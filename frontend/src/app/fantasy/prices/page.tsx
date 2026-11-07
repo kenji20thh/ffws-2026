@@ -1,23 +1,33 @@
-
 export const metadata = {
   title: "Price Changes · Fantasy · FFWS 2026",
 };
 
 const priceChanges = [
-  { id: 52, name: "TERNA", oldPrice: 16, newPrice: 19 },
-  { id: 89, name: "LOTEXBAU", oldPrice: 13, newPrice: 15 },
-  { id: 91, name: "CHAR!ZARDX77", oldPrice: 13, newPrice: 15 },
-  { id: 101, name: "ROMAN", oldPrice: 12, newPrice: 14 },
-  { id: 92, name: "PIKXCHU7", oldPrice: 12, newPrice: 13 },
-  { id: 82, name: "DAAFIQ20", oldPrice: 12, newPrice: 14 },
+  // Price increases
+  { id: 80, name: "KRISH", oldPrice: 13, newPrice: 16 },
+  { id: 81, name: "ZIYAN21", oldPrice: 13, newPrice: 15 },
+  { id: 61, name: "BLUEE", oldPrice: 16, newPrice: 18 },
+  { id: 115, name: "BUTZIN", oldPrice: 26, newPrice: 28 },
+  { id: 39, name: "RANZ", oldPrice: 24, newPrice: 25 },
+  { id: 105, name: "RAONE7", oldPrice: 26, newPrice: 28 },
+  { id: 114, name: "BOPS", oldPrice: 23, newPrice: 25 },
+  { id: 130, name: "DAVID444", oldPrice: 21, newPrice: 22 },
+  { id: 79, name: "SIDAK07", oldPrice: 14, newPrice: 16 },
+  { id: 82, name: "DAAFIQ20", oldPrice: 14, newPrice: 15 },
 
-  { id: 30, name: "BAROS", oldPrice: 30, newPrice: 28 },
-  { id: 105, name: "RAONE7", oldPrice: 28, newPrice: 26 },
-  { id: 128, name: "ANDREXZ", oldPrice: 22, newPrice: 20 },
-  { id: 28, name: "SAIFA", oldPrice: 32, newPrice: 31 },
-  { id: 31, name: "DEW", oldPrice: 29, newPrice: 28 },
-  { id: 8, name: "HAXXSZZ", oldPrice: 23, newPrice: 20 },
-
+  // Price decreases
+  { id: 128, name: "ANDREXZ", oldPrice: 20, newPrice: 18 },
+  { id: 123, name: "KROWA", oldPrice: 23, newPrice: 21 },
+  { id: 44, name: "POOM", oldPrice: 23, newPrice: 21 },
+  { id: 125, name: "JOSTINN7", oldPrice: 22, newPrice: 21 },
+  { id: 124, name: "ESTEBANZN", oldPrice: 22, newPrice: 21 },
+  { id: 14, name: "KOJAA", oldPrice: 26, newPrice: 25 },
+  { id: 33, name: "THEGOD", oldPrice: 28, newPrice: 27 },
+  { id: 13, name: "C1B3NK", oldPrice: 27, newPrice: 26 },
+  { id: 108, name: "TRAP", oldPrice: 29, newPrice: 28 },
+  { id: 111, name: "NICKZ", oldPrice: 27, newPrice: 26 },
+  { id: 15, name: "FELLOW", oldPrice: 24, newPrice: 23 },
+  { id: 51, name: "MOSHI", oldPrice: 29, newPrice: 28 },
 ];
 
 const increases = priceChanges.filter((p) => p.newPrice > p.oldPrice);
@@ -80,7 +90,7 @@ export default function FantasyPricesPage() {
         </h1>
 
         <p className="mt-3 font-stat text-sm uppercase tracking-widest text-ash">
-          Day 2 · Based on Day 1 performances
+          Day 3 · Based on Day 2 performances
         </p>
 
         <div className="mt-6 flex justify-center gap-3">
